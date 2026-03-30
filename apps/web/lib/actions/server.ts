@@ -1,0 +1,353 @@
+import { revalidatePath } from "next/cache";
+import type { FormActionState, ShipmentStatus } from "@fatguydiscounts/types";
+import { previewApprovalAction } from "./approvals";
+import { previewClaimAction } from "./claims";
+import { previewPaymentAction } from "./payments";
+import { previewShipmentRequest } from "./shipments";
+import { getCurrentSessionUser } from "../auth/session";
+import { updateStoredAccountRole, updateStoredAccountState } from "../auth/local-auth-store";
+import {
+  addCustomerNoteToDatabase,
+  addManualBalanceItemToDatabase,
+  adjustInventoryInDatabase,
+  applyBalanceAdjustmentsToDatabase,
+  applyPaymentToDatabase,
+  removeClaimedItemFromDatabase,
+  submitClaimToDatabase,
+  submitRestockRequestToDatabase,
+  submitShipmentRequestToDatabase,
+  updateClaimedItemInDatabase,
+  updateCustomerAccountState,
+  updateCustomerRoleInDatabase,
+  updateCurrentCustomerProfile,
+  updateShipmentInDatabase,
+} from "../data/local-db";
+import { hasSupabaseEnv } from "../supabase";
+
+async function requireCustomerMutationAccess() {
+  const currentUser = await getCurrentSessionUser();
+
+  if (!currentUser || currentUser.role !== "customer" || currentUser.accountState === "banned") {
+    return {
+      ok: false as const,
+      message: "Customer access is required for this action.",
+    };
+  }
+
+  return { ok: true as const, currentUser };
+}
+
+async function requireAdminMutationAccess() {
+  const currentUser = await getCurrentSessionUser();
+
+  if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "master_admin") || currentUser.accountState === "banned") {
+    return {
+      ok: false as const,
+      message: "Admin access is required for this action.",
+    };
+  }
+
+  return { ok: true as const, currentUser };
+}
+
+async function requireMasterAdminMutationAccess() {
+  const currentUser = await getCurrentSessionUser();
+
+  if (!currentUser || currentUser.role !== "master_admin" || currentUser.accountState === "banned") {
+    return {
+      ok: false as const,
+      message: "Master admin access is required for this action.",
+    };
+  }
+
+  return { ok: true as const, currentUser };
+}
+
+export async function submitClaim(productId: string, requestedQuantity: number): Promise<FormActionState> {
+  const access = await requireCustomerMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const preview = await previewClaimAction(productId, requestedQuantity);
+
+  if (!preview.ok) {
+    return preview;
+  }
+
+  const result = await submitClaimToDatabase(productId, requestedQuantity);
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/account");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin/claims");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function addManualBalanceItem(title: string, quantity: number, unitPrice: number): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await addManualBalanceItemToDatabase(title, quantity, unitPrice);
+  revalidatePath("/account");
+  revalidatePath("/admin");
+  revalidatePath("/admin/claims");
+  revalidatePath("/admin/payments");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateBalanceLineItem(claimId: string, quantity: number, unitPrice: number): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateClaimedItemInDatabase(claimId, quantity, unitPrice);
+  revalidatePath("/account");
+  revalidatePath("/admin");
+  revalidatePath("/admin/claims");
+  revalidatePath("/admin/payments");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function removeBalanceLineItem(claimId: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await removeClaimedItemFromDatabase(claimId);
+  revalidatePath("/account");
+  revalidatePath("/admin");
+  revalidatePath("/admin/claims");
+  revalidatePath("/admin/payments");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function applyBalanceAdjustments(shippingChange: number, adjustmentChange: number): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await applyBalanceAdjustmentsToDatabase(shippingChange, adjustmentChange);
+  revalidatePath("/account");
+  revalidatePath("/admin");
+  revalidatePath("/admin/claims");
+  revalidatePath("/admin/payments");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function adjustInventory(productId: string, quantityChange: number): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await adjustInventoryInDatabase(productId, quantityChange);
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function submitRestockRequest(productId: string): Promise<FormActionState> {
+  const result = await submitRestockRequestToDatabase(productId);
+  revalidatePath("/store");
+  revalidatePath("/admin");
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateApprovalState(
+  customerId: string,
+  nextState: "approved" | "claiming_disabled" | "banned",
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const preview = previewApprovalAction(nextState);
+
+  if (!preview.allowed) {
+    return {
+      ok: false,
+      message: "Approval action is not permitted.",
+    };
+  }
+
+  const result = await updateCustomerAccountState(customerId, nextState);
+  if (result.ok && !hasSupabaseEnv()) {
+    await updateStoredAccountState(customerId, nextState);
+  }
+  revalidatePath("/admin");
+  revalidatePath("/admin/approvals");
+  revalidatePath("/admin/customers");
+  revalidatePath("/account");
+  revalidatePath("/login");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function addCustomerNote(customerId: string, note: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await addCustomerNoteToDatabase(customerId, note);
+  revalidatePath("/admin");
+  revalidatePath("/admin/customers");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function promoteCustomerToAdmin(customerId: string): Promise<FormActionState> {
+  const access = await requireMasterAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateCustomerRoleInDatabase(customerId, "admin");
+  if (result.ok && !hasSupabaseEnv()) {
+    await updateStoredAccountRole(customerId, "admin");
+  }
+  revalidatePath("/admin");
+  revalidatePath("/admin/customers");
+  revalidatePath("/login");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateCurrentCustomerProfileDetails(address: string, timezone: string): Promise<FormActionState> {
+  const access = await requireCustomerMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateCurrentCustomerProfile({ address, timezone });
+  revalidatePath("/account");
+  revalidatePath("/claims");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function submitShipmentRequest(addressConfirmed = false): Promise<FormActionState> {
+  const access = await requireCustomerMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const preview = await previewShipmentRequest();
+
+  if (!preview.allowed) {
+    return {
+      ok: false,
+      message: "Shipment request is blocked.",
+    };
+  }
+
+  if (!addressConfirmed) {
+    return {
+      ok: false,
+      message: "Confirm the address on file before requesting shipment.",
+    };
+  }
+
+  const result = await submitShipmentRequestToDatabase();
+  revalidatePath("/account");
+  revalidatePath("/admin");
+  revalidatePath("/admin/shipments");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateShipment(
+  shipmentId: string,
+  nextStatus: ShipmentStatus,
+  trackingNumber: string,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateShipmentInDatabase(shipmentId, nextStatus, trackingNumber);
+  revalidatePath("/account");
+  revalidatePath("/admin");
+  revalidatePath("/admin/shipments");
+  revalidatePath("/admin/customers");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function previewPaymentSubmission(paymentAmount: number, creditAmount: number): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await applyPaymentToDatabase(paymentAmount, creditAmount);
+  revalidatePath("/account");
+  revalidatePath("/account/history");
+  revalidatePath("/admin");
+  revalidatePath("/admin/claims");
+  revalidatePath("/admin/payments");
+  revalidatePath("/admin/reports");
+
+  return {
+    ...(result.ok ? result : await previewPaymentAction(paymentAmount, creditAmount)),
+    submittedAt: new Date().toISOString(),
+  };
+}

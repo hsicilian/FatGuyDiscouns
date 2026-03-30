@@ -1,0 +1,21 @@
+{
+  "name": "fatguydiscounts",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@10.9.3",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev -w apps/web",
+    "dev:mobile": "npm run dev -w apps/mobile",
+    "build:web": "npm run build -w apps/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "import:local-json": "node ./scripts/import-local-json-to-supabase.mjs",
+    "seed:supabase": "node ./scripts/seed-supabase-demo.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

@@ -1,0 +1,14 @@
+node_modules
+.next
+dist
+.expo
+.turbo
+.vercel
+.env
+.env.local
+coverage
+*.tsbuildinfo
+
+
+apps/web/data/local-db.json
+apps/web/data/local-auth.json

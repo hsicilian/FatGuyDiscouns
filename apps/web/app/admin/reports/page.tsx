@@ -1,0 +1,39 @@
+﻿import { canAccessFinancialReporting } from "@fatguydiscounts/core";
+import { ensureMasterAdminAccess } from "../../../lib/auth/guards";
+import { getCurrentSessionUser } from "../../../lib/auth/session";
+import { getFinancialSummary } from "../../../lib/data/local-db";
+
+const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+
+export default async function AdminReportsPage() {
+  await ensureMasterAdminAccess();
+
+  const currentUser = await getCurrentSessionUser();
+  const allowed = canAccessFinancialReporting(currentUser?.role ?? "customer");
+  const financialSummary = await getFinancialSummary();
+
+  return (
+    <main style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px 72px" }}>
+      <div style={{ marginBottom: 24 }}>
+        <p style={{ textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12, color: "#8e3200" }}>Master admin only</p>
+        <h1 style={{ margin: "0 0 12px" }}>Financial reporting</h1>
+        <p style={{ color: "#6d655d", lineHeight: 1.7 }}>This route is gated so only master admins can access business financial summaries.</p>
+      </div>
+      {allowed ? (
+        <div style={{ display: "grid", gap: 16 }}>
+          <section style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Total running balance</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.totalRunningBalance)}</h2></div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Unpaid total</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.unpaidTotal)}</h2></div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Payments this cycle</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.paymentsThisCycle)}</h2></div>
+          </section>
+          <section style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+            <h2 style={{ marginTop: 0 }}>Customer balances</h2>
+            {financialSummary.customerBalances.map((entry) => (
+              <div key={entry.customer} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}><div><strong>{entry.customer}</strong><p style={{ margin: "4px 0 0", color: entry.overdue ? "#8e3200" : "#6d655d" }}>{entry.overdue ? "Overdue" : "Current"}</p></div><strong>{currency.format(entry.amount)}</strong></div>
+            ))}
+          </section>
+        </div>
+      ) : <section style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>Financial reports are hidden for regular admins.</section>}
+    </main>
+  );
+}

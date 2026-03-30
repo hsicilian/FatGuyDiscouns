@@ -1,0 +1,28 @@
+{
+  "name": "@fatguydiscounts/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fatguydiscounts/core": "0.1.0",
+    "@fatguydiscounts/db": "0.1.0",
+    "@fatguydiscounts/types": "0.1.0",
+    "@supabase/supabase-js": "^2.49.4",
+    "expo": "~53.0.0",
+    "expo-router": "~5.0.2",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.2.0",
+    "react-native": "0.79.0",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.11.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "@types/react": "^19.0.10",
+    "typescript": "^5.8.2"
+  }
+}
