@@ -16,7 +16,6 @@ import { getCurrentCustomerSupabase, listProductsSupabase } from "./supabase-rea
 import { createServerSupabaseClient } from "../supabase";
 
 export async function submitClaimToDatabaseSupabase(productId: string, requestedQuantity: number) {
-  const actor = await getCurrentActor();
   const customer = await getCurrentCustomerSupabase();
   const products = await listProductsSupabase();
   const product = products.find((entry) => entry.id === productId);
@@ -32,7 +31,7 @@ export async function submitClaimToDatabaseSupabase(productId: string, requested
 
   const admin = await getAdminClient();
   const { error } = await admin.rpc("admin_claim_product", {
-    p_customer_id: actor.id,
+    p_customer_id: customer.id,
     p_product_id: productId,
     p_quantity: requestedQuantity,
   });
