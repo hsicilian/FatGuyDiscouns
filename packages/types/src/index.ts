@@ -58,6 +58,8 @@ export interface BalanceCycleSummary {
   adjustments: number;
   paymentsApplied: number;
   creditsApplied: number;
+  customerId?: string;
+  customerName?: string;
 }
 
 export interface ArchivedInvoice {

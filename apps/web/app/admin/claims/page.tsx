@@ -36,7 +36,10 @@ export default async function AdminClaimsPage() {
 
       <section style={{ marginTop: 0, display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 22, boxShadow: "var(--shadow)" }}>
-          <p style={{ marginTop: 0, color: "var(--muted)" }}>Current amount due</p>
+          <p style={{ marginTop: 0, color: "var(--muted)" }}>
+            Current amount due
+            {balanceCycle.customerName ? ` for ${balanceCycle.customerName}` : ""}
+          </p>
           <h2 style={{ marginBottom: 0 }}>{currency.format(currentTotal)}</h2>
         </div>
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 22, boxShadow: "var(--shadow)" }}>
@@ -63,6 +66,13 @@ export default async function AdminClaimsPage() {
       </section>
 
       <div style={{ display: "grid", gap: 16, marginTop: 24 }}>
+        {balanceCycle.customerName ? (
+          <div style={{ background: "rgba(255,255,255,0.52)", border: "1px solid rgba(232,214,195,0.9)", borderRadius: 18, padding: 16 }}>
+            <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em" }}>Viewing active balance</p>
+            <strong>{balanceCycle.customerName}</strong>
+            <p style={{ marginBottom: 0, color: "var(--muted)" }}>Due date {balanceCycle.dueDate}</p>
+          </div>
+        ) : null}
         {claimedItems.map((item) => (
           <section key={item.id} style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>

@@ -97,7 +97,11 @@ export function toShowEvent(row: Record<string, any>): ShowEvent {
   };
 }
 
-export function mapBalanceCycle(row: Record<string, any>, subtotal: number): BalanceCycleSummary {
+export function mapBalanceCycle(
+  row: Record<string, any>,
+  subtotal: number,
+  customer?: { id?: string; displayName?: string },
+): BalanceCycleSummary {
   return {
     id: row.id,
     status: row.status,
@@ -107,6 +111,8 @@ export function mapBalanceCycle(row: Record<string, any>, subtotal: number): Bal
     adjustments: Number(row.adjustments_total ?? 0),
     paymentsApplied: Number(row.payments_applied ?? 0),
     creditsApplied: Number(row.credits_applied ?? 0),
+    customerId: customer?.id ?? row.customer_id ?? undefined,
+    customerName: customer?.displayName ?? undefined,
   };
 }
 
@@ -151,8 +157,8 @@ export async function getSupabaseCycleRow(customerId?: string) {
   }
 
   if (actor.role === "customer") {
-    const session = await getSessionClient();
-    const { data } = await session.from("balance_cycles").select("*").eq("customer_id", actor.id).eq("status", "active").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    const admin = await getAdminClient();
+    const { data } = await admin.from("balance_cycles").select("*").eq("customer_id", actor.id).eq("status", "active").order("updated_at", { ascending: false }).limit(1).maybeSingle();
     return data;
   }
 
@@ -182,8 +188,9 @@ export async function getTargetCycleContext() {
     return null;
   }
 
-  const subtotal = await getCycleSubtotal(cycle.id, { admin: actor.role !== "customer" });
-  return { cycle, summary: mapBalanceCycle(cycle as Record<string, any>, subtotal) };
+  const customer = await getCustomerSummaryByUserId(cycle.customer_id, { admin: true });
+  const subtotal = await getCycleSubtotal(cycle.id, { admin: true });
+  return { cycle, summary: mapBalanceCycle(cycle as Record<string, any>, subtotal, { id: customer.id, displayName: customer.displayName }) };
 }
 
 export async function getCustomerSummaryByUserId(userId: string, options?: { admin?: boolean }) {

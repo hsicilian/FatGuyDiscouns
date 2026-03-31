@@ -59,9 +59,8 @@ export async function listClaimedItemsSupabase() {
   const context = await getTargetCycleContext();
   if (!context) return [] as ClaimedItem[];
 
-  const actor = await getCurrentActor();
-  const client = actor.role === "customer" ? await getSessionClient() : await getAdminClient();
-  const { data, error } = await client
+  const admin = await getAdminClient();
+  const { data, error } = await admin
     .from("balance_line_items")
     .select("id, description, quantity, unit_price, status, item_type")
     .eq("cycle_id", context.cycle.id)
@@ -77,8 +76,8 @@ export async function listArchivedInvoicesSupabase() {
   const actor = await getCurrentActor();
   if (actor.role !== "customer") return [];
 
-  const session = await getSessionClient();
-  const { data, error } = await session
+  const admin = await getAdminClient();
+  const { data, error } = await admin
     .from("archived_invoices")
     .select("id, cycle_label, paid_at, total, payment_total, credit_applied")
     .eq("customer_id", actor.id)
@@ -130,13 +129,23 @@ export async function listCustomerNotesSupabase(customerId?: string) {
 
 export async function listNotificationsSupabase() {
   const admin = await getAdminClient();
-  const { data, error } = await admin.from("notifications").select("id, type, payload, created_at").order("created_at", { ascending: false }).limit(30);
+  const { data, error } = await admin.from("notifications").select("id, type, payload, created_at, customer_id").order("created_at", { ascending: false }).limit(30);
   if (error) throw error;
+
+  const customerIds = [...new Set((data ?? []).map((row) => row.customer_id).filter(Boolean))];
+  const customerMap = new Map<string, Awaited<ReturnType<typeof getCustomerSummaryByUserId>>>();
+  await Promise.all(customerIds.map(async (customerId) => {
+    customerMap.set(customerId, await getCustomerSummaryByUserId(customerId, { admin: true }));
+  }));
 
   return (data ?? []).map((row) => ({
     id: row.id,
     type: row.type,
-    label: formatNotificationLabel(row as Record<string, any>),
+    label: formatNotificationLabel({
+      ...row,
+      payload: row.payload ?? {},
+      customerName: row.customer_id ? customerMap.get(row.customer_id)?.displayName : undefined,
+    } as Record<string, any>),
     createdAt: row.created_at,
   } satisfies AdminNotification));
 }
