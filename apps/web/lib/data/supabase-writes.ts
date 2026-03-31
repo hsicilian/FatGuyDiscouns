@@ -396,6 +396,76 @@ export async function createInventoryItemsBulkInDatabaseSupabase(input: Array<{
   };
 }
 
+export async function createCategoryInDatabaseSupabase(name: string) {
+  const trimmedName = name.trim();
+  if (!trimmedName) {
+    return { ok: false, message: "Category name is required." };
+  }
+
+  const admin = await getAdminClient();
+  const normalizedSlug = slugifyCategoryName(trimmedName);
+  const existingCategory = await admin
+    .from("categories")
+    .select("id")
+    .or(`name.eq.${trimmedName},slug.eq.${normalizedSlug}`)
+    .maybeSingle();
+
+  if (existingCategory.error) {
+    return { ok: false, message: existingCategory.error.message };
+  }
+
+  if (existingCategory.data?.id) {
+    return { ok: false, message: "That category already exists." };
+  }
+
+  const insertResult = await admin
+    .from("categories")
+    .insert({ name: trimmedName, slug: normalizedSlug });
+
+  if (insertResult.error) {
+    return { ok: false, message: insertResult.error.message };
+  }
+
+  return { ok: true, message: `${trimmedName} was added to categories.` };
+}
+
+export async function deleteCategoryInDatabaseSupabase(categoryId: string) {
+  const admin = await getAdminClient();
+  const { data: category, error: categoryError } = await admin
+    .from("categories")
+    .select("id, name")
+    .eq("id", categoryId)
+    .maybeSingle();
+
+  if (categoryError) {
+    return { ok: false, message: categoryError.message };
+  }
+
+  if (!category) {
+    return { ok: false, message: "Category not found." };
+  }
+
+  const usage = await admin
+    .from("products")
+    .select("id", { count: "exact", head: true })
+    .eq("category_id", categoryId);
+
+  if (usage.error) {
+    return { ok: false, message: usage.error.message };
+  }
+
+  if ((usage.count ?? 0) > 0) {
+    return { ok: false, message: "This category is still being used by inventory items." };
+  }
+
+  const deleteResult = await admin.from("categories").delete().eq("id", categoryId);
+  if (deleteResult.error) {
+    return { ok: false, message: deleteResult.error.message };
+  }
+
+  return { ok: true, message: `${category.name} was removed from categories.` };
+}
+
 export async function submitRestockRequestToDatabaseSupabase(productId: string) {
   const actor = await getCurrentActor().catch(() => null);
   const admin = await getAdminClient();

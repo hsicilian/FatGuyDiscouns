@@ -14,9 +14,11 @@ import {
   applyBalanceAdjustmentsToDatabase,
   applyPaymentToDatabase,
   clearProductSaleInDatabase,
+  createCategoryInDatabase,
   createInventoryItemInDatabase,
   createInventoryItemsBulkInDatabase,
   deleteArchivedProductInDatabase,
+  deleteCategoryInDatabase,
   markNotificationReadInDatabase,
   removeClaimedItemFromDatabase,
   submitClaimToDatabase,
@@ -246,6 +248,38 @@ export async function createInventoryItemsBulk(
   revalidatePath("/");
   revalidatePath("/store");
   revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function createCategory(name: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await createCategoryInDatabase(name);
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function deleteCategory(categoryId: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await deleteCategoryInDatabase(categoryId);
   revalidatePath("/admin");
   revalidatePath("/admin/inventory");
 

@@ -1,12 +1,14 @@
 import { PRODUCT_STATUS_LABELS } from "@fatguydiscounts/core";
 import { Panel } from "@fatguydiscounts/ui";
 import { ArchiveProductForm } from "../../../components/forms/archive-product-form";
+import { CategoryCreateForm } from "../../../components/forms/category-create-form";
+import { CategoryDeleteForm } from "../../../components/forms/category-delete-form";
 import { InventoryAdjustForm } from "../../../components/forms/inventory-adjust-form";
 import { InventoryBulkImportForm } from "../../../components/forms/inventory-bulk-import-form";
 import { InventoryCreateForm } from "../../../components/forms/inventory-create-form";
 import { InventorySaleForm } from "../../../components/forms/inventory-sale-form";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
-import { listProducts } from "../../../lib/data/local-db";
+import { listCategories, listProducts } from "../../../lib/data/local-db";
 
 const sortOptions = {
   newest: "Newest first",
@@ -53,6 +55,7 @@ export default async function AdminInventoryPage({
     listProducts(),
     listProducts({ includeArchived: true }),
   ]);
+  const categories = await listCategories();
   const sortedProducts = sortProducts(activeProducts, sort);
   const archivedCount = archivedProducts.length;
   const lowStockCount = activeProducts.filter((product) => product.quantity <= 1).length;
@@ -91,7 +94,42 @@ export default async function AdminInventoryPage({
               Create a new product listing right from the admin stock room. New items appear in the shop as soon as they are saved.
             </p>
           </div>
-          <InventoryCreateForm />
+          <InventoryCreateForm categories={categories} />
+        </div>
+      </Panel>
+
+      <Panel>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div>
+            <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0, marginBottom: 8 }}>
+              Categories
+            </p>
+            <h2 style={{ margin: "0 0 8px" }}>Manage inventory categories</h2>
+            <p style={{ color: "var(--muted)", lineHeight: 1.7, margin: 0 }}>
+              Add categories here, then choose them from the inventory item dropdown. Categories can only be removed when no products are using them.
+            </p>
+          </div>
+
+          <CategoryCreateForm />
+
+          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
+            {categories.map((category) => (
+              <div
+                key={category.id}
+                style={{
+                  display: "grid",
+                  gap: 12,
+                  padding: 16,
+                  borderRadius: 18,
+                  background: "rgba(255,255,255,0.56)",
+                  border: "1px solid rgba(232,214,195,0.88)",
+                }}
+              >
+                <strong>{category.name}</strong>
+                <CategoryDeleteForm categoryId={category.id} />
+              </div>
+            ))}
+          </div>
         </div>
       </Panel>
 

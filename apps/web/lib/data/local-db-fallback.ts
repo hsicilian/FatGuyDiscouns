@@ -20,6 +20,7 @@ import type {
   AdminNotification,
   ArchivedInvoice,
   BalanceCycleSummary,
+  CategoryOption,
   ClaimedItem,
   CustomerNote,
   CustomerSummary,
@@ -33,6 +34,7 @@ import type {
 
 export interface LocalDatabase {
   activeCustomerId: string;
+  categories: CategoryOption[];
   products: Product[];
   customers: CustomerSummary[];
   balanceCycle: BalanceCycleSummary;
@@ -57,6 +59,11 @@ function serialize(db: LocalDatabase) {
 function createInitialDatabase(): LocalDatabase {
   return {
     activeCustomerId: "cust-001",
+    categories: [
+      { id: "cat-001", name: "Outerwear" },
+      { id: "cat-002", name: "Tees" },
+      { id: "cat-003", name: "Flannels" },
+    ],
     products: [
       {
         id: "prod-001",
@@ -309,6 +316,9 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
   const fallback = createInitialDatabase();
   return {
     activeCustomerId: db.activeCustomerId ?? fallback.activeCustomerId,
+    categories: (db.categories ?? fallback.categories)
+      .filter((category): category is CategoryOption => Boolean(category?.id) && Boolean(category?.name))
+      .sort((left, right) => left.name.localeCompare(right.name)),
     products: (db.products ?? fallback.products).map((product) => {
       const originalPrice = typeof product.originalPrice === "number" ? product.originalPrice : product.price;
       const salePrice = typeof product.salePrice === "number" ? product.salePrice : null;
@@ -404,6 +414,11 @@ export async function listProducts(options?: { includeArchived?: boolean }) {
   return options?.includeArchived
     ? db.products.filter((product) => product.status === "archived")
     : db.products.filter((product) => product.status !== "archived");
+}
+
+export async function listCategories() {
+  const db = await readDatabase();
+  return db.categories;
 }
 
 export async function getProductById(productId: string) {
@@ -859,6 +874,14 @@ export async function createInventoryItemInDatabase(input: {
     images: images.map((image) => `/api/admin/product-images?preview=${encodeURIComponent(image.name)}`),
   });
 
+  if (!db.categories.some((entry) => entry.name.toLowerCase() === category.toLowerCase())) {
+    db.categories.push({
+      id: `cat-${Date.now()}`,
+      name: category,
+    });
+    db.categories.sort((left, right) => left.name.localeCompare(right.name));
+  }
+
   await writeDatabase(db);
 
   return {
@@ -921,7 +944,16 @@ export async function createInventoryItemsBulkInDatabase(input: Array<{
       status: deriveProductStatus(quantity, "active"),
       images: [],
     });
+
+    if (!db.categories.some((entry) => entry.name.toLowerCase() === category.toLowerCase())) {
+      db.categories.push({
+        id: `cat-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: category,
+      });
+    }
   }
+
+  db.categories.sort((left, right) => left.name.localeCompare(right.name));
 
   await writeDatabase(db);
 
@@ -929,6 +961,47 @@ export async function createInventoryItemsBulkInDatabase(input: Array<{
     ok: true,
     message: `${input.length} inventory item${input.length === 1 ? "" : "s"} imported successfully.`,
   };
+}
+
+export async function createCategoryInDatabase(name: string) {
+  const db = await readDatabase();
+  const trimmedName = name.trim();
+
+  if (!trimmedName) {
+    return { ok: false, message: "Category name is required." };
+  }
+
+  if (db.categories.some((entry) => entry.name.toLowerCase() === trimmedName.toLowerCase())) {
+    return { ok: false, message: "That category already exists." };
+  }
+
+  db.categories.push({
+    id: `cat-${Date.now()}`,
+    name: trimmedName,
+  });
+  db.categories.sort((left, right) => left.name.localeCompare(right.name));
+  await writeDatabase(db);
+
+  return { ok: true, message: `${trimmedName} was added to categories.` };
+}
+
+export async function deleteCategoryInDatabase(categoryId: string) {
+  const db = await readDatabase();
+  const category = db.categories.find((entry) => entry.id === categoryId);
+
+  if (!category) {
+    return { ok: false, message: "Category not found." };
+  }
+
+  const inUse = db.products.some((product) => product.category.toLowerCase() === category.name.toLowerCase());
+  if (inUse) {
+    return { ok: false, message: "This category is still being used by inventory items." };
+  }
+
+  db.categories = db.categories.filter((entry) => entry.id !== categoryId);
+  await writeDatabase(db);
+
+  return { ok: true, message: `${category.name} was removed from categories.` };
 }
 
 export async function submitRestockRequestToDatabase(productId: string) {

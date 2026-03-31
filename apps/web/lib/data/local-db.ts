@@ -6,6 +6,7 @@ import * as fallback from "./local-db-fallback";
 import {
   getBalanceCycleSupabase,
   getCurrentCustomerSupabase,
+  listCategoriesSupabase,
   getFinancialSummarySupabase,
   getEventByIdSupabase,
   getProductByIdSupabase,
@@ -30,9 +31,11 @@ import {
   applyBalanceAdjustmentsToDatabaseSupabase,
   applyPaymentToDatabaseSupabase,
   clearProductSaleInDatabaseSupabase,
+  createCategoryInDatabaseSupabase,
   createInventoryItemInDatabaseSupabase,
   createInventoryItemsBulkInDatabaseSupabase,
   deleteArchivedProductInDatabaseSupabase,
+  deleteCategoryInDatabaseSupabase,
   markNotificationReadInDatabaseSupabase,
   removeClaimedItemFromDatabaseSupabase,
   submitClaimToDatabaseSupabase,
@@ -65,6 +68,10 @@ export async function getPlatformSummary() {
 
 export async function listProducts(options?: { includeArchived?: boolean }) {
   return shouldUseSupabase() ? listProductsSupabase(options) : fallback.listProducts(options);
+}
+
+export async function listCategories() {
+  return shouldUseSupabase() ? listCategoriesSupabase() : fallback.listCategories();
 }
 
 export async function getProductById(productId: string) {
@@ -199,6 +206,18 @@ export async function createInventoryItemsBulkInDatabase(input: Array<{
   return shouldUseSupabase()
     ? createInventoryItemsBulkInDatabaseSupabase(input)
     : fallback.createInventoryItemsBulkInDatabase(input);
+}
+
+export async function createCategoryInDatabase(name: string) {
+  return shouldUseSupabase()
+    ? createCategoryInDatabaseSupabase(name)
+    : fallback.createCategoryInDatabase(name);
+}
+
+export async function deleteCategoryInDatabase(categoryId: string) {
+  return shouldUseSupabase()
+    ? deleteCategoryInDatabaseSupabase(categoryId)
+    : fallback.deleteCategoryInDatabase(categoryId);
 }
 
 export async function updateProductSaleInDatabase(productId: string, salePercentage: number, saleEndsAt: string) {

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { platformSummary } from "@fatguydiscounts/db";
-import type { AdminNotification, ClaimedItem, CustomerNote, FinancialSummary, RestockRequestRecord, ShipmentRecord } from "@fatguydiscounts/types";
+import type { AdminNotification, CategoryOption, ClaimedItem, CustomerNote, FinancialSummary, RestockRequestRecord, ShipmentRecord } from "@fatguydiscounts/types";
 import {
   ZERO_CYCLE,
   formatNotificationLabel,
@@ -56,6 +56,23 @@ async function attachProductImages(
 
 export async function getPlatformSummarySupabase() {
   return platformSummary;
+}
+
+export async function listCategoriesSupabase(): Promise<CategoryOption[]> {
+  const client = await getAdminClient();
+  const { data, error } = await client
+    .from("categories")
+    .select("id, name")
+    .order("name", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+  }));
 }
 
 export async function listProductsSupabase(options?: { includeArchived?: boolean }) {

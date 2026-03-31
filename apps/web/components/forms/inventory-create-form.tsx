@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useRef, useState } from "react";
-import type { FormActionState } from "@fatguydiscounts/types";
+import type { CategoryOption, FormActionState } from "@fatguydiscounts/types";
 import { createInventoryItemAction } from "../../app/actions/inventory/create";
 
 const initialState: FormActionState = {
@@ -16,7 +16,7 @@ const inputStyle: React.CSSProperties = {
   background: "rgba(255,255,255,0.95)",
 };
 
-export function InventoryCreateForm() {
+export function InventoryCreateForm({ categories }: { categories: CategoryOption[] }) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [state, formAction, isPending] = useActionState(createInventoryItemAction, initialState);
@@ -69,7 +69,17 @@ export function InventoryCreateForm() {
         </label>
         <label style={{ display: "grid", gap: 6 }}>
           <span style={{ color: "#6d655d", fontSize: 14 }}>Category</span>
-          <input name="category" required style={inputStyle} placeholder="Outerwear, Denim, Tees..." />
+          <select name="category" required style={inputStyle} defaultValue={categories[0]?.name ?? ""}>
+            {categories.length > 0 ? (
+              categories.map((category) => (
+                <option key={category.id} value={category.name}>
+                  {category.name}
+                </option>
+              ))
+            ) : (
+              <option value="">Add a category first</option>
+            )}
+          </select>
         </label>
       </div>
 

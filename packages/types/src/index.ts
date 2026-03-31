@@ -42,6 +42,11 @@ export interface Product {
   images: string[];
 }
 
+export interface CategoryOption {
+  id: string;
+  name: string;
+}
+
 export interface DashboardSection {
   slug: string;
   title: string;
