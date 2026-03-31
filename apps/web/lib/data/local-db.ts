@@ -7,15 +7,18 @@ import {
   getBalanceCycleSupabase,
   getCurrentCustomerSupabase,
   getFinancialSummarySupabase,
+  getEventByIdSupabase,
   getPaymentDefaultsSupabase,
   getPlatformSummarySupabase,
   listArchivedInvoicesSupabase,
   listClaimedItemsSupabase,
+  listClaimedItemsForCustomerSupabase,
   listCustomerNotesSupabase,
   listCustomersSupabase,
   listEventsSupabase,
   listNotificationsSupabase,
   listProductsSupabase,
+  listRestockRequestsSupabase,
   listShipmentRecordsSupabase,
 } from "./supabase-reads";
 import {
@@ -24,6 +27,7 @@ import {
   adjustInventoryInDatabaseSupabase,
   applyBalanceAdjustmentsToDatabaseSupabase,
   applyPaymentToDatabaseSupabase,
+  createInventoryItemInDatabaseSupabase,
   removeClaimedItemFromDatabaseSupabase,
   submitClaimToDatabaseSupabase,
   submitRestockRequestToDatabaseSupabase,
@@ -33,6 +37,7 @@ import {
   updateCustomerAccountStateSupabase,
   updateCustomerRoleInDatabaseSupabase,
   updateShipmentInDatabaseSupabase,
+  createEventInDatabaseSupabase,
 } from "./supabase-writes";
 
 export type LocalDatabase = fallback.LocalDatabase;
@@ -70,8 +75,6 @@ export async function listCustomers() {
 export async function createPendingCustomerProfile(input: {
   displayName: string;
   email: string;
-  timezone?: string;
-  address?: string;
 }) {
   return fallback.createPendingCustomerProfile(input);
 }
@@ -80,7 +83,7 @@ export async function removeCustomerProfileById(customerId: string) {
   return fallback.removeCustomerProfileById(customerId);
 }
 
-export async function updateCurrentCustomerProfile(input: { address: string; timezone: string }) {
+export async function updateCurrentCustomerProfile(input: { street: string; city: string; region: string; postalCode: string; timezone: string }) {
   return shouldUseSupabase()
     ? updateCurrentCustomerProfileSupabase(input)
     : fallback.updateCurrentCustomerProfile(input);
@@ -92,6 +95,10 @@ export async function getBalanceCycle() {
 
 export async function listClaimedItems() {
   return shouldUseSupabase() ? listClaimedItemsSupabase() : fallback.listClaimedItems();
+}
+
+export async function listClaimedItemsForCustomer(customerId: string) {
+  return shouldUseSupabase() ? listClaimedItemsForCustomerSupabase(customerId) : fallback.listClaimedItemsForCustomer(customerId);
 }
 
 export async function listArchivedInvoices() {
@@ -106,12 +113,20 @@ export async function listCustomerNotes(customerId?: string) {
   return shouldUseSupabase() ? listCustomerNotesSupabase(customerId) : fallback.listCustomerNotes(customerId);
 }
 
+export async function listRestockRequests(customerId?: string) {
+  return shouldUseSupabase() ? listRestockRequestsSupabase(customerId) : fallback.listRestockRequests(customerId);
+}
+
 export async function listNotifications() {
   return shouldUseSupabase() ? listNotificationsSupabase() : fallback.listNotifications();
 }
 
 export async function listEvents() {
   return shouldUseSupabase() ? listEventsSupabase() : fallback.listEvents();
+}
+
+export async function getEventById(eventId: string) {
+  return shouldUseSupabase() ? getEventByIdSupabase(eventId) : fallback.getEventById(eventId);
 }
 
 export async function getPaymentDefaults() {
@@ -132,6 +147,20 @@ export async function adjustInventoryInDatabase(productId: string, quantityChang
   return shouldUseSupabase()
     ? adjustInventoryInDatabaseSupabase(productId, quantityChange)
     : fallback.adjustInventoryInDatabase(productId, quantityChange);
+}
+
+export async function createInventoryItemInDatabase(input: {
+  title: string;
+  description: string;
+  price: number;
+  quantity: number;
+  category: string;
+  sku: string;
+  location: string;
+}) {
+  return shouldUseSupabase()
+    ? createInventoryItemInDatabaseSupabase(input)
+    : fallback.createInventoryItemInDatabase(input);
 }
 
 export async function submitRestockRequestToDatabase(productId: string) {
@@ -205,6 +234,19 @@ export async function applyPaymentToDatabase(paymentAmount: number, creditAmount
   return shouldUseSupabase()
     ? applyPaymentToDatabaseSupabase(paymentAmount, creditAmount)
     : fallback.applyPaymentToDatabase(paymentAmount, creditAmount);
+}
+
+export async function createEventInDatabase(input: {
+  title: string;
+  startsAtLocal: string;
+  description: string;
+  externalLink: string;
+  platform: string;
+  timeZone: string;
+}) {
+  return shouldUseSupabase()
+    ? createEventInDatabaseSupabase(input)
+    : fallback.createEventInDatabase(input);
 }
 
 export { platformSummary };

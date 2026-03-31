@@ -1,5 +1,6 @@
 import { PRODUCT_STATUS_LABELS, canClaim } from "@fatguydiscounts/core";
 import { Panel } from "@fatguydiscounts/ui";
+import { ClaimSubmitForm } from "../../components/forms/claim-submit-form";
 import { RestockRequestForm } from "../../components/forms/restock-request-form";
 import { getCurrentSessionAccount } from "../../lib/auth/session";
 import { listProducts } from "../../lib/data/local-db";
@@ -41,7 +42,11 @@ const ctaStyle: React.CSSProperties = {
   fontWeight: 700,
 };
 
-function renderClaimCta(session: Awaited<ReturnType<typeof getCurrentSessionAccount>>) {
+function renderClaimCta(
+  session: Awaited<ReturnType<typeof getCurrentSessionAccount>>,
+  productId: string,
+  outOfStock: boolean,
+) {
   if (!session) {
     return <a href="/login" style={{ ...ctaStyle, background: "var(--accent)", color: "#fff" }}>Login to Claim</a>;
   }
@@ -51,7 +56,17 @@ function renderClaimCta(session: Awaited<ReturnType<typeof getCurrentSessionAcco
   }
 
   if (canClaim(session.role, session.accountState)) {
-    return <a href="/claims" style={{ ...ctaStyle, background: "var(--accent)", color: "#fff" }}>Claim This Item</a>;
+    return (
+      <div style={{ minWidth: 180, width: "100%" }}>
+        <ClaimSubmitForm
+          productId={productId}
+          disabled={outOfStock}
+          submitLabel="Claim This Item"
+          disabledLabel="Unavailable"
+          compact
+        />
+      </div>
+    );
   }
 
   if (session.accountState === "pending_approval") {
@@ -124,8 +139,8 @@ export default async function StorePage({
             Browse available items, filter by category, and claim what you want once your customer account is approved.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
-            <a href="/claims" style={{ ...ctaStyle, background: "var(--accent)", color: "#fff" }}>
-              View Claiming
+            <a href="#store-grid" style={{ ...ctaStyle, background: "var(--accent)", color: "#fff" }}>
+              Shop Available Items
             </a>
             <a href="/events" style={{ ...ctaStyle, background: "rgba(255,255,255,0.8)", border: "1px solid var(--line)" }}>
               Upcoming Shows
@@ -203,7 +218,7 @@ export default async function StorePage({
         <a href="/store" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Clear filters</a>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18 }}>
+      <div id="store-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18 }}>
         {filteredProducts.map((product) => (
           <Panel key={product.id}>
             <article style={{ display: "grid", gap: 16 }}>
@@ -252,8 +267,8 @@ export default async function StorePage({
                     {product.quantity > 0 ? `${product.quantity} available` : "Out of stock"}
                   </p>
                 </div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                  {renderClaimCta(currentSession)}
+                <div id={`product-${product.id}`} style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end", width: "min(100%, 220px)" }}>
+                  {renderClaimCta(currentSession, product.id, product.quantity === 0)}
                   {product.quantity === 0 ? <RestockRequestForm productId={product.id} /> : null}
                 </div>
               </div>

@@ -1,31 +1,8 @@
 import { getCurrentSessionAccount } from "../../lib/auth/session";
 import { getCurrentCustomer, listEvents } from "../../lib/data/local-db";
+import { buildCalendarCells, formatEventLabel, labelTimezone } from "../../lib/events";
 
-function formatEventLabel(iso: string, timeZone: string) {
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone,
-  }).format(new Date(iso));
-}
-
-function labelTimezone(timeZone: string, isCustomerLocal: boolean) {
-  if (!isCustomerLocal) {
-    return "ET";
-  }
-
-  switch (timeZone) {
-    case "America/Chicago":
-      return "CT";
-    case "America/Denver":
-      return "MT";
-    case "America/Los_Angeles":
-      return "PT";
-    case "America/New_York":
-    default:
-      return "ET";
-  }
-}
+const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default async function EventsPage() {
   const [events, currentSession] = await Promise.all([
@@ -37,29 +14,87 @@ export default async function EventsPage() {
   const currentCustomer = isCustomerLocal ? await getCurrentCustomer() : null;
   const displayTimeZone = currentCustomer?.timezone ?? "America/New_York";
   const displayZoneLabel = labelTimezone(displayTimeZone, isCustomerLocal);
+  const calendar = buildCalendarCells(events, displayTimeZone);
 
   return (
-    <main style={{ maxWidth: 1120, margin: "0 auto", padding: "36px 24px 72px" }}>
-      <section style={{ background: "linear-gradient(145deg, rgba(255, 249, 241, 0.95) 0%, rgba(246, 229, 209, 0.92) 100%)", border: "1px solid var(--line)", borderRadius: 30, padding: 28, boxShadow: "var(--shadow)", marginBottom: 24 }}>
+    <main style={{ maxWidth: 1200, margin: "0 auto", padding: "36px 24px 72px", display: "grid", gap: 24 }}>
+      <section style={{ background: "linear-gradient(145deg, rgba(255, 249, 241, 0.95) 0%, rgba(246, 229, 209, 0.92) 100%)", border: "1px solid var(--line)", borderRadius: 30, padding: 28, boxShadow: "var(--shadow)" }}>
         <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0, fontWeight: 700 }}>Upcoming shows</p>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 18, alignItems: "end", flexWrap: "wrap" }}>
           <div>
-            <h1 style={{ margin: "0 0 12px" }}>Live sale schedule</h1>
+            <h1 style={{ margin: "0 0 12px" }}>Event calendar</h1>
             <p style={{ color: "var(--muted)", maxWidth: 760, lineHeight: 1.7, marginBottom: 0 }}>
               {isCustomerLocal
-                ? `Your calendar is shown in your saved timezone (${displayZoneLabel}) so show times match your account settings.`
-                : "Guests and staff see upcoming shows in Eastern Time."}
+                ? `Your event times are shown in your saved timezone (${displayZoneLabel}) so live sale reminders match your local clock.`
+                : "Guests and staff see event times in Eastern Time by default."}
             </p>
           </div>
-          <div style={{ background: "rgba(255,255,255,0.52)", border: "1px solid rgba(232,214,195,0.9)", borderRadius: 18, padding: 16, width: "min(100%, 220px)" }}>
-            <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em" }}>Time zone</p>
-            <strong style={{ fontSize: "1.15rem" }}>{displayZoneLabel}</strong>
-            <p style={{ margin: "6px 0 0", color: "var(--muted)" }}>{events.length} upcoming event{events.length === 1 ? "" : "s"}</p>
+          <div style={{ background: "rgba(255,255,255,0.52)", border: "1px solid rgba(232,214,195,0.9)", borderRadius: 18, padding: 16, width: "min(100%, 260px)" }}>
+            <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em" }}>Showing</p>
+            <strong style={{ fontSize: "1.15rem" }}>{calendar.monthLabel}</strong>
+            <p style={{ margin: "6px 0 0", color: "var(--muted)" }}>{events.length} event{events.length === 1 ? "" : "s"} in the schedule</p>
           </div>
         </div>
       </section>
 
-      <div style={{ display: "grid", gap: 16 }}>
+      <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 20, boxShadow: "var(--shadow)" }}>
+        <div style={{ overflowX: "auto" }}>
+          <div style={{ minWidth: 760 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 10, marginBottom: 10 }}>
+              {weekdayLabels.map((label) => (
+                <div key={label} style={{ padding: "8px 10px", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 12, color: "var(--muted)", fontWeight: 700 }}>
+                  {label}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 10 }}>
+              {calendar.cells.map((cell) => (
+                <div
+                  key={cell.key}
+                  style={{
+                    minHeight: 132,
+                    borderRadius: 18,
+                    border: "1px solid rgba(232,214,195,0.88)",
+                    background: cell.day ? "rgba(255,255,255,0.58)" : "rgba(247,238,228,0.45)",
+                    padding: 12,
+                    display: "grid",
+                    gap: 8,
+                    alignContent: "start",
+                  }}
+                >
+                  {cell.day ? (
+                    <>
+                      <strong>{cell.day}</strong>
+                      {cell.events.length > 0 ? cell.events.map((event) => (
+                        <a
+                          key={event.id}
+                          href={`/events/${event.id}`}
+                          style={{
+                            display: "grid",
+                            gap: 4,
+                            padding: 10,
+                            borderRadius: 14,
+                            background: "linear-gradient(145deg, rgba(187,77,0,0.94) 0%, rgba(142,50,0,0.98) 100%)",
+                            color: "#fff",
+                            boxShadow: "0 12px 24px rgba(142,50,0,0.18)",
+                          }}
+                        >
+                          <strong style={{ fontSize: 14 }}>{event.title}</strong>
+                          <span style={{ fontSize: 12, opacity: 0.92 }}>{formatEventLabel(event.startsAt, displayTimeZone)} {displayZoneLabel}</span>
+                        </a>
+                      )) : (
+                        <span style={{ color: "var(--muted)", fontSize: 13 }}>No event</span>
+                      )}
+                    </>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ display: "grid", gap: 16 }}>
         {events.map((event, index) => (
           <article key={event.id} style={{ background: index === 0 ? "linear-gradient(145deg, rgba(187,77,0,0.94) 0%, rgba(142,50,0,0.98) 100%)" : "var(--panel)", color: index === 0 ? "#fff" : "var(--ink)", border: index === 0 ? "none" : "1px solid var(--line)", borderRadius: 26, padding: 24, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "start" }}>
@@ -72,14 +107,14 @@ export default async function EventsPage() {
                   {formatEventLabel(event.startsAt, displayTimeZone)} {displayZoneLabel}
                 </p>
               </div>
-              <a href={event.externalLink} style={{ color: index === 0 ? "#fff" : "var(--accent-strong)", fontWeight: 700 }}>
-                Open event details
+              <a href={`/events/${event.id}`} style={{ color: index === 0 ? "#fff" : "var(--accent-strong)", fontWeight: 700 }}>
+                View event page
               </a>
             </div>
             <p style={{ color: index === 0 ? "rgba(255,244,230,0.92)" : "var(--muted)", lineHeight: 1.7, marginBottom: 0 }}>{event.description}</p>
           </article>
         ))}
-      </div>
+      </section>
     </main>
   );
 }

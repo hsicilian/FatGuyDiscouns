@@ -11,8 +11,6 @@ const signupSchema = z.object({
   displayName: z.string().trim().min(2, "Enter your full name."),
   email: z.string().trim().email("Enter a valid email address."),
   password: z.string().min(8, "Use a password with at least 8 characters."),
-  address: z.string().trim().min(5, "Enter your mailing address."),
-  timezone: z.string().trim().min(1, "Choose a timezone."),
 });
 
 export async function signUpLocalCustomerAction(
@@ -24,8 +22,6 @@ export async function signUpLocalCustomerAction(
     displayName: String(formData.get("displayName") ?? ""),
     email: String(formData.get("email") ?? ""),
     password: String(formData.get("password") ?? ""),
-    address: String(formData.get("address") ?? ""),
-    timezone: String(formData.get("timezone") ?? "America/New_York"),
   });
 
   if (!parsed.success) {
@@ -36,7 +32,7 @@ export async function signUpLocalCustomerAction(
     };
   }
 
-  const { displayName, email, password, address, timezone } = parsed.data;
+  const { displayName, email, password } = parsed.data;
 
   if (!hasSupabaseEnv()) {
     if (await hasStoredAccountWithEmail(email)) {
@@ -50,8 +46,6 @@ export async function signUpLocalCustomerAction(
     const customerResult = await createPendingCustomerProfile({
       displayName,
       email,
-      address,
-      timezone,
     });
 
     if (!customerResult.ok) {
@@ -91,8 +85,6 @@ export async function signUpLocalCustomerAction(
       emailRedirectTo: callbackUrl,
       data: {
         display_name: displayName,
-        address,
-        timezone,
       },
     },
   });
@@ -107,7 +99,7 @@ export async function signUpLocalCustomerAction(
 
   return {
     ok: true,
-    message: "Account created. Check your email to verify the account before signing in. After verification, an admin still needs to approve claiming access.",
+    message: "Account created. Check your email to verify the account before signing in. After approval, you can log in and finish your address and timezone on your dashboard.",
     submittedAt: new Date().toISOString(),
   };
 }

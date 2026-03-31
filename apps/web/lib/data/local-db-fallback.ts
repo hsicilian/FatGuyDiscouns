@@ -7,6 +7,7 @@ import {
   calculateBalanceDue,
   canRequestShipment,
   deriveProductStatus,
+  getScheduledDueDateForDate,
   isBalanceOverdue,
   nextShipmentStatus,
   shouldArchiveBalance,
@@ -23,6 +24,7 @@ import type {
   CustomerSummary,
   FinancialSummary,
   Product,
+  RestockRequestRecord,
   ShowEvent,
   ShipmentRecord,
   ShipmentStatus,
@@ -88,11 +90,15 @@ function createInitialDatabase(): LocalDatabase {
         id: "cust-001",
         displayName: "Jordan Rivers",
         email: "jordan@example.com",
-        role: "customer",
-        accountState: "approved",
-        timezone: "America/New_York",
-        address: "1549 Monroe Ave, Rochester, NY 14618",
-        creditBalance: 9,
+      role: "customer",
+      accountState: "approved",
+      timezone: "America/New_York",
+      address: "1549 Monroe Ave, Rochester, NY 14618",
+      street: "1549 Monroe Ave",
+      city: "Rochester",
+      region: "NY",
+      postalCode: "14618",
+      creditBalance: 9,
         shipmentStatus: "requested",
         lastShipmentDate: "2026-03-12",
       },
@@ -100,11 +106,15 @@ function createInitialDatabase(): LocalDatabase {
         id: "cust-002",
         displayName: "Casey Morgan",
         email: "casey@example.com",
-        role: "customer",
-        accountState: "pending_approval",
-        timezone: "America/Chicago",
-        address: "422 Mason St, Austin, TX 78701",
-        creditBalance: 0,
+      role: "customer",
+      accountState: "pending_approval",
+      timezone: "America/Chicago",
+      address: "422 Mason St, Austin, TX 78701",
+      street: "422 Mason St",
+      city: "Austin",
+      region: "TX",
+      postalCode: "78701",
+      creditBalance: 0,
         shipmentStatus: "none",
         lastShipmentDate: null,
       },
@@ -112,11 +122,15 @@ function createInitialDatabase(): LocalDatabase {
         id: "cust-003",
         displayName: "Taylor West",
         email: "taylor@example.com",
-        role: "customer",
-        accountState: "claiming_disabled",
-        timezone: "America/Los_Angeles",
-        address: "87 Oak Ave, Pasadena, CA 91101",
-        creditBalance: 14,
+      role: "customer",
+      accountState: "claiming_disabled",
+      timezone: "America/Los_Angeles",
+      address: "87 Oak Ave, Pasadena, CA 91101",
+      street: "87 Oak Ave",
+      city: "Pasadena",
+      region: "CA",
+      postalCode: "91101",
+      creditBalance: 14,
         shipmentStatus: "completed",
         lastShipmentDate: "2026-03-20",
       },
@@ -124,7 +138,7 @@ function createInitialDatabase(): LocalDatabase {
     balanceCycle: {
       id: "cycle-2026-03",
       status: "active",
-      dueDate: "2026-04-04",
+      dueDate: "2026-04-05",
       subtotal: 58,
       shipping: 0,
       adjustments: 4,
@@ -318,9 +332,7 @@ function formatCycleLabel(date: Date) {
 }
 
 function nextDueDateFromToday() {
-  const nextDate = new Date();
-  nextDate.setDate(nextDate.getDate() + 14);
-  return nextDate.toISOString().slice(0, 10);
+  return getScheduledDueDateForDate(new Date().toISOString().slice(0, 10));
 }
 
 function findCustomerByName(db: LocalDatabase, customerName: string) {
@@ -362,8 +374,6 @@ export async function listCustomers() {
 export async function createPendingCustomerProfile(input: {
   displayName: string;
   email: string;
-  timezone?: string;
-  address?: string;
 }) {
   const db = await readDatabase();
   const normalizedEmail = input.email.trim().toLowerCase();
@@ -377,11 +387,15 @@ export async function createPendingCustomerProfile(input: {
     id: `cust-${Date.now()}`,
     displayName: input.displayName.trim(),
     email: normalizedEmail,
-    role: "customer" as const,
-    accountState: "pending_approval" as const,
-    timezone: input.timezone?.trim() || "America/New_York",
-    address: input.address?.trim() || "Address pending confirmation",
-    creditBalance: 0,
+      role: "customer" as const,
+      accountState: "pending_approval" as const,
+      timezone: "America/New_York",
+      address: "Address pending confirmation",
+      street: "",
+      city: "",
+      region: "",
+      postalCode: "",
+      creditBalance: 0,
     shipmentStatus: "none" as const,
     lastShipmentDate: null,
   };
@@ -413,21 +427,28 @@ export async function removeCustomerProfileById(customerId: string) {
   return { ok: true as const };
 }
 
-export async function updateCurrentCustomerProfile(input: { address: string; timezone: string }) {
+export async function updateCurrentCustomerProfile(input: { street: string; city: string; region: string; postalCode: string; timezone: string }) {
   const db = await readDatabase();
   const customer = findCurrentCustomer(db);
-  const address = input.address.trim();
+  const street = input.street.trim();
+  const city = input.city.trim();
+  const region = input.region.trim();
+  const postalCode = input.postalCode.trim();
   const timezone = input.timezone.trim();
 
-  if (!address) {
-    return { ok: false as const, message: "Address is required." };
+  if (!street || !city || !region || !postalCode) {
+    return { ok: false as const, message: "Street, city, state, and zip code are all required." };
   }
 
   if (!timezone) {
     return { ok: false as const, message: "Timezone is required." };
   }
 
-  customer.address = address;
+  customer.street = street;
+  customer.city = city;
+  customer.region = region;
+  customer.postalCode = postalCode;
+  customer.address = `${street}, ${city}, ${region} ${postalCode}`;
   customer.timezone = timezone;
   await writeDatabase(db);
 
@@ -447,6 +468,11 @@ export async function listClaimedItems() {
   return db.claimedItems;
 }
 
+export async function listClaimedItemsForCustomer(_customerId: string) {
+  const db = await readDatabase();
+  return db.claimedItems;
+}
+
 export async function listArchivedInvoices() {
   const db = await readDatabase();
   return db.archivedInvoices;
@@ -462,6 +488,22 @@ export async function listCustomerNotes(customerId?: string) {
   return customerId ? db.customerNotes.filter((entry) => entry.customerId === customerId) : db.customerNotes;
 }
 
+export async function listRestockRequests(customerId?: string) {
+  const db = await readDatabase();
+  const requests: RestockRequestRecord[] = db.notifications
+    .filter((notification) => notification.type === "restock_request")
+    .map((notification) => ({
+      id: notification.id,
+      customerId: customerId ?? null,
+      productTitle: notification.label.replace("Restock request received for ", "").replace(".", ""),
+      status: "open",
+      createdAt: notification.createdAt,
+      email: null,
+    }));
+
+  return customerId ? requests.filter((request) => request.customerId === customerId) : requests;
+}
+
 export async function listNotifications() {
   const db = await readDatabase();
   return db.notifications;
@@ -470,6 +512,11 @@ export async function listNotifications() {
 export async function listEvents() {
   const db = await readDatabase();
   return db.events;
+}
+
+export async function getEventById(eventId: string) {
+  const db = await readDatabase();
+  return db.events.find((event) => event.id === eventId) ?? null;
 }
 
 export async function getPaymentDefaults() {
@@ -504,6 +551,36 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
       },
     ],
   };
+}
+
+export async function createEventInDatabase(input: {
+  title: string;
+  startsAtLocal: string;
+  description: string;
+  externalLink: string;
+  platform: string;
+  timeZone: string;
+}) {
+  const db = await readDatabase();
+  const title = input.title.trim();
+  if (!title) {
+    return { ok: false, message: "Event title is required." };
+  }
+
+  db.events = [
+    {
+      id: `event-${Date.now()}`,
+      title,
+      startsAt: new Date(input.startsAtLocal).toISOString(),
+      description: input.description.trim(),
+      externalLink: input.externalLink.trim(),
+      platform: input.platform.trim() || undefined,
+    },
+    ...db.events,
+  ].sort((left, right) => left.startsAt.localeCompare(right.startsAt));
+
+  await writeDatabase(db);
+  return { ok: true, message: `${title} was added to the events calendar.` };
 }
 
 export async function submitClaimToDatabase(productId: string, requestedQuantity: number) {
@@ -577,6 +654,56 @@ export async function adjustInventoryInDatabase(productId: string, quantityChang
   return {
     ok: true,
     message: `${product.title} inventory updated to ${product.quantity}.`,
+  };
+}
+
+export async function createInventoryItemInDatabase(input: {
+  title: string;
+  description: string;
+  price: number;
+  quantity: number;
+  category: string;
+  sku: string;
+  location: string;
+}) {
+  const db = await readDatabase();
+  const title = input.title.trim();
+  const category = input.category.trim();
+  const description = input.description.trim();
+  const price = Number(input.price);
+  const quantity = Number(input.quantity);
+
+  if (!title) {
+    return { ok: false, message: "Item title is required." };
+  }
+
+  if (!category) {
+    return { ok: false, message: "Category is required." };
+  }
+
+  if (!Number.isFinite(price) || price < 0) {
+    return { ok: false, message: "Price must be zero or higher." };
+  }
+
+  if (!Number.isInteger(quantity) || quantity < 0) {
+    return { ok: false, message: "Starting quantity must be zero or higher." };
+  }
+
+  db.products.unshift({
+    id: `prod-${Date.now()}`,
+    title,
+    description,
+    price,
+    category,
+    quantity,
+    status: deriveProductStatus(quantity, "active"),
+  });
+
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: `${title} was added to inventory with ${quantity} item${quantity === 1 ? "" : "s"} on hand.`,
   };
 }
 

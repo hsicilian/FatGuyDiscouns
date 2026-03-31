@@ -38,6 +38,10 @@
       "accountState": "approved",
       "timezone": "America/New_York",
       "address": "1549 Monroe Ave, Rochester, NY 14618",
+      "street": "1549 Monroe Ave",
+      "city": "Rochester",
+      "region": "NY",
+      "postalCode": "14618",
       "creditBalance": 9,
       "shipmentStatus": "requested",
       "lastShipmentDate": "2026-03-12"
@@ -50,6 +54,10 @@
       "accountState": "pending_approval",
       "timezone": "America/Chicago",
       "address": "422 Mason St, Austin, TX 78701",
+      "street": "422 Mason St",
+      "city": "Austin",
+      "region": "TX",
+      "postalCode": "78701",
       "creditBalance": 0,
       "shipmentStatus": "none",
       "lastShipmentDate": null
@@ -62,6 +70,10 @@
       "accountState": "claiming_disabled",
       "timezone": "America/Los_Angeles",
       "address": "87 Oak Ave, Pasadena, CA 91101",
+      "street": "87 Oak Ave",
+      "city": "Pasadena",
+      "region": "CA",
+      "postalCode": "91101",
       "creditBalance": 14,
       "shipmentStatus": "completed",
       "lastShipmentDate": "2026-03-20"
@@ -70,7 +82,7 @@
   "balanceCycle": {
     "id": "cycle-2026-03",
     "status": "active",
-    "dueDate": "2026-04-04",
+    "dueDate": "2026-04-05",
     "subtotal": 58,
     "shipping": 0,
     "adjustments": 4,

@@ -1,6 +1,7 @@
 import { PRODUCT_STATUS_LABELS } from "@fatguydiscounts/core";
 import { Panel } from "@fatguydiscounts/ui";
 import { InventoryAdjustForm } from "../../../components/forms/inventory-adjust-form";
+import { InventoryCreateForm } from "../../../components/forms/inventory-create-form";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
 import { listProducts } from "../../../lib/data/local-db";
 
@@ -27,6 +28,21 @@ export default async function AdminInventoryPage() {
           </div>
         </div>
       </section>
+
+      <Panel>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div>
+            <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0, marginBottom: 8 }}>
+              New listing
+            </p>
+            <h2 style={{ margin: "0 0 8px" }}>Add a new inventory item</h2>
+            <p style={{ color: "var(--muted)", lineHeight: 1.7, margin: 0 }}>
+              Create a new product listing right from the admin stock room. New items appear in the shop as soon as they are saved.
+            </p>
+          </div>
+          <InventoryCreateForm />
+        </div>
+      </Panel>
 
       <div style={{ display: "grid", gap: 16 }}>
         {products.map((product) => (

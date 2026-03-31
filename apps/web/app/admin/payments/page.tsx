@@ -1,4 +1,4 @@
-import { applyPaymentToBalance, calculateBalanceDue, shouldArchiveBalance } from "@fatguydiscounts/core";
+import { applyPaymentToBalance, calculateBalanceDue, getNextScheduledDueDate, isBalanceOverdue, shouldArchiveBalance } from "@fatguydiscounts/core";
 import { PaymentPreviewForm } from "../../../components/forms/payment-preview-form";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
 import { getBalanceCycle, getPaymentDefaults } from "../../../lib/data/local-db";
@@ -11,6 +11,9 @@ export default async function AdminPaymentsPage() {
   const [balanceCycle, paymentDefaults] = await Promise.all([getBalanceCycle(), getPaymentDefaults()]);
   const due = calculateBalanceDue(balanceCycle);
   const preview = applyPaymentToBalance(due, paymentDefaults.paymentAmount, paymentDefaults.creditAmount);
+  const today = new Date().toISOString().slice(0, 10);
+  const overdue = isBalanceOverdue(balanceCycle, today);
+  const nextRegularDueDate = getNextScheduledDueDate(today);
 
   return (
     <main style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 24px 72px" }}>
@@ -34,6 +37,7 @@ export default async function AdminPaymentsPage() {
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 22, boxShadow: "var(--shadow)" }}><p style={{ marginTop: 0, color: "var(--muted)" }}>Incoming payment</p><h2 style={{ marginBottom: 0 }}>{currency.format(paymentDefaults.paymentAmount)}</h2></div>
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 22, boxShadow: "var(--shadow)" }}><p style={{ marginTop: 0, color: "var(--muted)" }}>Credit applied</p><h2 style={{ marginBottom: 0 }}>{currency.format(paymentDefaults.creditAmount)}</h2></div>
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 22, boxShadow: "var(--shadow)" }}><p style={{ marginTop: 0, color: "var(--muted)" }}>Remaining after payment</p><h2 style={{ marginBottom: 0 }}>{currency.format(Math.max(preview.remaining, 0))}</h2></div>
+        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 22, boxShadow: "var(--shadow)" }}><p style={{ marginTop: 0, color: "var(--muted)" }}>{overdue ? "Next regular due date" : "Cycle due date"}</p><h2 style={{ marginBottom: 0 }}>{overdue ? nextRegularDueDate : balanceCycle.dueDate}</h2></div>
       </div>
 
       <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 24, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>

@@ -1,6 +1,6 @@
 ﻿import "server-only";
 
-import { applyPaymentToBalance, canRequestShipment, nextShipmentStatus, shouldArchiveBalance, validateClaimAttempt } from "@fatguydiscounts/core";
+import { applyPaymentToBalance, canRequestShipment, deriveProductStatus, nextShipmentStatus, shouldArchiveBalance, validateClaimAttempt } from "@fatguydiscounts/core";
 import type { AccountState, ShipmentStatus } from "@fatguydiscounts/types";
 import {
   ensureActiveCycle,
@@ -14,6 +14,7 @@ import {
 } from "./supabase-helpers";
 import { getCurrentCustomerSupabase, listProductsSupabase } from "./supabase-reads";
 import { createServerSupabaseClient } from "../supabase";
+import { zonedLocalDateTimeToIso } from "../events";
 
 export async function submitClaimToDatabaseSupabase(productId: string, requestedQuantity: number) {
   const customer = await getCurrentCustomerSupabase();
@@ -57,11 +58,97 @@ export async function adjustInventoryInDatabaseSupabase(productId: string, quant
   return { ok: true, message: `${product.title} inventory updated to ${nextQuantity}.` };
 }
 
+function slugifyCategoryName(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "inventory";
+}
+
+export async function createInventoryItemInDatabaseSupabase(input: {
+  title: string;
+  description: string;
+  price: number;
+  quantity: number;
+  category: string;
+  sku: string;
+  location: string;
+}) {
+  const title = input.title.trim();
+  const description = input.description.trim();
+  const categoryName = input.category.trim();
+  const sku = input.sku.trim();
+  const location = input.location.trim();
+  const price = Number(input.price);
+  const quantity = Number(input.quantity);
+
+  if (!title) return { ok: false, message: "Item title is required." };
+  if (!categoryName) return { ok: false, message: "Category is required." };
+  if (!Number.isFinite(price) || price < 0) return { ok: false, message: "Price must be zero or higher." };
+  if (!Number.isInteger(quantity) || quantity < 0) return { ok: false, message: "Starting quantity must be zero or higher." };
+
+  const admin = await getAdminClient();
+  const normalizedSlug = slugifyCategoryName(categoryName);
+
+  let categoryId: string | null = null;
+  const existingCategory = await admin
+    .from("categories")
+    .select("id")
+    .or(`name.eq.${categoryName},slug.eq.${normalizedSlug}`)
+    .maybeSingle();
+
+  if (existingCategory.error) {
+    return { ok: false, message: existingCategory.error.message };
+  }
+
+  if (existingCategory.data?.id) {
+    categoryId = existingCategory.data.id;
+  } else {
+    const insertedCategory = await admin
+      .from("categories")
+      .insert({ name: categoryName, slug: normalizedSlug })
+      .select("id")
+      .single();
+
+    if (insertedCategory.error || !insertedCategory.data) {
+      return { ok: false, message: insertedCategory.error?.message ?? "Could not create category." };
+    }
+
+    categoryId = insertedCategory.data.id;
+  }
+
+  const status = deriveProductStatus(quantity, "active");
+  const insertResult = await admin.from("products").insert({
+    title,
+    description,
+    price,
+    category_id: categoryId,
+    sku: sku || null,
+    location: location || null,
+    inventory_quantity: quantity,
+    status,
+  });
+
+  if (insertResult.error) {
+    return { ok: false, message: insertResult.error.message };
+  }
+
+  return {
+    ok: true,
+    message: `${title} was added to inventory with ${quantity} item${quantity === 1 ? "" : "s"} on hand.`,
+  };
+}
+
 export async function submitRestockRequestToDatabaseSupabase(productId: string) {
   const actor = await getCurrentActor().catch(() => null);
   const admin = await getAdminClient();
   const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
   if (error || !product) return { ok: false, message: "Product not found." };
+  const customer = actor?.role === "customer"
+    ? await getCustomerSummaryByUserId(actor.id, { admin: true }).catch(() => null)
+    : null;
 
   let existingQuery = admin.from("restock_requests").select("id").eq("product_id", productId).eq("status", "open");
   existingQuery = actor?.role === "customer" ? existingQuery.eq("customer_id", actor.id) : existingQuery.is("customer_id", null);
@@ -74,7 +161,16 @@ export async function submitRestockRequestToDatabaseSupabase(productId: string) 
     email: actor?.email ?? null,
     status: "open",
   });
-  await admin.from("notifications").insert({ type: "restock_request", product_id: productId, customer_id: actor?.role === "customer" ? actor.id : null, payload: { label: `Restock request received for ${product.title}.` } });
+  await admin.from("notifications").insert({
+    type: "restock_request",
+    product_id: productId,
+    customer_id: actor?.role === "customer" ? actor.id : null,
+    payload: {
+      label: customer
+        ? `${customer.displayName} requested a restock check for ${product.title}.`
+        : `Restock request received for ${product.title}.`,
+    },
+  });
   return { ok: true, message: "The admin team has been asked about getting more of this item." };
 }
 
@@ -275,24 +371,56 @@ export async function applyPaymentToDatabaseSupabase(paymentAmount: number, cred
   };
 }
 
-export async function updateCurrentCustomerProfileSupabase(input: { address: string; timezone: string }) {
+export async function updateCurrentCustomerProfileSupabase(input: { street: string; city: string; region: string; postalCode: string; timezone: string }) {
   const actor = await getCurrentActor();
-  const address = input.address.trim();
+  const street = input.street.trim();
+  const city = input.city.trim();
+  const region = input.region.trim();
+  const postalCode = input.postalCode.trim();
   const timezone = input.timezone.trim();
-  if (!address) return { ok: false, message: "Address is required." };
+  if (!street || !city || !region || !postalCode) return { ok: false, message: "Street, city, state, and zip code are all required." };
   if (!timezone) return { ok: false, message: "Timezone is required." };
 
   const admin = await getAdminClient();
-  const [line1, city = "Pending", regionPostal = "Pending"] = address.split(",").map((part) => part.trim());
-  const regionPostalParts = regionPostal.split(/\s+/);
-  const postalCode = regionPostalParts.pop() ?? "Pending";
-  const region = regionPostalParts.join(" ") || "Pending";
-
   await admin.from("customer_profiles").update({ timezone }).eq("user_id", actor.id);
   await admin.from("addresses").delete().eq("user_id", actor.id).eq("is_default", true);
-  const { data: addressRow, error } = await admin.from("addresses").insert({ user_id: actor.id, line1: line1 || address, city, region, postal_code: postalCode, country: "US", is_default: true }).select("id").single();
+  const { data: addressRow, error } = await admin.from("addresses").insert({ user_id: actor.id, line1: street, city, region, postal_code: postalCode, country: "US", is_default: true }).select("id").single();
   if (error) return { ok: false, message: error.message };
 
   await admin.from("customer_profiles").update({ default_address_id: addressRow.id }).eq("user_id", actor.id);
   return { ok: true, message: "Profile details updated." };
+}
+
+export async function createEventInDatabaseSupabase(input: {
+  title: string;
+  startsAtLocal: string;
+  description: string;
+  externalLink: string;
+  platform: string;
+  timeZone: string;
+}) {
+  const admin = await getAdminClient();
+  const title = input.title.trim();
+  const description = input.description.trim();
+  const platform = input.platform.trim();
+  const externalLink = input.externalLink.trim();
+  const timeZone = input.timeZone.trim() || "America/New_York";
+
+  if (!title) return { ok: false, message: "Event title is required." };
+  if (!input.startsAtLocal) return { ok: false, message: "Event date and time are required." };
+
+  const startsAt = zonedLocalDateTimeToIso(input.startsAtLocal, timeZone);
+  const { error } = await admin.from("events").insert({
+    title,
+    starts_at: startsAt,
+    description,
+    external_link: externalLink || null,
+    platform: platform || null,
+  });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  return { ok: true, message: `${title} was added to the events calendar.` };
 }

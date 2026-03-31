@@ -14,7 +14,7 @@ export default function SignupPage() {
       <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 28, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
         <h2 style={{ marginTop: 0 }}>New customer signup</h2>
         <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
-          After signup, your account will be created and wait for manual approval before you can claim items.
+          After signup, your account will wait for manual approval. Once approved, sign in and finish your shipping address and timezone from your dashboard.
         </p>
         <SignupForm />
       </section>

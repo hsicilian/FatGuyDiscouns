@@ -2,6 +2,7 @@ import {
   accountStateLabel,
   calculateBalanceDue,
   customerGreeting,
+  getNextScheduledDueDate,
   isBalanceOverdue,
   shipmentStatusLabel,
 } from "@fatguydiscounts/core";
@@ -35,7 +36,9 @@ export default async function AccountPage() {
     previewShipmentRequest(),
   ]);
   const amountDue = calculateBalanceDue(balanceCycle);
-  const overdue = isBalanceOverdue(balanceCycle, new Date().toISOString().slice(0, 10));
+  const today = new Date().toISOString().slice(0, 10);
+  const overdue = isBalanceOverdue(balanceCycle, today);
+  const nextRegularDueDate = getNextScheduledDueDate(today);
 
   return (
     <main style={{ maxWidth: 1120, margin: "0 auto", padding: "36px 24px 72px" }}>
@@ -51,13 +54,13 @@ export default async function AccountPage() {
           <a href="/account/history" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>View paid history</a>
         </div>
         <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginTop: 24 }}>
-          <StatCard label="Current balance" value={currency.format(amountDue)} />
-          <StatCard label="Due date" value={balanceCycle.dueDate} />
-          <StatCard label="Credit on file" value={currency.format(currentCustomer.creditBalance)} />
+          <StatCard label={overdue ? "Overdue amount" : "Current balance"} value={currency.format(amountDue)} />
+          <StatCard label={overdue ? "Payment status" : "Due date"} value={overdue ? "Due immediately" : balanceCycle.dueDate} />
+          <StatCard label={overdue ? "Next regular due date" : "Credit on file"} value={overdue ? nextRegularDueDate : currency.format(currentCustomer.creditBalance)} />
         </div>
         {overdue ? (
           <div style={{ marginTop: 20, padding: 16, borderRadius: 18, background: "#3d1f12", color: "#fff4df", boxShadow: "var(--shadow)" }}>
-            Your current balance is past due. Please check your payment status before making new requests.
+            <strong>{currency.format(amountDue)}</strong> is overdue and due immediately. Any new claims you make now should be planned around the next regular due date of <strong>{nextRegularDueDate}</strong>.
           </div>
         ) : null}
       </section>
@@ -91,6 +94,11 @@ export default async function AccountPage() {
             <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 700 }}>Shipping</p>
             <h2 style={{ marginTop: 0 }}>Address and shipment status</h2>
             <p style={{ color: "var(--muted)", lineHeight: 1.7, marginBottom: 8 }}>{currentCustomer.address}</p>
+            {!currentCustomer.street || !currentCustomer.city || !currentCustomer.region || !currentCustomer.postalCode ? (
+              <div style={{ marginBottom: 14, padding: 14, borderRadius: 16, background: "rgba(187,77,0,0.08)", border: "1px solid rgba(187,77,0,0.18)", color: "#8e3200" }}>
+                Finish your street address, city, state, zip code, and timezone below before requesting shipment.
+              </div>
+            ) : null}
             <p style={{ color: "var(--muted)", marginTop: 0 }}>Timezone: {currentCustomer.timezone}</p>
             <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
               <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
@@ -111,7 +119,13 @@ export default async function AccountPage() {
             <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
               Update your shipping address and timezone so deliveries and event times stay accurate.
             </p>
-            <ProfileForm defaultAddress={currentCustomer.address} defaultTimezone={currentCustomer.timezone} />
+            <ProfileForm
+              defaultStreet={currentCustomer.street}
+              defaultCity={currentCustomer.city}
+              defaultRegion={currentCustomer.region}
+              defaultPostalCode={currentCustomer.postalCode}
+              defaultTimezone={currentCustomer.timezone}
+            />
           </section>
         </aside>
       </div>

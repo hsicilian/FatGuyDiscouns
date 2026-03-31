@@ -1,10 +1,6 @@
-﻿import { accountStateLabel, shipmentStatusLabel } from "@fatguydiscounts/core";
-import { ApprovalActionForm } from "../../../components/forms/approval-action-form";
-import { CustomerNoteForm } from "../../../components/forms/customer-note-form";
-import { PromoteAdminForm } from "../../../components/forms/promote-admin-form";
+import { accountStateLabel, shipmentStatusLabel } from "@fatguydiscounts/core";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
-import { getCurrentSessionAccount } from "../../../lib/auth/session";
-import { getFinancialSummary, listCustomerNotes, listCustomers } from "../../../lib/data/local-db";
+import { getFinancialSummary, listCustomers } from "../../../lib/data/local-db";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -27,14 +23,10 @@ export default async function AdminCustomersPage({ searchParams }: AdminCustomer
   const stateFilter = params?.state?.trim() ?? "all";
   const shipmentFilter = params?.shipment?.trim() ?? "all";
 
-  const [customers, financialSummary, notes, currentSession] = await Promise.all([
+  const [customers, financialSummary] = await Promise.all([
     listCustomers(),
     getFinancialSummary(),
-    listCustomerNotes(),
-    getCurrentSessionAccount(),
   ]);
-
-  const isMasterAdmin = currentSession?.role === "master_admin";
 
   const filteredCustomers = customers.filter((customer) => {
     const matchesQuery = query.length === 0
@@ -55,9 +47,9 @@ export default async function AdminCustomersPage({ searchParams }: AdminCustomer
         <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0 }}>Customer CRM</p>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 18, alignItems: "end", flexWrap: "wrap" }}>
           <div>
-            <h1 style={{ margin: "0 0 10px" }}>Customer records and notes</h1>
+            <h1 style={{ margin: "0 0 10px" }}>Customer records</h1>
             <p style={{ color: "var(--muted)", lineHeight: 1.7, maxWidth: 760, margin: 0 }}>
-              Search customers by name, email, or address, filter by approval or shipment state, and keep internal notes close to the rest of the CRM workflow.
+              Start from the customer list here, then open each customer’s detail page for their claims, restock requests, notes, and account controls.
             </p>
           </div>
           <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", width: "min(100%, 480px)" }}>
@@ -121,83 +113,37 @@ export default async function AdminCustomersPage({ searchParams }: AdminCustomer
 
       <div style={{ display: "grid", gap: 16 }}>
         {filteredCustomers.length > 0 ? filteredCustomers.map((customer) => {
-          const customerNotes = notes.filter((entry) => entry.customerId === customer.id).slice(0, 3);
           const balanceRow = financialSummary.customerBalances.find((entry) => entry.customer === customer.displayName);
-          const canPromote = isMasterAdmin && customer.role === "customer";
-          const canManageAccountState = customer.role === "customer";
 
           return (
-            <section key={customer.id} style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 24, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
-              <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+            <a key={customer.id} href={`/admin/customers/${customer.id}`} style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)", display: "grid", gap: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
                 <div>
-                  <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 12 }}>Customer record</p>
-                  <h2 style={{ marginTop: 0 }}>{customer.displayName}</h2>
-                  <p style={{ color: "var(--muted)", margin: 0 }}>{customer.email}</p>
-                  <p style={{ color: "var(--muted)", margin: "6px 0" }}>{customer.address}</p>
-                  <div style={{ display: "grid", gap: 8, marginTop: 14 }}>
-                    <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
-                      <p style={{ margin: 0, color: "var(--muted)" }}>Role</p>
-                      <strong>{customer.role.replaceAll("_", " ")}</strong>
-                    </div>
-                    <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
-                      <p style={{ margin: 0, color: "var(--muted)" }}>Account state</p>
-                      <strong>{accountStateLabel(customer.accountState)}</strong>
-                    </div>
-                    <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
-                      <p style={{ margin: 0, color: "var(--muted)" }}>Shipment status</p>
-                      <strong>{shipmentStatusLabel(customer.shipmentStatus)}</strong>
-                    </div>
-                  </div>
+                  <p style={{ margin: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 12 }}>Customer</p>
+                  <h2 style={{ margin: "8px 0 4px" }}>{customer.displayName}</h2>
+                  <p style={{ margin: 0, color: "var(--muted)" }}>{customer.email}</p>
                 </div>
-
-                <div style={{ display: "grid", gap: 12 }}>
-                  <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
-                    <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
-                      <p style={{ margin: 0, color: "var(--muted)" }}>Credit balance</p>
-                      <strong>{currency.format(customer.creditBalance)}</strong>
-                    </div>
-                    <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
-                      <p style={{ margin: 0, color: "var(--muted)" }}>Current balance</p>
-                      <strong>{currency.format(balanceRow?.amount ?? 0)}</strong>
-                    </div>
-                    <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
-                      <p style={{ margin: 0, color: "var(--muted)" }}>Last shipment</p>
-                      <strong>{customer.lastShipmentDate ?? "None"}</strong>
-                    </div>
-                  </div>
-                  <div style={{ padding: 16, borderRadius: 18, background: balanceRow?.overdue ? "rgba(142,50,0,0.1)" : "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
-                    <p style={{ marginTop: 0, color: "var(--muted)" }}>Balance status</p>
-                    <strong style={{ color: balanceRow?.overdue ? "#8e3200" : "#1f1d1a" }}>{balanceRow?.overdue ? "Overdue" : "Current"}</strong>
-                  </div>
-                  {canManageAccountState ? (
-                    <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
-                      <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: "1rem" }}>Account controls</h3>
-                      <p style={{ color: "var(--muted)", lineHeight: 1.6 }}>Approve, disable claiming, or ban this customer directly from the CRM.</p>
-                      <ApprovalActionForm customerId={customer.id} />
-                    </div>
-                  ) : null}
-                  {canPromote ? (
-                    <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
-                      <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: "1rem" }}>Master admin</h3>
-                      <p style={{ color: "var(--muted)", lineHeight: 1.6 }}>Promote this customer to admin access without leaving the CRM workflow.</p>
-                      <PromoteAdminForm customerId={customer.id} />
-                    </div>
-                  ) : null}
-                  <div>
-                    <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: "1rem" }}>Internal notes</h3>
-                    <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-                      {customerNotes.length > 0 ? customerNotes.map((note) => (
-                        <div key={note.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 8 }}>
-                          <p style={{ margin: 0, color: "#1f1d1a" }}>{note.note}</p>
-                          <p style={{ margin: "4px 0 0", color: "#6d655d", fontSize: 13 }}>{note.createdAt}</p>
-                        </div>
-                      )) : <p style={{ margin: 0, color: "var(--muted)" }}>No notes yet.</p>}
-                    </div>
-                    <CustomerNoteForm customerId={customer.id} />
-                  </div>
+                <div style={{ display: "grid", gap: 6, justifyItems: "end" }}>
+                  <strong>{accountStateLabel(customer.accountState)}</strong>
+                  <span style={{ color: "var(--muted)" }}>{shipmentStatusLabel(customer.shipmentStatus)}</span>
                 </div>
               </div>
-            </section>
+
+              <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+                <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                  <p style={{ margin: 0, color: "var(--muted)" }}>Current balance</p>
+                  <strong>{currency.format(balanceRow?.amount ?? 0)}</strong>
+                </div>
+                <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                  <p style={{ margin: 0, color: "var(--muted)" }}>Credit</p>
+                  <strong>{currency.format(customer.creditBalance)}</strong>
+                </div>
+                <div style={{ padding: 14, borderRadius: 16, background: balanceRow?.overdue ? "rgba(142,50,0,0.1)" : "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                  <p style={{ margin: 0, color: "var(--muted)" }}>Balance status</p>
+                  <strong style={{ color: balanceRow?.overdue ? "#8e3200" : "#1f1d1a" }}>{balanceRow?.overdue ? "Overdue" : "Current"}</strong>
+                </div>
+              </div>
+            </a>
           );
         }) : <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 24, boxShadow: "var(--shadow)", color: "var(--muted)" }}>No customers matched the current filters.</section>}
       </div>

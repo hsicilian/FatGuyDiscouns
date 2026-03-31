@@ -12,6 +12,7 @@ import {
   adjustInventoryInDatabase,
   applyBalanceAdjustmentsToDatabase,
   applyPaymentToDatabase,
+  createInventoryItemInDatabase,
   removeClaimedItemFromDatabase,
   submitClaimToDatabase,
   submitRestockRequestToDatabase,
@@ -21,6 +22,7 @@ import {
   updateCustomerRoleInDatabase,
   updateCurrentCustomerProfile,
   updateShipmentInDatabase,
+  createEventInDatabase,
 } from "../data/local-db";
 import { hasSupabaseEnv } from "../supabase";
 
@@ -181,6 +183,41 @@ export async function adjustInventory(productId: string, quantityChange: number)
   };
 }
 
+export async function createInventoryItem(
+  title: string,
+  description: string,
+  price: number,
+  quantity: number,
+  category: string,
+  sku: string,
+  location: string,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await createInventoryItemInDatabase({
+    title,
+    description,
+    price,
+    quantity,
+    category,
+    sku,
+    location,
+  });
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
 export async function submitRestockRequest(productId: string): Promise<FormActionState> {
   const result = await submitRestockRequestToDatabase(productId);
   revalidatePath("/store");
@@ -261,13 +298,19 @@ export async function promoteCustomerToAdmin(customerId: string): Promise<FormAc
   };
 }
 
-export async function updateCurrentCustomerProfileDetails(address: string, timezone: string): Promise<FormActionState> {
+export async function updateCurrentCustomerProfileDetails(
+  street: string,
+  city: string,
+  region: string,
+  postalCode: string,
+  timezone: string,
+): Promise<FormActionState> {
   const access = await requireCustomerMutationAccess();
   if (!access.ok) {
     return access;
   }
 
-  const result = await updateCurrentCustomerProfile({ address, timezone });
+  const result = await updateCurrentCustomerProfile({ street, city, region, postalCode, timezone });
   revalidatePath("/account");
   revalidatePath("/claims");
 
@@ -348,6 +391,37 @@ export async function previewPaymentSubmission(paymentAmount: number, creditAmou
 
   return {
     ...(result.ok ? result : await previewPaymentAction(paymentAmount, creditAmount)),
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function createEvent(
+  title: string,
+  startsAtLocal: string,
+  description: string,
+  externalLink: string,
+  platform: string,
+  timeZone: string,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await createEventInDatabase({
+    title,
+    startsAtLocal,
+    description,
+    externalLink,
+    platform,
+    timeZone,
+  });
+  revalidatePath("/events");
+  revalidatePath("/admin");
+  revalidatePath("/admin/events");
+
+  return {
+    ...result,
     submittedAt: new Date().toISOString(),
   };
 }

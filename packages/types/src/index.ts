@@ -88,6 +88,10 @@ export interface CustomerSummary {
   accountState: AccountState;
   timezone: string;
   address: string;
+  street: string;
+  city: string;
+  region: string;
+  postalCode: string;
   creditBalance: number;
   shipmentStatus: ShipmentStatus;
   lastShipmentDate: string | null;
@@ -98,6 +102,15 @@ export interface CustomerNote {
   customerId: string;
   note: string;
   createdAt: string;
+}
+
+export interface RestockRequestRecord {
+  id: string;
+  customerId: string | null;
+  productTitle: string;
+  status: string;
+  createdAt: string;
+  email: string | null;
 }
 
 export interface AdminNotification {

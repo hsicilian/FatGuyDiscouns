@@ -55,6 +55,39 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
   },
 ];
 
+export const PAYMENT_SCHEDULE_ANCHOR = "2026-04-05";
+export const PAYMENT_SCHEDULE_INTERVAL_DAYS = 14;
+
+function parseDateOnly(value: string) {
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+function formatDateOnly(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+export function getScheduledDueDateForDate(referenceDate: string) {
+  const anchor = parseDateOnly(PAYMENT_SCHEDULE_ANCHOR);
+  const reference = parseDateOnly(referenceDate);
+
+  if (reference.getTime() <= anchor.getTime()) {
+    return PAYMENT_SCHEDULE_ANCHOR;
+  }
+
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const dayDiff = Math.floor((reference.getTime() - anchor.getTime()) / msPerDay);
+  const intervalCount = Math.ceil(dayDiff / PAYMENT_SCHEDULE_INTERVAL_DAYS);
+  const nextDate = new Date(anchor.getTime() + intervalCount * PAYMENT_SCHEDULE_INTERVAL_DAYS * msPerDay);
+  return formatDateOnly(nextDate);
+}
+
+export function getNextScheduledDueDate(todayIso: string) {
+  const today = parseDateOnly(todayIso);
+  const nextDay = new Date(today.getTime() + 24 * 60 * 60 * 1000);
+  return getScheduledDueDateForDate(formatDateOnly(nextDay));
+}
+
 export function calculateBalanceDue(cycle: BalanceCycleSummary) {
   return cycle.subtotal + cycle.shipping + cycle.adjustments - cycle.paymentsApplied - cycle.creditsApplied;
 }

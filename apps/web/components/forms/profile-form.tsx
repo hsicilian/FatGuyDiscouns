@@ -10,10 +10,16 @@ const initialState: FormActionState = {
 };
 
 export function ProfileForm({
-  defaultAddress,
+  defaultStreet,
+  defaultCity,
+  defaultRegion,
+  defaultPostalCode,
   defaultTimezone,
 }: {
-  defaultAddress: string;
+  defaultStreet: string;
+  defaultCity: string;
+  defaultRegion: string;
+  defaultPostalCode: string;
   defaultTimezone: string;
 }) {
   const [state, formAction, isPending] = useActionState(updateCustomerProfileAction, initialState);
@@ -21,9 +27,23 @@ export function ProfileForm({
   return (
     <form action={formAction} style={{ display: "grid", gap: 12 }}>
       <label style={{ display: "grid", gap: 6 }}>
-        <span style={{ color: "var(--muted)", fontSize: 14 }}>Address</span>
-        <textarea name="address" defaultValue={defaultAddress} rows={3} style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2", resize: "vertical", font: "inherit" }} />
+        <span style={{ color: "var(--muted)", fontSize: 14 }}>Street address</span>
+        <input name="street" defaultValue={defaultStreet} autoComplete="address-line1" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
       </label>
+      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span style={{ color: "var(--muted)", fontSize: 14 }}>City</span>
+          <input name="city" defaultValue={defaultCity} autoComplete="address-level2" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
+        </label>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span style={{ color: "var(--muted)", fontSize: 14 }}>State</span>
+          <input name="region" defaultValue={defaultRegion} autoComplete="address-level1" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
+        </label>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span style={{ color: "var(--muted)", fontSize: 14 }}>Zip code</span>
+          <input name="postalCode" defaultValue={defaultPostalCode} autoComplete="postal-code" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
+        </label>
+      </div>
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ color: "var(--muted)", fontSize: 14 }}>Timezone</span>
         <select name="timezone" defaultValue={defaultTimezone} style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }}>

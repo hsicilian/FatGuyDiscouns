@@ -1,6 +1,6 @@
 import "server-only";
 
-import { calculateBalanceDue, isBalanceOverdue } from "@fatguydiscounts/core";
+import { calculateBalanceDue, getScheduledDueDateForDate, isBalanceOverdue } from "@fatguydiscounts/core";
 import type {
   ArchivedInvoice,
   BalanceCycleSummary,
@@ -15,7 +15,7 @@ import { createServerSupabaseClient, createSupabaseAdminClient } from "../supaba
 export const ZERO_CYCLE: BalanceCycleSummary = {
   id: "no-active-cycle",
   status: "active",
-  dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+  dueDate: getScheduledDueDateForDate(new Date().toISOString().slice(0, 10)),
   subtotal: 0,
   shipping: 0,
   adjustments: 0,
@@ -28,9 +28,7 @@ export function siteToday() {
 }
 
 export function nextDueDateFromToday() {
-  const nextDate = new Date();
-  nextDate.setDate(nextDate.getDate() + 14);
-  return nextDate.toISOString().slice(0, 10);
+  return getScheduledDueDateForDate(siteToday());
 }
 
 export function formatCycleLabel(date: Date) {
@@ -47,6 +45,15 @@ export function formatAddress(address: Record<string, unknown> | null | undefine
     .filter(Boolean);
 
   return parts.length > 0 ? parts.join(", ") : "Address pending confirmation";
+}
+
+export function getAddressParts(address: Record<string, any> | null | undefined) {
+  return {
+    street: typeof address?.line1 === "string" ? address.line1 : "",
+    city: typeof address?.city === "string" ? address.city : "",
+    region: typeof address?.region === "string" ? address.region : "",
+    postalCode: typeof address?.postal_code === "string" ? address.postal_code : "",
+  };
 }
 
 export function formatNotificationLabel(row: Record<string, any>) {
@@ -105,7 +112,7 @@ export function mapBalanceCycle(
   return {
     id: row.id,
     status: row.status,
-    dueDate: row.due_date ?? nextDueDateFromToday(),
+    dueDate: getScheduledDueDateForDate((row.created_at ?? row.updated_at ?? siteToday()).slice(0, 10)),
     subtotal,
     shipping: Number(row.shipping_total ?? 0),
     adjustments: Number(row.adjustments_total ?? 0),
@@ -205,6 +212,7 @@ export async function getCustomerSummaryByUserId(userId: string, options?: { adm
 
   const authEmail = (await (client as any).auth.admin.getUserById(userId)).data.user?.email;
   const displayName = profileRow?.display_name ?? authEmail ?? "Customer";
+  const addressParts = getAddressParts(addressRow as Record<string, any> | null);
 
   return {
     id: userId,
@@ -214,6 +222,10 @@ export async function getCustomerSummaryByUserId(userId: string, options?: { adm
     accountState: roleRow?.account_state ?? "pending_approval",
     timezone: profileRow?.timezone ?? "America/New_York",
     address: formatAddress(addressRow as Record<string, unknown> | null),
+    street: addressParts.street,
+    city: addressParts.city,
+    region: addressParts.region,
+    postalCode: addressParts.postalCode,
     creditBalance: Number(profileRow?.credit_balance ?? 0),
     shipmentStatus: shipmentRow?.status ?? "none",
     lastShipmentDate: profileRow?.last_shipment_date ?? shipmentRow?.shipment_date ?? null,

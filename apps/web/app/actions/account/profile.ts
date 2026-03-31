@@ -7,7 +7,10 @@ export async function updateCustomerProfileAction(
   _previousState: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
-  const address = String(formData.get("address") ?? "");
+  const street = String(formData.get("street") ?? "");
+  const city = String(formData.get("city") ?? "");
+  const region = String(formData.get("region") ?? "");
+  const postalCode = String(formData.get("postalCode") ?? "");
   const timezone = String(formData.get("timezone") ?? "");
-  return updateCurrentCustomerProfileDetails(address, timezone);
+  return updateCurrentCustomerProfileDetails(street, city, region, postalCode, timezone);
 }

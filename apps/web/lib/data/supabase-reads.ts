@@ -1,7 +1,7 @@
 import "server-only";
 
 import { platformSummary } from "@fatguydiscounts/db";
-import type { AdminNotification, ClaimedItem, CustomerNote, FinancialSummary, ShipmentRecord } from "@fatguydiscounts/types";
+import type { AdminNotification, ClaimedItem, CustomerNote, FinancialSummary, RestockRequestRecord, ShipmentRecord } from "@fatguydiscounts/types";
 import {
   ZERO_CYCLE,
   formatNotificationLabel,
@@ -72,6 +72,31 @@ export async function listClaimedItemsSupabase() {
   return (data ?? []).map((row) => toClaimedItem(row as Record<string, any>));
 }
 
+export async function listClaimedItemsForCustomerSupabase(customerId: string) {
+  const admin = await getAdminClient();
+  const { data: cycle } = await admin
+    .from("balance_cycles")
+    .select("id")
+    .eq("customer_id", customerId)
+    .eq("status", "active")
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!cycle?.id) return [] as ClaimedItem[];
+
+  const { data, error } = await admin
+    .from("balance_line_items")
+    .select("id, description, quantity, unit_price, status, item_type")
+    .eq("cycle_id", cycle.id)
+    .in("item_type", ["claim", "manual_item", "manual_adjustment"])
+    .neq("status", "archived")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => toClaimedItem(row as Record<string, any>));
+}
+
 export async function listArchivedInvoicesSupabase() {
   const actor = await getCurrentActor();
   if (actor.role !== "customer") return [];
@@ -127,6 +152,33 @@ export async function listCustomerNotesSupabase(customerId?: string) {
   } satisfies CustomerNote));
 }
 
+export async function listRestockRequestsSupabase(customerId?: string) {
+  const admin = await getAdminClient();
+  let query = admin
+    .from("restock_requests")
+    .select("id, customer_id, email, status, created_at, products(title)")
+    .order("created_at", { ascending: false });
+
+  if (customerId) {
+    query = query.eq("customer_id", customerId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data ?? []).map((row) => {
+    const productRelation = (row as any).products;
+    return ({
+      id: row.id,
+      customerId: row.customer_id,
+      productTitle: Array.isArray(productRelation) ? productRelation[0]?.title ?? "Product" : productRelation?.title ?? "Product",
+      status: row.status,
+      createdAt: row.created_at,
+      email: row.email ?? null,
+    } satisfies RestockRequestRecord);
+  });
+}
+
 export async function listNotificationsSupabase() {
   const admin = await getAdminClient();
   const { data, error } = await admin.from("notifications").select("id, type, payload, created_at, customer_id").order("created_at", { ascending: false }).limit(30);
@@ -151,10 +203,17 @@ export async function listNotificationsSupabase() {
 }
 
 export async function listEventsSupabase() {
-  const session = await getSessionClient();
-  const { data, error } = await session.from("events").select("*").order("starts_at", { ascending: true });
+  const admin = await getAdminClient();
+  const { data, error } = await admin.from("events").select("*").order("starts_at", { ascending: true });
   if (error) throw error;
   return (data ?? []).map((row) => toShowEvent(row as Record<string, any>));
+}
+
+export async function getEventByIdSupabase(eventId: string) {
+  const admin = await getAdminClient();
+  const { data, error } = await admin.from("events").select("*").eq("id", eventId).maybeSingle();
+  if (error) throw error;
+  return data ? toShowEvent(data as Record<string, any>) : null;
 }
 
 export async function getPaymentDefaultsSupabase() {

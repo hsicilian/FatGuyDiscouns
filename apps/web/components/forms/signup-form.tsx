@@ -17,13 +17,6 @@ export function SignupForm() {
       <input name="displayName" placeholder="Full name" autoComplete="name" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
       <input name="email" placeholder="Email address" autoComplete="email" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
       <input name="password" placeholder="Create password" type="password" autoComplete="new-password" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
-      <input name="address" placeholder="Mailing address" autoComplete="street-address" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
-      <select name="timezone" defaultValue="America/New_York" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }}>
-        <option value="America/New_York">Eastern Time</option>
-        <option value="America/Chicago">Central Time</option>
-        <option value="America/Denver">Mountain Time</option>
-        <option value="America/Los_Angeles">Pacific Time</option>
-      </select>
       <button disabled={isPending} style={{ background: "#bb4d00", color: "#fff", border: 0, borderRadius: 999, padding: "14px 16px", boxShadow: "0 12px 28px rgba(187,77,0,0.18)" }}>
         {isPending ? "Creating account..." : "Create Account"}
       </button>
