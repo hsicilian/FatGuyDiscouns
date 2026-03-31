@@ -19,7 +19,7 @@ export default async function LoginPage() {
         <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 28, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
           <h2 style={{ marginTop: 0 }}>{currentUser ? "You are already signed in" : "Welcome back"}</h2>
           <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
-            Guests can always browse the store. Signing in unlocks your account tools and customer approval status.
+            Signing in unlocks your account tools, customer approval status, and claim access once you are approved.
           </p>
           {currentUser ? (
             <div style={{ display: "grid", gap: 14, marginTop: 20 }}>
@@ -39,7 +39,6 @@ export default async function LoginPage() {
             <LoginForm />
           )}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
-            <a href="/store" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Shop as guest</a>
             <a href="/signup" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Create account</a>
             <a href="/forgot-password" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Forgot password?</a>
           </div>
