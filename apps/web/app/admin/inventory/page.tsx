@@ -7,6 +7,10 @@ import { InventorySaleForm } from "../../../components/forms/inventory-sale-form
 import { ensureAdminAccess } from "../../../lib/auth/guards";
 import { listProducts } from "../../../lib/data/local-db";
 
+function getCardImage(images: string[]) {
+  return images[0] ?? "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80";
+}
+
 export default async function AdminInventoryPage() {
   await ensureAdminAccess();
 
@@ -59,7 +63,38 @@ export default async function AdminInventoryPage() {
         {activeProducts.map((product) => (
           <Panel key={product.id}>
             <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
-              <div>
+              <div style={{ display: "grid", gap: 16 }}>
+                <div
+                  style={{
+                    minHeight: 220,
+                    borderRadius: 22,
+                    background: "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
+                    position: "relative",
+                    overflow: "hidden",
+                    border: "1px solid rgba(232,214,195,0.88)",
+                  }}
+                >
+                  <img
+                    src={getCardImage(product.images)}
+                    alt={product.title}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(16,12,8,0.18) 100%)",
+                    }}
+                  />
+                </div>
+
+                <div>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 14, flexWrap: "wrap", alignItems: "center" }}>
                   <div>
                     <p style={{ color: "var(--muted)", marginTop: 0, marginBottom: 8 }}>{product.category}</p>
@@ -84,6 +119,7 @@ export default async function AdminInventoryPage() {
                       </p>
                     ) : null}
                   </div>
+                </div>
                 </div>
               </div>
               <div style={{ display: "grid", gap: 14 }}>
