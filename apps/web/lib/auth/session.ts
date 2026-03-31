@@ -70,16 +70,17 @@ export async function authenticateLocalAccount(email: string, password: string) 
 
 async function getSupabaseSessionAccount(): Promise<SessionAccount | null> {
   const supabase = await createServerSupabaseClient();
-  const [{ data: userResult }, { data: roleRow }, { data: profileRow }] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase.from("user_roles").select("role, account_state").single(),
-    supabase.from("customer_profiles").select("display_name").single(),
-  ]);
+  const { data: userResult } = await supabase.auth.getUser();
 
   const user = userResult.user;
   if (!user) {
     return null;
   }
+
+  const [{ data: roleRow }, { data: profileRow }] = await Promise.all([
+    supabase.from("user_roles").select("role, account_state").eq("user_id", user.id).maybeSingle(),
+    supabase.from("customer_profiles").select("display_name").eq("user_id", user.id).maybeSingle(),
+  ]);
 
   const displayName = profileRow?.display_name
     ?? (typeof user.user_metadata.display_name === "string" ? user.user_metadata.display_name : null)
