@@ -10,9 +10,12 @@ import { getCurrentSessionAccount } from "../../../../lib/auth/session";
 import {
   getBalanceCycle,
   getPaymentDefaults,
+  listArchivedInvoicesForCustomer,
+  listClaimHistoryForCustomer,
   listClaimedItemsForCustomer,
   listCustomerNotes,
   listCustomers,
+  listPaymentHistoryForCustomer,
   listRestockRequests,
 } from "../../../../lib/data/local-db";
 
@@ -29,12 +32,15 @@ export default async function AdminCustomerDetailPage({
   await ensureAdminAccess();
   const { customerId } = await params;
 
-  const [customers, balanceCycle, paymentDefaults, notes, claimedItems, restockRequests, currentSession] = await Promise.all([
+  const [customers, balanceCycle, paymentDefaults, notes, claimedItems, claimHistory, paymentHistory, invoiceHistory, restockRequests, currentSession] = await Promise.all([
     listCustomers(),
     getBalanceCycle(customerId),
     getPaymentDefaults(customerId),
     listCustomerNotes(customerId),
     listClaimedItemsForCustomer(customerId),
+    listClaimHistoryForCustomer(customerId),
+    listPaymentHistoryForCustomer(customerId),
+    listArchivedInvoicesForCustomer(customerId),
     listRestockRequests(customerId),
     getCurrentSessionAccount(),
   ]);
@@ -162,7 +168,7 @@ export default async function AdminCustomerDetailPage({
 
       <section style={{ display: "grid", gap: 24, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
-          <h2 style={{ marginTop: 0 }}>Current claims</h2>
+          <h2 style={{ marginTop: 0 }}>Current claims waiting for shipment</h2>
           <div style={{ display: "grid", gap: 12 }}>
             {claimedItems.length > 0 ? claimedItems.map((item) => (
               <div key={item.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12, display: "flex", justifyContent: "space-between", gap: 12 }}>
@@ -185,6 +191,55 @@ export default async function AdminCustomerDetailPage({
                 <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>{request.status} • {request.createdAt}</p>
               </div>
             )) : <p style={{ margin: 0, color: "var(--muted)" }}>No restock requests on file.</p>}
+          </div>
+        </div>
+      </section>
+
+      <section style={{ display: "grid", gap: 24, gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))" }}>
+        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
+          <h2 style={{ marginTop: 0 }}>Claim history</h2>
+          <div style={{ display: "grid", gap: 12 }}>
+            {claimHistory.length > 0 ? claimHistory.map((item) => (
+              <div key={item.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12, display: "flex", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <strong>{item.productTitle}</strong>
+                  <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>
+                    Qty {item.quantity} • {item.status} • {item.createdAt}
+                  </p>
+                </div>
+                <strong>{currency.format(item.quantity * item.unitPrice)}</strong>
+              </div>
+            )) : <p style={{ margin: 0, color: "var(--muted)" }}>No claim history yet.</p>}
+          </div>
+        </div>
+
+        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
+          <h2 style={{ marginTop: 0 }}>Payment history</h2>
+          <div style={{ display: "grid", gap: 12 }}>
+            {paymentHistory.length > 0 ? paymentHistory.map((payment) => (
+              <div key={payment.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12, display: "flex", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <strong>{payment.notes || "Payment recorded"}</strong>
+                  <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>{payment.createdAt}</p>
+                </div>
+                <strong>{currency.format(payment.amount)}</strong>
+              </div>
+            )) : <p style={{ margin: 0, color: "var(--muted)" }}>No payments recorded yet.</p>}
+          </div>
+        </div>
+
+        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
+          <h2 style={{ marginTop: 0 }}>Invoice history</h2>
+          <div style={{ display: "grid", gap: 12 }}>
+            {invoiceHistory.length > 0 ? invoiceHistory.map((invoice) => (
+              <div key={invoice.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12, display: "flex", justifyContent: "space-between", gap: 12 }}>
+                <div>
+                  <strong>{invoice.cycleLabel}</strong>
+                  <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>Paid {invoice.paidAt}</p>
+                </div>
+                <strong>{currency.format(invoice.total)}</strong>
+              </div>
+            )) : <p style={{ margin: 0, color: "var(--muted)" }}>No invoices archived yet.</p>}
           </div>
         </div>
       </section>

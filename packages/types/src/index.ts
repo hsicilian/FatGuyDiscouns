@@ -68,6 +68,11 @@ export interface ClaimedItem {
   status: "claimed" | "adjusted";
 }
 
+export interface ClaimHistoryRecord extends ClaimedItem {
+  createdAt: string;
+  cycleStatus?: "active" | "archived" | "overdue";
+}
+
 export interface BalanceCycleSummary {
   id: string;
   status: "active" | "archived" | "overdue";
@@ -88,6 +93,14 @@ export interface ArchivedInvoice {
   total: number;
   paymentTotal: number;
   creditApplied: number;
+}
+
+export interface PaymentHistoryRecord {
+  id: string;
+  customerId: string;
+  amount: number;
+  createdAt: string;
+  notes: string;
 }
 
 export interface ShipmentRecord {
@@ -153,9 +166,25 @@ export interface FinancialSummary {
   totalRunningBalance: number;
   unpaidTotal: number;
   paymentsThisCycle: number;
+  overdueCustomerCount: number;
+  overdueTotal: number;
+  archivedInvoiceRevenue: number;
+  lifetimeCollected: number;
   customerBalances: Array<{
     customer: string;
     amount: number;
     overdue: boolean;
+    customerId?: string;
+  }>;
+  topCustomers: Array<{
+    customer: string;
+    customerId?: string;
+    totalSpent: number;
+    invoiceCount: number;
+  }>;
+  recentPayments: PaymentHistoryRecord[];
+  recentInvoices: Array<ArchivedInvoice & {
+    customer: string;
+    customerId?: string;
   }>;
 }

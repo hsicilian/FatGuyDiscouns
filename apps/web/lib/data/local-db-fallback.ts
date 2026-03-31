@@ -22,9 +22,11 @@ import type {
   BalanceCycleSummary,
   CategoryOption,
   ClaimedItem,
+  ClaimHistoryRecord,
   CustomerNote,
   CustomerSummary,
   FinancialSummary,
+  PaymentHistoryRecord,
   Product,
   RestockRequestRecord,
   ShowEvent,
@@ -581,6 +583,44 @@ export async function listArchivedInvoices() {
   return db.archivedInvoices;
 }
 
+export async function listArchivedInvoicesForCustomer(_customerId: string) {
+  const db = await readDatabase();
+  return db.archivedInvoices;
+}
+
+export async function listPaymentHistoryForCustomer(customerId: string): Promise<PaymentHistoryRecord[]> {
+  const db = await readDatabase();
+  const customer = db.customers.find((entry) => entry.id === customerId);
+  if (!customer) return [];
+
+  const archivedPayments = db.archivedInvoices.map((invoice) => ({
+    id: `payment-${invoice.id}`,
+    customerId,
+    amount: invoice.paymentTotal,
+    createdAt: invoice.paidAt,
+    notes: `Payment recorded for ${invoice.cycleLabel}`,
+  }));
+
+  const activeCyclePayment = db.balanceCycle.paymentsApplied > 0 ? [{
+    id: "payment-active-cycle",
+    customerId,
+    amount: db.balanceCycle.paymentsApplied,
+    createdAt: new Date().toISOString().slice(0, 10),
+    notes: "Active cycle payment total",
+  }] : [];
+
+  return [...activeCyclePayment, ...archivedPayments];
+}
+
+export async function listClaimHistoryForCustomer(_customerId: string): Promise<ClaimHistoryRecord[]> {
+  const db = await readDatabase();
+  return db.claimedItems.map((item, index) => ({
+    ...item,
+    createdAt: new Date(Date.now() - index * 86400000).toISOString(),
+    cycleStatus: db.balanceCycle.status,
+  }));
+}
+
 export async function listShipmentRecords() {
   const db = await readDatabase();
   return db.shipmentRecords;
@@ -631,28 +671,54 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
   const db = await readDatabase();
   const currentCustomer = findCurrentCustomer(db);
   const amountDue = calculateBalanceDue(db.balanceCycle);
+  const overdueEntries = [
+    {
+      customer: currentCustomer.displayName,
+      customerId: currentCustomer.id,
+      amount: amountDue,
+      overdue: isBalanceOverdue(db.balanceCycle, new Date().toISOString().slice(0, 10)),
+    },
+    {
+      customer: "Casey Morgan",
+      customerId: "cust-002",
+      amount: 118,
+      overdue: true,
+    },
+    {
+      customer: "Taylor West",
+      customerId: "cust-003",
+      amount: 76,
+      overdue: false,
+    },
+  ];
+  const topCustomers = [
+    { customer: currentCustomer.displayName, customerId: currentCustomer.id, totalSpent: 216, invoiceCount: 2 },
+    { customer: "Casey Morgan", customerId: "cust-002", totalSpent: 184, invoiceCount: 2 },
+    { customer: "Taylor West", customerId: "cust-003", totalSpent: 148, invoiceCount: 1 },
+  ];
+  const recentPayments: PaymentHistoryRecord[] = [
+    { id: "payment-001", customerId: currentCustomer.id, amount: 38, createdAt: new Date().toISOString(), notes: "Active cycle payment" },
+    { id: "payment-002", customerId: "cust-002", amount: 84, createdAt: "2026-03-02", notes: "February 2026 cycle payment" },
+    { id: "payment-003", customerId: "cust-003", amount: 118, createdAt: "2026-02-01", notes: "January 2026 cycle payment" },
+  ];
+  const recentInvoices = db.archivedInvoices.map((invoice) => ({
+    ...invoice,
+    customer: currentCustomer.displayName,
+    customerId: currentCustomer.id,
+  }));
 
   return {
-    totalRunningBalance: amountDue + 118 + 76,
-    unpaidTotal: amountDue + 118 + 76,
+    totalRunningBalance: overdueEntries.reduce((sum, entry) => sum + entry.amount, 0),
+    unpaidTotal: overdueEntries.reduce((sum, entry) => sum + entry.amount, 0),
     paymentsThisCycle: db.balanceCycle.paymentsApplied,
-    customerBalances: [
-      {
-        customer: currentCustomer.displayName,
-        amount: amountDue,
-        overdue: isBalanceOverdue(db.balanceCycle, new Date().toISOString().slice(0, 10)),
-      },
-      {
-        customer: "Casey Morgan",
-        amount: 118,
-        overdue: true,
-      },
-      {
-        customer: "Taylor West",
-        amount: 76,
-        overdue: false,
-      },
-    ],
+    overdueCustomerCount: overdueEntries.filter((entry) => entry.overdue).length,
+    overdueTotal: overdueEntries.filter((entry) => entry.overdue).reduce((sum, entry) => sum + entry.amount, 0),
+    archivedInvoiceRevenue: db.archivedInvoices.reduce((sum, invoice) => sum + invoice.total, 0),
+    lifetimeCollected: db.archivedInvoices.reduce((sum, invoice) => sum + invoice.paymentTotal + invoice.creditApplied, 0),
+    customerBalances: overdueEntries,
+    topCustomers,
+    recentPayments,
+    recentInvoices,
   };
 }
 

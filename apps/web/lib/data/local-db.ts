@@ -7,18 +7,21 @@ import {
   getBalanceCycleSupabase,
   getCurrentCustomerSupabase,
   listCategoriesSupabase,
+  listClaimHistoryForCustomerSupabase,
   getFinancialSummarySupabase,
   getEventByIdSupabase,
   getProductByIdSupabase,
   getPaymentDefaultsSupabase,
   getPlatformSummarySupabase,
   listArchivedInvoicesSupabase,
+  listArchivedInvoicesForCustomerSupabase,
   listClaimedItemsSupabase,
   listClaimedItemsForCustomerSupabase,
   listCustomerNotesSupabase,
   listCustomersSupabase,
   listEventsSupabase,
   listNotificationsSupabase,
+  listPaymentHistoryForCustomerSupabase,
   listProductsSupabase,
   listRestockRequestsSupabase,
   listShipmentRecordsSupabase,
@@ -124,8 +127,20 @@ export async function listArchivedInvoices() {
   return shouldUseSupabase() ? listArchivedInvoicesSupabase() : fallback.listArchivedInvoices();
 }
 
+export async function listArchivedInvoicesForCustomer(customerId: string) {
+  return shouldUseSupabase() ? listArchivedInvoicesForCustomerSupabase(customerId) : fallback.listArchivedInvoicesForCustomer(customerId);
+}
+
 export async function listShipmentRecords() {
   return shouldUseSupabase() ? listShipmentRecordsSupabase() : fallback.listShipmentRecords();
+}
+
+export async function listPaymentHistoryForCustomer(customerId: string) {
+  return shouldUseSupabase() ? listPaymentHistoryForCustomerSupabase(customerId) : fallback.listPaymentHistoryForCustomer(customerId);
+}
+
+export async function listClaimHistoryForCustomer(customerId: string) {
+  return shouldUseSupabase() ? listClaimHistoryForCustomerSupabase(customerId) : fallback.listClaimHistoryForCustomer(customerId);
 }
 
 export async function listCustomerNotes(customerId?: string) {

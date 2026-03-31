@@ -5,7 +5,10 @@ import type {
   ArchivedInvoice,
   BalanceCycleSummary,
   ClaimedItem,
+  ClaimHistoryRecord,
   CustomerSummary,
+  FinancialSummary,
+  PaymentHistoryRecord,
   Product,
   ProductImageRecord,
   ShowEvent,
@@ -109,6 +112,18 @@ export function toClaimedItem(row: Record<string, any>): ClaimedItem {
   };
 }
 
+export function toClaimHistoryRecord(row: Record<string, any>): ClaimHistoryRecord {
+  return {
+    id: row.id,
+    productTitle: row.description,
+    quantity: Number(row.quantity ?? 0),
+    unitPrice: Number(row.unit_price ?? 0),
+    status: row.status === "claimed" ? "claimed" : "adjusted",
+    createdAt: row.created_at ?? new Date().toISOString(),
+    cycleStatus: row.balance_cycles?.status ?? undefined,
+  };
+}
+
 export function toArchivedInvoice(row: Record<string, any>): ArchivedInvoice {
   return {
     id: row.id,
@@ -117,6 +132,16 @@ export function toArchivedInvoice(row: Record<string, any>): ArchivedInvoice {
     total: Number(row.total ?? 0),
     paymentTotal: Number(row.payment_total ?? 0),
     creditApplied: Number(row.credit_applied ?? 0),
+  };
+}
+
+export function toPaymentHistoryRecord(row: Record<string, any>): PaymentHistoryRecord {
+  return {
+    id: row.id,
+    customerId: row.balance_cycles?.customer_id ?? "",
+    amount: Number(row.amount ?? 0),
+    createdAt: row.created_at ?? new Date().toISOString(),
+    notes: row.notes ?? "",
   };
 }
 
@@ -279,15 +304,67 @@ export async function getFinancialSummaryFromCycles() {
     const customer = await getCustomerSummaryByUserId(cycle.customer_id, { admin: true });
     return {
       customer: customer.displayName,
+      customerId: customer.id,
       amount: calculateBalanceDue(summary),
       overdue: isBalanceOverdue(summary, siteToday()),
     };
   }));
 
+  const [{ data: archivedInvoices, error: archivedError }, { data: payments, error: paymentError }] = await Promise.all([
+    admin
+      .from("archived_invoices")
+      .select("id, customer_id, cycle_label, paid_at, total, payment_total, credit_applied")
+      .order("paid_at", { ascending: false }),
+    admin
+      .from("payments")
+      .select("id, amount, created_at, notes, balance_cycles!inner(customer_id)")
+      .order("created_at", { ascending: false })
+      .limit(25),
+  ]);
+
+  if (archivedError) {
+    throw archivedError;
+  }
+
+  if (paymentError) {
+    throw paymentError;
+  }
+
+  const invoiceCustomerIds = [...new Set((archivedInvoices ?? []).map((invoice) => invoice.customer_id).filter(Boolean))];
+  const invoiceCustomerMap = new Map<string, Awaited<ReturnType<typeof getCustomerSummaryByUserId>>>();
+  await Promise.all(invoiceCustomerIds.map(async (customerId) => {
+    invoiceCustomerMap.set(customerId, await getCustomerSummaryByUserId(customerId, { admin: true }));
+  }));
+
+  const recentInvoices = (archivedInvoices ?? []).slice(0, 12).map((invoice) => ({
+    ...toArchivedInvoice(invoice as Record<string, any>),
+    customer: invoiceCustomerMap.get(invoice.customer_id)?.displayName ?? "Customer",
+    customerId: invoice.customer_id ?? undefined,
+  }));
+
+  const spendByCustomer = new Map<string, { customer: string; customerId?: string; totalSpent: number; invoiceCount: number }>();
+  for (const invoice of archivedInvoices ?? []) {
+    const customerId = invoice.customer_id ?? "";
+    const name = invoiceCustomerMap.get(customerId)?.displayName ?? "Customer";
+    const existing = spendByCustomer.get(customerId) ?? { customer: name, customerId: customerId || undefined, totalSpent: 0, invoiceCount: 0 };
+    existing.totalSpent += Number(invoice.total ?? 0);
+    existing.invoiceCount += 1;
+    spendByCustomer.set(customerId, existing);
+  }
+
+  const overdueEntries = customerBalances.filter((entry) => entry.overdue);
+
   return {
     totalRunningBalance: customerBalances.reduce((sum, entry) => sum + entry.amount, 0),
     unpaidTotal: customerBalances.reduce((sum, entry) => sum + entry.amount, 0),
     paymentsThisCycle: (cycles ?? []).reduce((sum, cycle) => sum + Number(cycle.payments_applied ?? 0), 0),
+    overdueCustomerCount: overdueEntries.length,
+    overdueTotal: overdueEntries.reduce((sum, entry) => sum + entry.amount, 0),
+    archivedInvoiceRevenue: (archivedInvoices ?? []).reduce((sum, invoice) => sum + Number(invoice.total ?? 0), 0),
+    lifetimeCollected: (archivedInvoices ?? []).reduce((sum, invoice) => sum + Number(invoice.payment_total ?? 0) + Number(invoice.credit_applied ?? 0), 0),
     customerBalances,
-  };
+    topCustomers: [...spendByCustomer.values()].sort((left, right) => right.totalSpent - left.totalSpent).slice(0, 8),
+    recentPayments: (payments ?? []).map((payment) => toPaymentHistoryRecord(payment as Record<string, any>)),
+    recentInvoices,
+  } satisfies FinancialSummary;
 }

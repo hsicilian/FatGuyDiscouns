@@ -256,10 +256,28 @@ export const demoFinancialSummary: FinancialSummary = {
   totalRunningBalance: 2480,
   unpaidTotal: 2165,
   paymentsThisCycle: 930,
+  overdueCustomerCount: 1,
+  overdueTotal: 118,
+  archivedInvoiceRevenue: 216,
+  lifetimeCollected: 216,
   customerBalances: [
-    { customer: "Jordan Rivers", amount: 38, overdue: false },
-    { customer: "Casey Morgan", amount: 118, overdue: true },
-    { customer: "Taylor West", amount: 76, overdue: false },
+    { customer: "Jordan Rivers", customerId: "cust-001", amount: 38, overdue: false },
+    { customer: "Casey Morgan", customerId: "cust-002", amount: 118, overdue: true },
+    { customer: "Taylor West", customerId: "cust-003", amount: 76, overdue: false },
+  ],
+  topCustomers: [
+    { customer: "Jordan Rivers", customerId: "cust-001", totalSpent: 216, invoiceCount: 2 },
+    { customer: "Casey Morgan", customerId: "cust-002", totalSpent: 184, invoiceCount: 2 },
+    { customer: "Taylor West", customerId: "cust-003", totalSpent: 148, invoiceCount: 1 },
+  ],
+  recentPayments: [
+    { id: "payment-001", customerId: "cust-001", amount: 38, createdAt: "2026-03-29", notes: "Active cycle payment" },
+    { id: "payment-002", customerId: "cust-002", amount: 84, createdAt: "2026-03-02", notes: "February 2026 cycle payment" },
+    { id: "payment-003", customerId: "cust-003", amount: 118, createdAt: "2026-02-01", notes: "January 2026 cycle payment" },
+  ],
+  recentInvoices: [
+    { ...demoArchivedInvoices[0], customer: "Jordan Rivers", customerId: "cust-001" },
+    { ...demoArchivedInvoices[1], customer: "Jordan Rivers", customerId: "cust-001" },
   ],
 };
 

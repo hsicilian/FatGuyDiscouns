@@ -1,7 +1,18 @@
 import "server-only";
 
 import { platformSummary } from "@fatguydiscounts/db";
-import type { AdminNotification, CategoryOption, ClaimedItem, CustomerNote, FinancialSummary, RestockRequestRecord, ShipmentRecord } from "@fatguydiscounts/types";
+import type {
+  AdminNotification,
+  ArchivedInvoice,
+  CategoryOption,
+  ClaimedItem,
+  ClaimHistoryRecord,
+  CustomerNote,
+  FinancialSummary,
+  PaymentHistoryRecord,
+  RestockRequestRecord,
+  ShipmentRecord,
+} from "@fatguydiscounts/types";
 import {
   ZERO_CYCLE,
   formatNotificationLabel,
@@ -13,6 +24,8 @@ import {
   getTargetCycleContext,
   toArchivedInvoice,
   toClaimedItem,
+  toClaimHistoryRecord,
+  toPaymentHistoryRecord,
   toProduct,
   toShowEvent,
 } from "./supabase-helpers";
@@ -198,6 +211,43 @@ export async function listArchivedInvoicesSupabase() {
 
   if (error) throw error;
   return (data ?? []).map((row) => toArchivedInvoice(row as Record<string, any>));
+}
+
+export async function listArchivedInvoicesForCustomerSupabase(customerId: string): Promise<ArchivedInvoice[]> {
+  const admin = await getAdminClient();
+  const { data, error } = await admin
+    .from("archived_invoices")
+    .select("id, cycle_label, paid_at, total, payment_total, credit_applied")
+    .eq("customer_id", customerId)
+    .order("paid_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => toArchivedInvoice(row as Record<string, any>));
+}
+
+export async function listPaymentHistoryForCustomerSupabase(customerId: string): Promise<PaymentHistoryRecord[]> {
+  const admin = await getAdminClient();
+  const { data, error } = await admin
+    .from("payments")
+    .select("id, amount, created_at, notes, balance_cycles!inner(customer_id)")
+    .eq("balance_cycles.customer_id", customerId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => toPaymentHistoryRecord(row as Record<string, any>));
+}
+
+export async function listClaimHistoryForCustomerSupabase(customerId: string): Promise<ClaimHistoryRecord[]> {
+  const admin = await getAdminClient();
+  const { data, error } = await admin
+    .from("balance_line_items")
+    .select("id, description, quantity, unit_price, status, item_type, created_at, balance_cycles!inner(customer_id, status)")
+    .in("item_type", ["claim", "manual_item", "manual_adjustment"])
+    .eq("balance_cycles.customer_id", customerId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => toClaimHistoryRecord(row as Record<string, any>));
 }
 
 export async function listShipmentRecordsSupabase() {
