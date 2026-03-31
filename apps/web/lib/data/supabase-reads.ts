@@ -156,15 +156,14 @@ export async function getBalanceCycleSupabase(customerId?: string) {
 }
 
 export async function listClaimedItemsSupabase() {
-  const context = await getTargetCycleContext();
-  if (!context) return [] as ClaimedItem[];
-
+  const actor = await getCurrentActor();
+  if (actor.role !== "customer") return [] as ClaimedItem[];
   const admin = await getAdminClient();
   const { data, error } = await admin
     .from("balance_line_items")
-    .select("id, description, quantity, unit_price, status, item_type")
-    .eq("cycle_id", context.cycle.id)
+    .select("id, description, quantity, unit_price, status, item_type, balance_cycles!inner(customer_id)")
     .in("item_type", ["claim", "manual_item", "manual_adjustment"])
+    .eq("balance_cycles.customer_id", actor.id)
     .neq("status", "archived")
     .order("created_at", { ascending: false });
 
@@ -174,22 +173,11 @@ export async function listClaimedItemsSupabase() {
 
 export async function listClaimedItemsForCustomerSupabase(customerId: string) {
   const admin = await getAdminClient();
-  const { data: cycle } = await admin
-    .from("balance_cycles")
-    .select("id")
-    .eq("customer_id", customerId)
-    .eq("status", "active")
-    .order("updated_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (!cycle?.id) return [] as ClaimedItem[];
-
   const { data, error } = await admin
     .from("balance_line_items")
-    .select("id, description, quantity, unit_price, status, item_type")
-    .eq("cycle_id", cycle.id)
+    .select("id, description, quantity, unit_price, status, item_type, balance_cycles!inner(customer_id)")
     .in("item_type", ["claim", "manual_item", "manual_adjustment"])
+    .eq("balance_cycles.customer_id", customerId)
     .neq("status", "archived")
     .order("created_at", { ascending: false });
 

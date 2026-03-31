@@ -1145,6 +1145,7 @@ export async function updateShipmentInDatabase(
     customer.shipmentStatus = nextStatus;
     if (nextStatus === "completed") {
       customer.lastShipmentDate = shipment.shipmentDate;
+      db.claimedItems = [];
     }
   }
 
@@ -1363,7 +1364,6 @@ export async function applyPaymentToDatabase(paymentAmount: number, creditAmount
       paymentsApplied: 0,
       creditsApplied: 0,
     };
-    db.claimedItems = [];
   }
 
   await writeDatabase(db);

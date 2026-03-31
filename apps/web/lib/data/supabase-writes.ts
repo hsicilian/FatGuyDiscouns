@@ -522,8 +522,18 @@ export async function submitShipmentRequestToDatabaseSupabase() {
   const allowed = canRequestShipment(customer.accountState, customer.shipmentStatus);
   if (!allowed) return { ok: false, message: "Shipment request is blocked for this account." };
 
-  const cycle = await ensureActiveCycle(actor.id);
   const admin = await getAdminClient();
+  const { data: pendingLineItem } = await admin
+    .from("balance_line_items")
+    .select("cycle_id, balance_cycles!inner(customer_id)")
+    .eq("balance_cycles.customer_id", actor.id)
+    .neq("status", "archived")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const cycle = pendingLineItem?.cycle_id
+    ? { id: pendingLineItem.cycle_id }
+    : await ensureActiveCycle(actor.id);
   const { data: address } = await admin.from("addresses").select("id").eq("user_id", actor.id).eq("is_default", true).maybeSingle();
   const nextStatus = nextShipmentStatus(customer.shipmentStatus, "request");
 
@@ -569,12 +579,24 @@ export async function cancelShipmentRequestInDatabaseSupabase(shipmentId?: strin
 
 export async function updateShipmentInDatabaseSupabase(shipmentId: string, nextStatus: ShipmentStatus, trackingNumber: string) {
   const admin = await getAdminClient();
-  const { data: shipment, error } = await admin.from("shipments").select("id, customer_id").eq("id", shipmentId).single();
+  const { data: shipment, error } = await admin.from("shipments").select("id, customer_id, cycle_id").eq("id", shipmentId).single();
   if (error || !shipment) return { ok: false, message: "Shipment record not found." };
 
   const shipmentDate = nextStatus === "completed" ? siteToday() : null;
   const updateResult = await admin.from("shipments").update({ status: nextStatus, tracking_number: trackingNumber.trim() || null, shipment_date: shipmentDate, completed_at: nextStatus === "completed" ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq("id", shipmentId);
   if (updateResult.error) return { ok: false, message: updateResult.error.message };
+
+  if (nextStatus === "completed" && shipment.cycle_id) {
+    const archiveItems = await admin
+      .from("balance_line_items")
+      .update({ status: "archived", updated_at: new Date().toISOString() })
+      .eq("cycle_id", shipment.cycle_id)
+      .neq("status", "archived");
+
+    if (archiveItems.error) {
+      return { ok: false, message: archiveItems.error.message };
+    }
+  }
 
   if (shipmentDate) {
     await admin.from("customer_profiles").update({ last_shipment_date: shipmentDate }).eq("user_id", shipment.customer_id);
@@ -733,7 +755,6 @@ export async function applyPaymentToDatabaseSupabase(paymentAmount: number, cred
   if (shouldArchiveBalance(preview.remaining)) {
     const total = context.summary.subtotal + context.summary.shipping + context.summary.adjustments;
     await admin.from("archived_invoices").insert({ cycle_id: context.cycle.id, customer_id: context.cycle.customer_id, cycle_label: formatCycleLabel(new Date()), paid_at: siteToday(), total, payment_total: Number(context.cycle.payments_applied ?? 0) + paymentAmount, credit_applied: Number(context.cycle.credits_applied ?? 0) + applicableCredit, status: "archived" });
-    await admin.from("balance_line_items").update({ status: "archived", updated_at: new Date().toISOString() }).eq("cycle_id", context.cycle.id);
     await admin.from("balance_cycles").update({ status: "archived", updated_at: new Date().toISOString() }).eq("id", context.cycle.id);
     await admin.from("balance_cycles").insert({ customer_id: context.cycle.customer_id, status: "active", due_date: nextDueDateFromToday(), shipping_total: 0, adjustments_total: 0, payments_applied: 0, credits_applied: 0 });
   }

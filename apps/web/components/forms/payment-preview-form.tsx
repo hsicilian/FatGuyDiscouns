@@ -21,17 +21,17 @@ export function PaymentPreviewForm({
   const [state, formAction, isPending] = useActionState(previewPaymentAction, initialState);
 
   return (
-    <form action={formAction} style={{ display: "grid", gap: 12, maxWidth: 360 }}>
+    <form action={formAction} style={{ display: "grid", gap: 12, width: "100%" }}>
       {customerId ? <input type="hidden" name="customerId" value={customerId} /> : null}
       <label style={{ display: "grid", gap: 6 }}>
         <span>Payment amount</span>
-        <input name="paymentAmount" type="number" step="0.01" min="0" defaultValue={defaultPayment} style={{ padding: 12, borderRadius: 12, border: "1px solid #d9c7b2" }} />
+        <input name="paymentAmount" type="number" step="0.01" min="0" defaultValue={defaultPayment} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2", boxSizing: "border-box" }} />
       </label>
       <label style={{ display: "grid", gap: 6 }}>
         <span>Credit amount</span>
-        <input name="creditAmount" type="number" step="0.01" min="0" defaultValue={defaultCredit} style={{ padding: 12, borderRadius: 12, border: "1px solid #d9c7b2" }} />
+        <input name="creditAmount" type="number" step="0.01" min="0" defaultValue={defaultCredit} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2", boxSizing: "border-box" }} />
       </label>
-      <button disabled={isPending} style={{ background: "#bb4d00", color: "#fff", border: 0, borderRadius: 999, padding: "12px 16px" }}>
+      <button disabled={isPending} style={{ width: "100%", background: "#bb4d00", color: "#fff", border: 0, borderRadius: 999, padding: "12px 16px" }}>
         {isPending ? "Applying..." : "Apply Payment"}
       </button>
       <p style={{ color: state.ok ? "#2f5d32" : "#8e3200", margin: 0 }}>{state.message}</p>

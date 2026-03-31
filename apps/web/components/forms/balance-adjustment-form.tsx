@@ -15,17 +15,17 @@ export function BalanceAdjustmentForm({ customerId }: { customerId?: string }) {
   return (
     <form action={formAction} style={{ display: "grid", gap: 10 }}>
       {customerId ? <input type="hidden" name="customerId" value={customerId} /> : null}
-      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr)" }}>
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ color: "#6d655d", fontSize: 14 }}>Shipping change</span>
-          <input name="shippingChange" type="number" step="0.01" defaultValue="0" style={{ padding: 10, borderRadius: 12, border: "1px solid #d9c7b2" }} />
+          <input name="shippingChange" type="number" step="0.01" defaultValue="0" style={{ width: "100%", padding: 10, borderRadius: 12, border: "1px solid #d9c7b2", boxSizing: "border-box" }} />
         </label>
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ color: "#6d655d", fontSize: 14 }}>Adjustment change</span>
-          <input name="adjustmentChange" type="number" step="0.01" defaultValue="0" style={{ padding: 10, borderRadius: 12, border: "1px solid #d9c7b2" }} />
+          <input name="adjustmentChange" type="number" step="0.01" defaultValue="0" style={{ width: "100%", padding: 10, borderRadius: 12, border: "1px solid #d9c7b2", boxSizing: "border-box" }} />
         </label>
       </div>
-      <button disabled={isPending} style={{ background: "#1f1d1a", color: "#fff", border: 0, borderRadius: 999, padding: "10px 14px" }}>
+      <button disabled={isPending} style={{ width: "100%", background: "#1f1d1a", color: "#fff", border: 0, borderRadius: 999, padding: "10px 14px" }}>
         {isPending ? "Saving..." : "Apply Balance Changes"}
       </button>
       <p style={{ color: state.ok ? "#2f5d32" : "#8e3200", margin: 0 }}>{state.message}</p>
