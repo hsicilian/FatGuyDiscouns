@@ -6,6 +6,7 @@ import {
   isBalanceOverdue,
   shipmentStatusLabel,
 } from "@fatguydiscounts/core";
+import { CustomerMessageForm } from "../../components/forms/customer-message-form";
 import { ProfileForm } from "../../components/forms/profile-form";
 import { ShipmentRequestForm } from "../../components/forms/shipment-request-form";
 import { previewShipmentRequest } from "../../lib/actions/shipments";
@@ -139,6 +140,15 @@ export default async function AccountPage() {
               defaultPostalCode={currentCustomer.postalCode}
               defaultTimezone={currentCustomer.timezone}
             />
+          </section>
+
+          <section style={{ paddingTop: 4, borderTop: "1px solid rgba(232,214,195,0.88)" }}>
+            <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 700 }}>Message admin</p>
+            <h3 style={{ marginTop: 0 }}>Need help with your account?</h3>
+            <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
+              Send a note to the admin team here and it will show up in the admin notification center.
+            </p>
+            <CustomerMessageForm />
           </section>
         </aside>
       </div>

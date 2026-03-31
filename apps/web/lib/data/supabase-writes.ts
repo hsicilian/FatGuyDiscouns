@@ -516,6 +516,35 @@ export async function submitRestockRequestToDatabaseSupabase(productId: string) 
   return { ok: true, message: "The admin team has been asked about getting more of this item." };
 }
 
+export async function submitCustomerMessageToDatabaseSupabase(message: string) {
+  const actor = await getCurrentActor();
+  const customer = await getCurrentCustomerSupabase();
+  const admin = await getAdminClient();
+  const trimmedMessage = message.trim();
+
+  if (!trimmedMessage) {
+    return { ok: false, message: "Enter a message before sending it." };
+  }
+
+  const { error } = await admin.from("notifications").insert({
+    type: "customer_message",
+    customer_id: actor.id,
+    payload: {
+      label: `${customer.displayName}: ${trimmedMessage}`,
+      message: trimmedMessage,
+    },
+  });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  return {
+    ok: true,
+    message: "Your message was sent to the admin team.",
+  };
+}
+
 export async function submitShipmentRequestToDatabaseSupabase() {
   const actor = await getCurrentActor();
   const customer = await getCurrentCustomerSupabase();

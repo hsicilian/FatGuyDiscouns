@@ -23,6 +23,7 @@ import {
   markNotificationReadInDatabase,
   removeClaimedItemFromDatabase,
   submitClaimToDatabase,
+  submitCustomerMessageToDatabase,
   submitRestockRequestToDatabase,
   submitShipmentRequestToDatabase,
   updateProductSaleInDatabase,
@@ -466,6 +467,23 @@ export async function updateCurrentCustomerProfileDetails(
   const result = await updateCurrentCustomerProfile({ street, city, region, postalCode, timezone });
   revalidatePath("/account");
   revalidatePath("/claims");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function sendCustomerMessage(message: string): Promise<FormActionState> {
+  const access = await requireCustomerMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await submitCustomerMessageToDatabase(message);
+  revalidatePath("/account");
+  revalidatePath("/admin");
+  revalidatePath("/admin/notifications");
 
   return {
     ...result,

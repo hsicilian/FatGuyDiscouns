@@ -1123,6 +1123,26 @@ export async function submitRestockRequestToDatabase(productId: string) {
   };
 }
 
+export async function submitCustomerMessageToDatabase(message: string) {
+  const db = await readDatabase();
+  const customer = findCurrentCustomer(db);
+  const trimmedMessage = message.trim();
+
+  if (!trimmedMessage) {
+    return { ok: false, message: "Enter a message before sending it." };
+  }
+
+  db.notifications.unshift(
+    createNotification("customer_message", `${customer.displayName}: ${trimmedMessage}`),
+  );
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: "Your message was sent to the admin team.",
+  };
+}
+
 export async function submitShipmentRequestToDatabase() {
   const db = await readDatabase();
   const customer = findCurrentCustomer(db);

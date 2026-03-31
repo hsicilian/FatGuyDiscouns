@@ -43,6 +43,7 @@ import {
   markNotificationReadInDatabaseSupabase,
   removeClaimedItemFromDatabaseSupabase,
   submitClaimToDatabaseSupabase,
+  submitCustomerMessageToDatabaseSupabase,
   submitRestockRequestToDatabaseSupabase,
   submitShipmentRequestToDatabaseSupabase,
   updateProductSaleInDatabaseSupabase,
@@ -252,6 +253,12 @@ export async function submitRestockRequestToDatabase(productId: string) {
   return shouldUseSupabase()
     ? submitRestockRequestToDatabaseSupabase(productId)
     : fallback.submitRestockRequestToDatabase(productId);
+}
+
+export async function submitCustomerMessageToDatabase(message: string) {
+  return shouldUseSupabase()
+    ? submitCustomerMessageToDatabaseSupabase(message)
+    : fallback.submitCustomerMessageToDatabase(message);
 }
 
 export async function submitShipmentRequestToDatabase() {

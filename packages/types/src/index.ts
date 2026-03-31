@@ -23,7 +23,8 @@ export type NotificationType =
   | "shipment_request"
   | "pending_approval"
   | "low_stock"
-  | "restock_request";
+  | "restock_request"
+  | "customer_message";
 
 export interface ProductImageRecord {
   id: string;
