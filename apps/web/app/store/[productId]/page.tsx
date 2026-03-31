@@ -6,14 +6,15 @@ import { RestockRequestForm } from "../../../components/forms/restock-request-fo
 import { ShareProductButton } from "../../../components/store/share-product-button";
 import { getCurrentSessionAccount } from "../../../lib/auth/session";
 import { getProductById } from "../../../lib/data/local-db";
+import { getProductPath } from "../../../lib/products";
 import { getSiteUrl } from "../../../lib/supabase";
 
 function money(value: number) {
   return `$${value.toFixed(2)}`;
 }
 
-function getProductUrl(productId: string) {
-  return `${getSiteUrl().replace(/\/$/, "")}/store/${productId}`;
+function getProductUrl(product: { id: string; title: string }) {
+  return `${getSiteUrl().replace(/\/$/, "")}${getProductPath(product)}`;
 }
 
 function getPrimaryImage(images: string[]) {
@@ -80,7 +81,7 @@ export async function generateMetadata({
     };
   }
 
-  const productUrl = getProductUrl(product.id);
+  const productUrl = getProductUrl(product);
   const primaryImage = getPrimaryImage(product.images);
   const priceLine = product.isOnSale && product.salePrice != null
     ? `${money(product.salePrice)} sale price`
@@ -113,7 +114,7 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  const productUrl = getProductUrl(product.id);
+  const productUrl = getProductUrl(product);
   const gallery = product.images.length > 0 ? product.images : [getPrimaryImage([])];
 
   return (

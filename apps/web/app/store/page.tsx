@@ -4,6 +4,7 @@ import { ClaimSubmitForm } from "../../components/forms/claim-submit-form";
 import { RestockRequestForm } from "../../components/forms/restock-request-form";
 import { getCurrentSessionAccount } from "../../lib/auth/session";
 import { listProducts } from "../../lib/data/local-db";
+import { getProductPath } from "../../lib/products";
 
 const sortOptions = {
   featured: "Featured",
@@ -225,12 +226,13 @@ export default async function StorePage({
       <div id="store-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18 }}>
         {filteredProducts.map((product) => {
           const cardImage = getCardImage(product.images);
+          const productPath = getProductPath(product);
 
           return (
             <Panel key={product.id}>
               <article style={{ display: "grid", gap: 16 }}>
               <a
-                href={`/store/${product.id}`}
+                href={productPath}
                 style={{
                   minHeight: 220,
                   borderRadius: 20,
@@ -283,7 +285,7 @@ export default async function StorePage({
 
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
                 <h2 style={{ margin: 0, fontSize: "1.28rem" }}>
-                  <a href={`/store/${product.id}`}>{product.title}</a>
+                  <a href={productPath}>{product.title}</a>
                 </h2>
                 <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: product.quantity > 0 ? "#2f5d32" : "var(--accent-strong)" }}>
                   {PRODUCT_STATUS_LABELS[product.status]}
@@ -310,7 +312,7 @@ export default async function StorePage({
                   </p>
                 </div>
                 <div id={`product-${product.id}`} style={{ display: "grid", gap: 10, justifyItems: "stretch", width: "min(100%, 220px)" }}>
-                  <a href={`/store/${product.id}`} style={{ ...ctaStyle, background: "#1d1d1d", color: "#fff" }}>
+                  <a href={productPath} style={{ ...ctaStyle, background: "#1d1d1d", color: "#fff" }}>
                     View Item
                   </a>
                   {renderClaimCta(currentSession, product.id, product.quantity === 0)}

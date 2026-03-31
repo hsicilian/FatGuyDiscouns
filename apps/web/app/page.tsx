@@ -1,6 +1,7 @@
 import { PRODUCT_STATUS_LABELS } from "@fatguydiscounts/core";
 import { Panel } from "@fatguydiscounts/ui";
 import { listProducts } from "../lib/data/local-db";
+import { getProductPath } from "../lib/products";
 
 function money(value: number) {
   return `$${value.toFixed(2)}`;
@@ -50,6 +51,7 @@ export default async function HomePage() {
         <div className="home-listings-grid" style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
           {latestProducts.map((product) => {
             const cardImage = getCardImage(product.images);
+            const productPath = getProductPath(product);
 
             return (
             <Panel key={product.id}>
@@ -129,7 +131,7 @@ export default async function HomePage() {
                     </p>
                   </div>
                   <a
-                    href={`/store/${product.id}`}
+                    href={productPath}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",

@@ -13,6 +13,7 @@ import {
   shouldArchiveBalance,
   validateClaimAttempt,
 } from "@fatguydiscounts/core";
+import { productMatchesLookup } from "../products";
 import { platformSummary } from "@fatguydiscounts/db";
 import type {
   AccountState,
@@ -407,7 +408,7 @@ export async function listProducts(options?: { includeArchived?: boolean }) {
 
 export async function getProductById(productId: string) {
   const db = await readDatabase();
-  return db.products.find((product) => product.id === productId && product.status !== "archived") ?? null;
+  return db.products.find((product) => productMatchesLookup(product.id, productId) && product.status !== "archived") ?? null;
 }
 
 export async function getCurrentCustomer() {

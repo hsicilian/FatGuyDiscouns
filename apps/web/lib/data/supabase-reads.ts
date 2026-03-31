@@ -16,6 +16,7 @@ import {
   toProduct,
   toShowEvent,
 } from "./supabase-helpers";
+import { productMatchesLookup } from "../products";
 
 async function attachProductImages(
   client: Awaited<ReturnType<typeof getAdminClient>>,
@@ -92,7 +93,27 @@ export async function getProductByIdSupabase(productId: string) {
 
   const { data, error } = await query.maybeSingle();
   if (error) throw error;
-  return data ? toProduct(data as Record<string, any>) : null;
+  if (data) {
+    return toProduct(data as Record<string, any>);
+  }
+
+  let fallbackQuery = client
+    .from("products")
+    .select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, categories(name)")
+    .order("created_at", { ascending: false });
+
+  if (!actor || actor.role === "customer") {
+    fallbackQuery = fallbackQuery.in("status", ["active", "low_stock", "out_of_stock"]);
+  } else {
+    fallbackQuery = fallbackQuery.in("status", ["draft", "active", "low_stock", "out_of_stock", "hidden"]);
+  }
+
+  const { data: fallbackRows, error: fallbackError } = await fallbackQuery;
+  if (fallbackError) throw fallbackError;
+
+  const rowsWithImages = await attachProductImages(client, (fallbackRows ?? []) as Array<Record<string, any>>);
+  const matchedRow = rowsWithImages.find((row) => productMatchesLookup(String(row.id), productId));
+  return matchedRow ? toProduct(matchedRow) : null;
 }
 
 export async function getCurrentCustomerSupabase() {
