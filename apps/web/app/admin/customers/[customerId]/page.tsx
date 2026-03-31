@@ -1,6 +1,7 @@
 import { accountStateLabel, calculateBalanceDue, shipmentStatusLabel } from "@fatguydiscounts/core";
 import { ApprovalActionForm } from "../../../../components/forms/approval-action-form";
 import { BalanceAdjustmentForm } from "../../../../components/forms/balance-adjustment-form";
+import { BalanceLineItemForm } from "../../../../components/forms/balance-line-item-form";
 import { CustomerNoteForm } from "../../../../components/forms/customer-note-form";
 import { ManualBalanceItemForm } from "../../../../components/forms/manual-balance-item-form";
 import { PaymentPreviewForm } from "../../../../components/forms/payment-preview-form";
@@ -13,6 +14,7 @@ import {
   listArchivedInvoicesForCustomer,
   listClaimHistoryForCustomer,
   listClaimedItemsForCustomer,
+  listCustomerMessagesForCustomer,
   listCustomerNotes,
   listCustomers,
   listPaymentHistoryForCustomer,
@@ -32,11 +34,12 @@ export default async function AdminCustomerDetailPage({
   await ensureAdminAccess();
   const { customerId } = await params;
 
-  const [customers, balanceCycle, paymentDefaults, notes, claimedItems, claimHistory, paymentHistory, invoiceHistory, restockRequests, currentSession] = await Promise.all([
+  const [customers, balanceCycle, paymentDefaults, notes, customerMessages, claimedItems, claimHistory, paymentHistory, invoiceHistory, restockRequests, currentSession] = await Promise.all([
     listCustomers(),
     getBalanceCycle(customerId),
     getPaymentDefaults(customerId),
     listCustomerNotes(customerId),
+    listCustomerMessagesForCustomer(customerId, { limit: 5 }),
     listClaimedItemsForCustomer(customerId),
     listClaimHistoryForCustomer(customerId),
     listPaymentHistoryForCustomer(customerId),
@@ -116,6 +119,39 @@ export default async function AdminCustomerDetailPage({
             )) : <p style={{ margin: 0, color: "var(--muted)" }}>No notes yet.</p>}
           </div>
           <CustomerNoteForm customerId={customer.id} />
+        </div>
+      </section>
+
+      <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+          <div>
+            <h2 style={{ margin: "0 0 8px" }}>Customer messages</h2>
+            <p style={{ margin: 0, color: "var(--muted)" }}>Newest 5 messages from {customer.displayName}. Open the full history when you need the complete thread.</p>
+          </div>
+          <a
+            href={`/admin/customers/${customer.id}/messages`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "10px 16px",
+              borderRadius: 999,
+              background: "var(--ink)",
+              color: "var(--paper)",
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
+            View more
+          </a>
+        </div>
+        <div style={{ display: "grid", gap: 12 }}>
+          {customerMessages.length > 0 ? customerMessages.map((message) => (
+            <div key={message.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+              <p style={{ margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.7 }}>{message.message}</p>
+              <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>{message.createdAt}</p>
+            </div>
+          )) : <p style={{ margin: 0, color: "var(--muted)" }}>No customer messages yet.</p>}
         </div>
       </section>
 

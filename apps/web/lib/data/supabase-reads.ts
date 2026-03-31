@@ -7,6 +7,7 @@ import type {
   CategoryOption,
   ClaimedItem,
   ClaimHistoryRecord,
+  CustomerMessageRecord,
   CustomerNote,
   FinancialSummary,
   PaymentHistoryRecord,
@@ -25,6 +26,7 @@ import {
   toArchivedInvoice,
   toClaimedItem,
   toClaimHistoryRecord,
+  toCustomerMessageRecord,
   toPaymentHistoryRecord,
   toProduct,
   toShowEvent,
@@ -288,6 +290,27 @@ export async function listCustomerNotesSupabase(customerId?: string) {
     note: row.body,
     createdAt: row.created_at,
   } satisfies CustomerNote));
+}
+
+export async function listCustomerMessagesForCustomerSupabase(
+  customerId: string,
+  options?: { limit?: number },
+): Promise<CustomerMessageRecord[]> {
+  const admin = await getAdminClient();
+  let query = admin
+    .from("customer_messages")
+    .select("id, customer_id, body, created_at")
+    .eq("customer_id", customerId)
+    .order("created_at", { ascending: false });
+
+  if (options?.limit) {
+    query = query.limit(options.limit);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data ?? []).map((row) => toCustomerMessageRecord(row as Record<string, any>));
 }
 
 export async function listRestockRequestsSupabase(customerId?: string) {

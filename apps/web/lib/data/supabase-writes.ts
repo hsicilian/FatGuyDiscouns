@@ -526,6 +526,16 @@ export async function submitCustomerMessageToDatabaseSupabase(message: string) {
     return { ok: false, message: "Enter a message before sending it." };
   }
 
+  const messageInsert = await admin.from("customer_messages").insert({
+    customer_id: actor.id,
+    body: trimmedMessage,
+    created_by: actor.id,
+  });
+
+  if (messageInsert.error) {
+    return { ok: false, message: messageInsert.error.message };
+  }
+
   const { error } = await admin.from("notifications").insert({
     type: "customer_message",
     customer_id: actor.id,

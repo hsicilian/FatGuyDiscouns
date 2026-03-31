@@ -484,6 +484,9 @@ export async function sendCustomerMessage(message: string): Promise<FormActionSt
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/notifications");
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/customers/[customerId]", "page");
+  revalidatePath("/admin/customers/[customerId]/messages", "page");
 
   return {
     ...result,

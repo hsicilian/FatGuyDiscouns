@@ -9,6 +9,7 @@ import {
   listCategoriesSupabase,
   listClaimHistoryForCustomerSupabase,
   getFinancialSummarySupabase,
+  listCustomerMessagesForCustomerSupabase,
   getEventByIdSupabase,
   getProductByIdSupabase,
   getPaymentDefaultsSupabase,
@@ -146,6 +147,12 @@ export async function listClaimHistoryForCustomer(customerId: string) {
 
 export async function listCustomerNotes(customerId?: string) {
   return shouldUseSupabase() ? listCustomerNotesSupabase(customerId) : fallback.listCustomerNotes(customerId);
+}
+
+export async function listCustomerMessagesForCustomer(customerId: string, options?: { limit?: number }) {
+  return shouldUseSupabase()
+    ? listCustomerMessagesForCustomerSupabase(customerId, options)
+    : fallback.listCustomerMessagesForCustomer(customerId, options);
 }
 
 export async function listRestockRequests(customerId?: string) {

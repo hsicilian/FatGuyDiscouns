@@ -104,6 +104,14 @@ export interface PaymentHistoryRecord {
   notes: string;
 }
 
+export interface CustomerMessageRecord {
+  id: string;
+  customerId: string;
+  customerName?: string;
+  message: string;
+  createdAt: string;
+}
+
 export interface ShipmentRecord {
   id: string;
   customerName: string;

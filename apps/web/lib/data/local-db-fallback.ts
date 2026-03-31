@@ -23,6 +23,7 @@ import type {
   CategoryOption,
   ClaimedItem,
   ClaimHistoryRecord,
+  CustomerMessageRecord,
   CustomerNote,
   CustomerSummary,
   FinancialSummary,
@@ -44,6 +45,7 @@ export interface LocalDatabase {
   archivedInvoices: ArchivedInvoice[];
   shipmentRecords: ShipmentRecord[];
   customerNotes: CustomerNote[];
+  customerMessages: CustomerMessageRecord[];
   notifications: AdminNotification[];
   events: ShowEvent[];
   paymentDefaults: {
@@ -282,6 +284,22 @@ function createInitialDatabase(): LocalDatabase {
         createdAt: "2026-03-28T14:10:00-04:00",
       },
     ],
+    customerMessages: [
+      {
+        id: "msg-001",
+        customerId: "cust-001",
+        customerName: "Jordan Rivers",
+        message: "Can you hold my next shipment until after Sunday's live?",
+        createdAt: "2026-03-27T11:20:00-04:00",
+      },
+      {
+        id: "msg-002",
+        customerId: "cust-001",
+        customerName: "Jordan Rivers",
+        message: "I updated my address and wanted to make sure it saved.",
+        createdAt: "2026-03-29T18:45:00-04:00",
+      },
+    ],
     notifications: [
       {
         id: "notif-001",
@@ -368,6 +386,7 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
     archivedInvoices: db.archivedInvoices ?? fallback.archivedInvoices,
     shipmentRecords: db.shipmentRecords ?? fallback.shipmentRecords,
     customerNotes: db.customerNotes ?? fallback.customerNotes,
+    customerMessages: db.customerMessages ?? fallback.customerMessages,
     notifications: db.notifications ?? fallback.notifications,
     events: db.events ?? fallback.events,
     paymentDefaults: db.paymentDefaults ?? fallback.paymentDefaults,
@@ -629,6 +648,15 @@ export async function listShipmentRecords() {
 export async function listCustomerNotes(customerId?: string) {
   const db = await readDatabase();
   return customerId ? db.customerNotes.filter((entry) => entry.customerId === customerId) : db.customerNotes;
+}
+
+export async function listCustomerMessagesForCustomer(customerId: string, options?: { limit?: number }) {
+  const db = await readDatabase();
+  const messages = db.customerMessages
+    .filter((entry) => entry.customerId === customerId)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+
+  return typeof options?.limit === "number" ? messages.slice(0, options.limit) : messages;
 }
 
 export async function listRestockRequests(customerId?: string) {
@@ -1132,6 +1160,13 @@ export async function submitCustomerMessageToDatabase(message: string) {
     return { ok: false, message: "Enter a message before sending it." };
   }
 
+  db.customerMessages.unshift({
+    id: `msg-${Date.now()}`,
+    customerId: customer.id,
+    customerName: customer.displayName,
+    message: trimmedMessage,
+    createdAt: new Date().toISOString(),
+  });
   db.notifications.unshift(
     createNotification("customer_message", `${customer.displayName}: ${trimmedMessage}`),
   );
