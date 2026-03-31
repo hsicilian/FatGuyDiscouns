@@ -32,7 +32,7 @@ function sortProducts(products: Awaited<ReturnType<typeof listProducts>>, sort: 
   }
 }
 
-const ctaStyle: React.CSSProperties = {
+const ctaStyle = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
@@ -222,11 +222,14 @@ export default async function StorePage({
         {filteredProducts.map((product) => (
           <Panel key={product.id}>
             <article style={{ display: "grid", gap: 16 }}>
-              <div
+              <a
+                href={`/store/${product.id}`}
                 style={{
                   minHeight: 220,
                   borderRadius: 20,
-                  background: "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
+                  background: product.images[0]
+                    ? `center / cover no-repeat url("${product.images[0]}"), linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)`
+                    : "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
                   padding: 18,
                   display: "flex",
                   alignItems: "end",
@@ -249,10 +252,12 @@ export default async function StorePage({
                 >
                   {product.category}
                 </span>
-              </div>
+              </a>
 
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
-                <h2 style={{ margin: 0, fontSize: "1.28rem" }}>{product.title}</h2>
+                <h2 style={{ margin: 0, fontSize: "1.28rem" }}>
+                  <a href={`/store/${product.id}`}>{product.title}</a>
+                </h2>
                 <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: product.quantity > 0 ? "#2f5d32" : "var(--accent-strong)" }}>
                   {PRODUCT_STATUS_LABELS[product.status]}
                 </span>
@@ -277,7 +282,10 @@ export default async function StorePage({
                     {product.quantity > 0 ? `${product.quantity} available` : "Out of stock"}
                   </p>
                 </div>
-                <div id={`product-${product.id}`} style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end", width: "min(100%, 220px)" }}>
+                <div id={`product-${product.id}`} style={{ display: "grid", gap: 10, justifyItems: "stretch", width: "min(100%, 220px)" }}>
+                  <a href={`/store/${product.id}`} style={{ ...ctaStyle, background: "#1d1d1d", color: "#fff" }}>
+                    View Item
+                  </a>
                   {renderClaimCta(currentSession, product.id, product.quantity === 0)}
                   {product.quantity === 0 ? <RestockRequestForm productId={product.id} /> : null}
                 </div>

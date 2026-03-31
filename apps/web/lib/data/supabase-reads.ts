@@ -21,18 +21,41 @@ export async function getPlatformSummarySupabase() {
   return platformSummary;
 }
 
-export async function listProductsSupabase() {
+export async function listProductsSupabase(options?: { includeArchived?: boolean }) {
   const actor = await getCurrentActor().catch(() => null);
   const client = await getAdminClient();
-  let query = client.from("products").select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, categories(name)");
+  let query = client.from("products").select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, categories(name), product_images(image_url, position)");
 
-  if (!actor || actor.role === "customer") {
+  if (options?.includeArchived) {
+    query = query.eq("status", "archived");
+  } else if (!actor || actor.role === "customer") {
     query = query.in("status", ["active", "low_stock", "out_of_stock"]);
+  } else {
+    query = query.in("status", ["draft", "active", "low_stock", "out_of_stock", "hidden"]);
   }
 
   const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map((row) => toProduct(row as Record<string, any>));
+}
+
+export async function getProductByIdSupabase(productId: string) {
+  const actor = await getCurrentActor().catch(() => null);
+  const client = await getAdminClient();
+  let query = client
+    .from("products")
+    .select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, categories(name), product_images(image_url, position)")
+    .eq("id", productId);
+
+  if (!actor || actor.role === "customer") {
+    query = query.in("status", ["active", "low_stock", "out_of_stock"]);
+  } else {
+    query = query.in("status", ["draft", "active", "low_stock", "out_of_stock", "hidden"]);
+  }
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  return data ? toProduct(data as Record<string, any>) : null;
 }
 
 export async function getCurrentCustomerSupabase() {

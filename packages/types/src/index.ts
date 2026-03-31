@@ -39,6 +39,7 @@ export interface Product {
   category: string;
   quantity: number;
   status: ProductStatus;
+  images: string[];
 }
 
 export interface DashboardSection {

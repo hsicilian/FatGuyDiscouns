@@ -8,6 +8,7 @@ import {
   getCurrentCustomerSupabase,
   getFinancialSummarySupabase,
   getEventByIdSupabase,
+  getProductByIdSupabase,
   getPaymentDefaultsSupabase,
   getPlatformSummarySupabase,
   listArchivedInvoicesSupabase,
@@ -61,8 +62,12 @@ export async function getPlatformSummary() {
   return shouldUseSupabase() ? getPlatformSummarySupabase() : fallback.getPlatformSummary();
 }
 
-export async function listProducts() {
-  return shouldUseSupabase() ? listProductsSupabase() : fallback.listProducts();
+export async function listProducts(options?: { includeArchived?: boolean }) {
+  return shouldUseSupabase() ? listProductsSupabase(options) : fallback.listProducts(options);
+}
+
+export async function getProductById(productId: string) {
+  return shouldUseSupabase() ? getProductByIdSupabase(productId) : fallback.getProductById(productId);
 }
 
 export async function getCurrentCustomer() {

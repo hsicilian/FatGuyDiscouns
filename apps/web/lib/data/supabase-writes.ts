@@ -1,6 +1,6 @@
 ﻿import "server-only";
 
-import { applyPaymentToBalance, canDeleteArchivedProduct, canRequestShipment, deriveProductStatus, nextShipmentStatus, shouldArchiveBalance, validateClaimAttempt } from "@fatguydiscounts/core";
+import { applyPaymentToBalance, canRequestShipment, deriveProductStatus, nextShipmentStatus, shouldArchiveBalance, validateClaimAttempt } from "@fatguydiscounts/core";
 import type { AccountState, ShipmentStatus } from "@fatguydiscounts/types";
 import {
   ensureActiveCycle,
@@ -139,9 +139,6 @@ export async function deleteArchivedProductInDatabaseSupabase(productId: string)
     .single();
   if (error || !product) return { ok: false, message: "Product not found." };
   if (product.status !== "archived") return { ok: false, message: "Only archived items can be deleted." };
-  if (!canDeleteArchivedProduct(product.archived_at)) {
-    return { ok: false, message: "Archived items must stay archived for 30 days before deletion." };
-  }
 
   const lineItemRefs = await admin
     .from("balance_line_items")

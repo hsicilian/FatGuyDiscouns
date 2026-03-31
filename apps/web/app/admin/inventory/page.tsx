@@ -10,9 +10,11 @@ import { listProducts } from "../../../lib/data/local-db";
 export default async function AdminInventoryPage() {
   await ensureAdminAccess();
 
-  const products = await listProducts();
-  const activeProducts = products.filter((product) => product.status !== "archived");
-  const archivedCount = products.filter((product) => product.status === "archived").length;
+  const [activeProducts, archivedProducts] = await Promise.all([
+    listProducts(),
+    listProducts({ includeArchived: true }),
+  ]);
+  const archivedCount = archivedProducts.length;
   const lowStockCount = activeProducts.filter((product) => product.quantity <= 1).length;
 
   return (
@@ -105,7 +107,7 @@ export default async function AdminInventoryPage() {
                   <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
                     <strong>Archive item</strong>
                     <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
-                      Archive removes this item from the live shop first. Permanent deletion happens later from the archived items page.
+                      Archive removes this item from the live shop first. If you no longer need it, you can delete it later from the archived items page.
                     </p>
                   </div>
                   <ArchiveProductForm productId={product.id} />

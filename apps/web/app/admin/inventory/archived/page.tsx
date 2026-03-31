@@ -1,4 +1,4 @@
-import { canDeleteArchivedProduct, PRODUCT_ARCHIVE_RETENTION_DAYS } from "@fatguydiscounts/core";
+import { canDeleteArchivedProduct } from "@fatguydiscounts/core";
 import { Panel } from "@fatguydiscounts/ui";
 import { DeleteArchivedProductForm } from "../../../../components/forms/delete-archived-product-form";
 import { ensureAdminAccess } from "../../../../lib/auth/guards";
@@ -7,7 +7,7 @@ import { listProducts } from "../../../../lib/data/local-db";
 export default async function ArchivedInventoryPage() {
   await ensureAdminAccess();
 
-  const archivedProducts = (await listProducts()).filter((product) => product.status === "archived");
+  const archivedProducts = await listProducts({ includeArchived: true });
 
   return (
     <main style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 24px 72px", display: "grid", gap: 24 }}>
@@ -16,7 +16,7 @@ export default async function ArchivedInventoryPage() {
         <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginBottom: 8, fontWeight: 700 }}>Archived items</p>
         <h1 style={{ margin: 0 }}>Archive queue</h1>
         <p style={{ color: "var(--muted)", lineHeight: 1.7, marginBottom: 0 }}>
-          Archived items stay off the live shop. After {PRODUCT_ARCHIVE_RETENTION_DAYS} days, items with no claim history can be permanently deleted here.
+          Archived items stay off the live shop. Delete them here any time once you are sure you no longer need them.
         </p>
       </section>
 
@@ -24,8 +24,8 @@ export default async function ArchivedInventoryPage() {
         {archivedProducts.length > 0 ? archivedProducts.map((product) => {
           const canDelete = canDeleteArchivedProduct(product.archivedAt);
           const helperText = canDelete
-            ? "This item is old enough to delete if it has no claim history."
-            : `This item must stay archived for ${PRODUCT_ARCHIVE_RETENTION_DAYS} days before deletion.`;
+            ? "This item can be deleted now if it has no claim history."
+            : "Archive date is missing, so this item cannot be deleted yet.";
 
           return (
             <Panel key={product.id}>

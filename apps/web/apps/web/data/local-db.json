@@ -14,7 +14,8 @@
       "salePercentage": null,
       "saleEndsAt": null,
       "isOnSale": false,
-      "archivedAt": null
+      "archivedAt": null,
+      "images": []
     },
     {
       "id": "prod-002",
@@ -29,7 +30,8 @@
       "salePercentage": null,
       "saleEndsAt": null,
       "isOnSale": false,
-      "archivedAt": null
+      "archivedAt": null,
+      "images": []
     },
     {
       "id": "prod-003",
@@ -44,7 +46,8 @@
       "salePercentage": null,
       "saleEndsAt": null,
       "isOnSale": false,
-      "archivedAt": null
+      "archivedAt": null,
+      "images": []
     }
   ],
   "customers": [

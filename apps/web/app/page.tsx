@@ -54,7 +54,9 @@ export default async function HomePage() {
                     display: "flex",
                     alignItems: "end",
                     borderRadius: 20,
-                    background: "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
+                    background: product.images[0]
+                      ? `center / cover no-repeat url("${product.images[0]}"), linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)`
+                      : "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
                   }}
                 >
                   <span
@@ -100,7 +102,7 @@ export default async function HomePage() {
                     </p>
                   </div>
                   <a
-                    href={`/store#product-${product.id}`}
+                    href={`/store/${product.id}`}
                     style={{
                       display: "inline-flex",
                       alignItems: "center",

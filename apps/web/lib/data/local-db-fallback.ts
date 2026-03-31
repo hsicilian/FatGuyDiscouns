@@ -5,7 +5,6 @@ import { dirname, join } from "node:path";
 import {
   applyPaymentToBalance,
   calculateBalanceDue,
-  canDeleteArchivedProduct,
   canRequestShipment,
   deriveProductStatus,
   getScheduledDueDateForDate,
@@ -72,6 +71,12 @@ function createInitialDatabase(): LocalDatabase {
         category: "Outerwear",
         quantity: 2,
         status: "active",
+        images: [
+          "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80",
+          "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80",
+          "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80",
+          "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80",
+        ],
       },
       {
         id: "prod-002",
@@ -87,6 +92,12 @@ function createInitialDatabase(): LocalDatabase {
         category: "Tees",
         quantity: 1,
         status: "low_stock",
+        images: [
+          "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80",
+          "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80",
+          "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=1200&q=80",
+          "https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?auto=format&fit=crop&w=1200&q=80",
+        ],
       },
       {
         id: "prod-003",
@@ -102,6 +113,12 @@ function createInitialDatabase(): LocalDatabase {
         category: "Flannels",
         quantity: 0,
         status: "out_of_stock",
+        images: [
+          "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80",
+          "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80",
+          "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80",
+          "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80",
+        ],
       },
     ],
     customers: [
@@ -303,6 +320,7 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
         saleEndsAt: product.saleEndsAt ?? null,
         isOnSale,
         archivedAt: product.archivedAt ?? null,
+        images: Array.isArray(product.images) ? product.images.filter((image): image is string => typeof image === "string" && image.length > 0) : [],
         price: isOnSale && salePrice != null ? salePrice : originalPrice,
       };
     }),
@@ -380,9 +398,16 @@ export async function getPlatformSummary() {
   return platformSummary;
 }
 
-export async function listProducts() {
+export async function listProducts(options?: { includeArchived?: boolean }) {
   const db = await readDatabase();
-  return db.products;
+  return options?.includeArchived
+    ? db.products.filter((product) => product.status === "archived")
+    : db.products.filter((product) => product.status !== "archived");
+}
+
+export async function getProductById(productId: string) {
+  const db = await readDatabase();
+  return db.products.find((product) => product.id === productId && product.status !== "archived") ?? null;
 }
 
 export async function getCurrentCustomer() {
@@ -771,9 +796,6 @@ export async function deleteArchivedProductInDatabase(productId: string) {
 
   const product = db.products[productIndex];
   if (product.status !== "archived") return { ok: false, message: "Only archived items can be deleted." };
-  if (!canDeleteArchivedProduct(product.archivedAt)) {
-    return { ok: false, message: "Archived items must stay archived for 30 days before deletion." };
-  }
 
   const hasClaims = db.claimedItems.some((entry) => entry.productTitle === product.title);
   if (hasClaims) {
@@ -837,6 +859,7 @@ export async function createInventoryItemInDatabase(input: {
     category,
     quantity,
     status: deriveProductStatus(quantity, "active"),
+    images: images.map((image) => `/api/admin/product-images?preview=${encodeURIComponent(image.name)}`),
   });
 
   await writeDatabase(db);
