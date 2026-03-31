@@ -13,7 +13,7 @@ function getCardImage(images: string[]) {
 
 export default async function HomePage() {
   const products = await listProducts();
-  const latestProducts = products.slice(0, 10);
+  const latestProducts = products.slice(0, 12);
 
   return (
     <main style={{ maxWidth: 1240, margin: "0 auto", padding: "36px 24px 72px" }}>
