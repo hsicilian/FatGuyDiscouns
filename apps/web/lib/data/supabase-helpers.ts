@@ -215,7 +215,14 @@ export async function getCustomerSummaryByUserId(userId: string, options?: { adm
   const [{ data: roleRow }, { data: profileRow }, { data: addressRow }, { data: shipmentRow }] = await Promise.all([
     client.from("user_roles").select("role, account_state").eq("user_id", userId).single(),
     client.from("customer_profiles").select("display_name, timezone, credit_balance, last_shipment_date").eq("user_id", userId).single(),
-    client.from("addresses").select("line1, line2, city, region, postal_code").eq("user_id", userId).eq("is_default", true).maybeSingle(),
+    client
+      .from("addresses")
+      .select("line1, line2, city, region, postal_code")
+      .eq("user_id", userId)
+      .eq("is_default", true)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
     client.from("shipments").select("status, shipment_date, requested_at").eq("customer_id", userId).order("requested_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
 

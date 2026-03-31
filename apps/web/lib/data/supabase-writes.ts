@@ -482,25 +482,39 @@ export async function updateCurrentCustomerProfileSupabase(input: { street: stri
   if (!timezone) return { ok: false, message: "Timezone is required." };
 
   const admin = await getAdminClient();
-  const timezoneUpdate = await admin.from("customer_profiles").update({ timezone }).eq("user_id", actor.id);
-  if (timezoneUpdate.error) return { ok: false, message: timezoneUpdate.error.message };
-
-  const existingDefault = await admin
+  const existingAddresses = await admin
     .from("addresses")
     .select("id")
     .eq("user_id", actor.id)
-    .eq("is_default", true)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .order("updated_at", { ascending: false });
 
-  if (existingDefault.error) {
-    return { ok: false, message: existingDefault.error.message };
+  if (existingAddresses.error) {
+    return { ok: false, message: existingAddresses.error.message };
   }
 
-  let addressId = existingDefault.data?.id ?? null;
+  const addressIds = (existingAddresses.data ?? []).map((row) => row.id);
+  let addressId = addressIds[0] ?? null;
+
+  const profileUpsert = await admin
+    .from("customer_profiles")
+    .upsert({
+      user_id: actor.id,
+      timezone,
+      default_address_id: addressId,
+    }, { onConflict: "user_id" });
+
+  if (profileUpsert.error) return { ok: false, message: profileUpsert.error.message };
 
   if (addressId) {
+    if (addressIds.length > 1) {
+      const clearDefaults = await admin
+        .from("addresses")
+        .update({ is_default: false, updated_at: new Date().toISOString() })
+        .in("id", addressIds.slice(1));
+
+      if (clearDefaults.error) return { ok: false, message: clearDefaults.error.message };
+    }
+
     const updateAddress = await admin
       .from("addresses")
       .update({
@@ -530,7 +544,13 @@ export async function updateCurrentCustomerProfileSupabase(input: { street: stri
     addressId = insertAddress.data.id;
   }
 
-  const profileUpdate = await admin.from("customer_profiles").update({ default_address_id: addressId }).eq("user_id", actor.id);
+  const profileUpdate = await admin
+    .from("customer_profiles")
+    .upsert({
+      user_id: actor.id,
+      timezone,
+      default_address_id: addressId,
+    }, { onConflict: "user_id" });
   if (profileUpdate.error) return { ok: false, message: profileUpdate.error.message };
 
   return { ok: true, message: "Profile details updated." };
