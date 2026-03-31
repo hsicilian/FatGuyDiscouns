@@ -123,6 +123,7 @@ export interface AdminNotification {
   type: NotificationType;
   label: string;
   createdAt: string;
+  readAt?: string | null;
 }
 
 export interface ShowEvent {

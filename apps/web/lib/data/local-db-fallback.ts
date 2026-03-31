@@ -239,18 +239,21 @@ function createInitialDatabase(): LocalDatabase {
         type: "pending_approval",
         label: "3 customer accounts are waiting for approval",
         createdAt: "2026-03-29T08:30:00-04:00",
+        readAt: null,
       },
       {
         id: "notif-002",
         type: "shipment_request",
         label: "Jordan Rivers requested shipment confirmation",
         createdAt: "2026-03-29T09:05:00-04:00",
+        readAt: null,
       },
       {
         id: "notif-003",
         type: "low_stock",
         label: "Bundle lot tee reached low stock",
         createdAt: "2026-03-29T09:22:00-04:00",
+        readAt: null,
       },
     ],
     events: [
@@ -342,6 +345,7 @@ function createNotification(type: AdminNotification["type"], label: string): Adm
     type,
     label,
     createdAt: new Date().toISOString(),
+    readAt: null,
   };
 }
 
@@ -532,9 +536,9 @@ export async function listRestockRequests(customerId?: string) {
   return customerId ? requests.filter((request) => request.customerId === customerId) : requests;
 }
 
-export async function listNotifications() {
+export async function listNotifications(options?: { includeRead?: boolean }) {
   const db = await readDatabase();
-  return db.notifications;
+  return options?.includeRead ? db.notifications : db.notifications.filter((entry) => !entry.readAt);
 }
 
 export async function listEvents() {
@@ -1111,5 +1115,22 @@ export async function applyPaymentToDatabase(paymentAmount: number, creditAmount
       : "Payment applied to the active balance cycle.",
     remainingBalance: Math.max(preview.remaining, 0),
     overpayment: preview.overpayment,
+  };
+}
+
+export async function markNotificationReadInDatabase(notificationId: string) {
+  const db = await readDatabase();
+  const notification = db.notifications.find((entry) => entry.id === notificationId);
+
+  if (!notification) {
+    return { ok: false, message: "Notification not found." };
+  }
+
+  notification.readAt = new Date().toISOString();
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: "Notification dismissed.",
   };
 }

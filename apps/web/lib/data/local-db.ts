@@ -29,6 +29,7 @@ import {
   applyPaymentToDatabaseSupabase,
   clearProductSaleInDatabaseSupabase,
   createInventoryItemInDatabaseSupabase,
+  markNotificationReadInDatabaseSupabase,
   removeClaimedItemFromDatabaseSupabase,
   submitClaimToDatabaseSupabase,
   submitRestockRequestToDatabaseSupabase,
@@ -119,8 +120,8 @@ export async function listRestockRequests(customerId?: string) {
   return shouldUseSupabase() ? listRestockRequestsSupabase(customerId) : fallback.listRestockRequests(customerId);
 }
 
-export async function listNotifications() {
-  return shouldUseSupabase() ? listNotificationsSupabase() : fallback.listNotifications();
+export async function listNotifications(options?: { includeRead?: boolean }) {
+  return shouldUseSupabase() ? listNotificationsSupabase(options) : fallback.listNotifications(options);
 }
 
 export async function listEvents() {
@@ -262,6 +263,12 @@ export async function createEventInDatabase(input: {
   return shouldUseSupabase()
     ? createEventInDatabaseSupabase(input)
     : fallback.createEventInDatabase(input);
+}
+
+export async function markNotificationReadInDatabase(notificationId: string) {
+  return shouldUseSupabase()
+    ? markNotificationReadInDatabaseSupabase(notificationId)
+    : fallback.markNotificationReadInDatabase(notificationId);
 }
 
 export { platformSummary };

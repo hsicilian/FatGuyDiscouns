@@ -110,6 +110,27 @@ export async function clearProductSaleInDatabaseSupabase(productId: string) {
   return { ok: true, message: `${product.title} sale pricing was cleared.` };
 }
 
+export async function markNotificationReadInDatabaseSupabase(notificationId: string) {
+  const admin = await getAdminClient();
+  const { data: notification, error } = await admin
+    .from("notifications")
+    .select("id, read_at")
+    .eq("id", notificationId)
+    .maybeSingle();
+
+  if (error) return { ok: false, message: error.message };
+  if (!notification) return { ok: false, message: "Notification not found." };
+  if (notification.read_at) return { ok: true, message: "Notification already dismissed." };
+
+  const updateResult = await admin
+    .from("notifications")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", notificationId);
+
+  if (updateResult.error) return { ok: false, message: updateResult.error.message };
+  return { ok: true, message: "Notification dismissed." };
+}
+
 function slugifyCategoryName(value: string) {
   return value
     .toLowerCase()

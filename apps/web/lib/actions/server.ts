@@ -14,6 +14,7 @@ import {
   applyPaymentToDatabase,
   clearProductSaleInDatabase,
   createInventoryItemInDatabase,
+  markNotificationReadInDatabase,
   removeClaimedItemFromDatabase,
   submitClaimToDatabase,
   submitRestockRequestToDatabase,
@@ -465,6 +466,22 @@ export async function createEvent(
   revalidatePath("/events");
   revalidatePath("/admin");
   revalidatePath("/admin/events");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function dismissNotification(notificationId: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await markNotificationReadInDatabase(notificationId);
+  revalidatePath("/admin");
+  revalidatePath("/admin/notifications");
 
   return {
     ...result,

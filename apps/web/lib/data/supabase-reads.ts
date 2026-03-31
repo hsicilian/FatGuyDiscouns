@@ -179,9 +179,19 @@ export async function listRestockRequestsSupabase(customerId?: string) {
   });
 }
 
-export async function listNotificationsSupabase() {
+export async function listNotificationsSupabase(options?: { includeRead?: boolean }) {
   const admin = await getAdminClient();
-  const { data, error } = await admin.from("notifications").select("id, type, payload, created_at, customer_id").order("created_at", { ascending: false }).limit(30);
+  let query = admin
+    .from("notifications")
+    .select("id, type, payload, created_at, customer_id, read_at")
+    .order("created_at", { ascending: false })
+    .limit(options?.includeRead ? 100 : 30);
+
+  if (!options?.includeRead) {
+    query = query.is("read_at", null);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
 
   const customerIds = [...new Set((data ?? []).map((row) => row.customer_id).filter(Boolean))];
@@ -199,6 +209,7 @@ export async function listNotificationsSupabase() {
       customerName: row.customer_id ? customerMap.get(row.customer_id)?.displayName : undefined,
     } as Record<string, any>),
     createdAt: row.created_at,
+    readAt: row.read_at ?? null,
   } satisfies AdminNotification));
 }
 
