@@ -6,6 +6,10 @@ function money(value: number) {
   return `$${value.toFixed(2)}`;
 }
 
+function getCardImage(images: string[]) {
+  return images[0] ?? "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80";
+}
+
 export default async function HomePage() {
   const products = await listProducts();
   const latestProducts = products.slice(0, 10);
@@ -44,7 +48,10 @@ export default async function HomePage() {
         </div>
 
         <div className="home-listings-grid" style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
-          {latestProducts.map((product) => (
+          {latestProducts.map((product) => {
+            const cardImage = getCardImage(product.images);
+
+            return (
             <Panel key={product.id}>
               <article style={{ display: "grid", gap: 16 }}>
                 <div
@@ -54,11 +61,29 @@ export default async function HomePage() {
                     display: "flex",
                     alignItems: "end",
                     borderRadius: 20,
-                    background: product.images[0]
-                      ? `center / cover no-repeat url("${product.images[0]}"), linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)`
-                      : "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
+                    background: "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
+                    position: "relative",
+                    overflow: "hidden",
                   }}
                 >
+                  <img
+                    src={cardImage}
+                    alt={product.title}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      background: "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(16,12,8,0.18) 100%)",
+                    }}
+                  />
                   <span
                     style={{
                       display: "inline-flex",
@@ -72,6 +97,8 @@ export default async function HomePage() {
                       letterSpacing: "0.08em",
                       color: "var(--accent-strong)",
                       fontWeight: 700,
+                      position: "relative",
+                      zIndex: 1,
                     }}
                   >
                     {product.category}
@@ -119,7 +146,8 @@ export default async function HomePage() {
                 </div>
               </article>
             </Panel>
-          ))}
+            );
+          })}
         </div>
       </section>
     </main>
