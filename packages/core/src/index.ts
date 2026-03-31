@@ -92,6 +92,28 @@ export function calculateBalanceDue(cycle: BalanceCycleSummary) {
   return cycle.subtotal + cycle.shipping + cycle.adjustments - cycle.paymentsApplied - cycle.creditsApplied;
 }
 
+export function isSaleActive(salePercentage: number | null | undefined, saleEndsAt: string | null | undefined, nowIso = new Date().toISOString()) {
+  if (!salePercentage || salePercentage <= 0) {
+    return false;
+  }
+
+  if (!saleEndsAt) {
+    return false;
+  }
+
+  return saleEndsAt > nowIso;
+}
+
+export function getSalePrice(originalPrice: number, salePercentage: number | null | undefined, saleEndsAt: string | null | undefined, nowIso = new Date().toISOString()) {
+  if (!isSaleActive(salePercentage, saleEndsAt, nowIso)) {
+    return null;
+  }
+
+  const discount = Math.min(Math.max(Number(salePercentage ?? 0), 0), 100);
+  const discounted = originalPrice * (1 - discount / 100);
+  return Math.round(discounted * 100) / 100;
+}
+
 export function isBalanceOverdue(cycle: BalanceCycleSummary, todayIso: string) {
   return calculateBalanceDue(cycle) > 0 && cycle.dueDate < todayIso;
 }

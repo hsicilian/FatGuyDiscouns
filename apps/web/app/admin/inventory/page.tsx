@@ -2,6 +2,7 @@ import { PRODUCT_STATUS_LABELS } from "@fatguydiscounts/core";
 import { Panel } from "@fatguydiscounts/ui";
 import { InventoryAdjustForm } from "../../../components/forms/inventory-adjust-form";
 import { InventoryCreateForm } from "../../../components/forms/inventory-create-form";
+import { InventorySaleForm } from "../../../components/forms/inventory-sale-form";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
 import { listProducts } from "../../../lib/data/local-db";
 
@@ -66,12 +67,32 @@ export default async function AdminInventoryPage() {
                   </div>
                   <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
                     <p style={{ margin: 0, color: "var(--muted)" }}>Price</p>
-                    <strong>${product.price.toFixed(2)}</strong>
+                    <strong>${product.originalPrice.toFixed(2)}</strong>
+                    {product.isOnSale && product.salePrice != null ? (
+                      <p style={{ margin: "6px 0 0", color: "#b42318", fontWeight: 700 }}>
+                        Sale ${product.salePrice.toFixed(2)}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               </div>
-              <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
-                <InventoryAdjustForm productId={product.id} />
+              <div style={{ display: "grid", gap: 14 }}>
+                <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                  <InventoryAdjustForm productId={product.id} />
+                </div>
+                <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                  <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+                    <strong>Sale pricing</strong>
+                    <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
+                      Set a percentage discount and end date. The shop will show the original price crossed out and the sale price in red.
+                    </p>
+                  </div>
+                  <InventorySaleForm
+                    productId={product.id}
+                    currentSalePercentage={product.salePercentage}
+                    currentSaleEndsAt={product.saleEndsAt}
+                  />
+                </div>
               </div>
             </div>
           </Panel>

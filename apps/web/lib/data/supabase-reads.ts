@@ -24,7 +24,7 @@ export async function getPlatformSummarySupabase() {
 export async function listProductsSupabase() {
   const actor = await getCurrentActor().catch(() => null);
   const client = await getAdminClient();
-  let query = client.from("products").select("id, title, description, price, inventory_quantity, status, categories(name)");
+  let query = client.from("products").select("id, title, description, price, sale_percentage, sale_ends_at, inventory_quantity, status, categories(name)");
 
   if (!actor || actor.role === "customer") {
     query = query.in("status", ["active", "low_stock", "out_of_stock"]);

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { calculateBalanceDue, getScheduledDueDateForDate, isBalanceOverdue } from "@fatguydiscounts/core";
+import { calculateBalanceDue, getSalePrice, getScheduledDueDateForDate, isBalanceOverdue, isSaleActive } from "@fatguydiscounts/core";
 import type {
   ArchivedInvoice,
   BalanceCycleSummary,
@@ -61,11 +61,20 @@ export function formatNotificationLabel(row: Record<string, any>) {
 }
 
 export function toProduct(row: Record<string, any>): Product {
+  const originalPrice = Number(row.price ?? 0);
+  const salePercentage = row.sale_percentage == null ? null : Number(row.sale_percentage);
+  const saleEndsAt = row.sale_ends_at ?? null;
+  const salePrice = getSalePrice(originalPrice, salePercentage, saleEndsAt);
   return {
     id: row.id,
     title: row.title,
     description: row.description ?? "",
-    price: Number(row.price ?? 0),
+    price: salePrice ?? originalPrice,
+    originalPrice,
+    salePrice,
+    salePercentage,
+    saleEndsAt,
+    isOnSale: isSaleActive(salePercentage, saleEndsAt),
     category: row.categories?.name ?? "Uncategorized",
     quantity: Number(row.inventory_quantity ?? 0),
     status: row.status,

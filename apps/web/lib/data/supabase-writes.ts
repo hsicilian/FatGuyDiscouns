@@ -13,8 +13,15 @@ import {
   siteToday,
 } from "./supabase-helpers";
 import { getCurrentCustomerSupabase, listProductsSupabase } from "./supabase-reads";
-import { createServerSupabaseClient } from "../supabase";
+import { getProductImagesBucket } from "../supabase";
 import { zonedLocalDateTimeToIso } from "../events";
+
+const MAX_IMAGE_COUNT = 6;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+function slugifyFilename(name: string) {
+  return name.replace(/[^a-zA-Z0-9.-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+}
 
 export async function submitClaimToDatabaseSupabase(productId: string, requestedQuantity: number) {
   const customer = await getCurrentCustomerSupabase();
@@ -58,6 +65,51 @@ export async function adjustInventoryInDatabaseSupabase(productId: string, quant
   return { ok: true, message: `${product.title} inventory updated to ${nextQuantity}.` };
 }
 
+export async function updateProductSaleInDatabaseSupabase(productId: string, salePercentage: number, saleEndsAt: string) {
+  const admin = await getAdminClient();
+  const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
+  if (error || !product) return { ok: false, message: "Product not found." };
+
+  if (!Number.isFinite(salePercentage) || salePercentage <= 0 || salePercentage >= 100) {
+    return { ok: false, message: "Sale percentage must be between 1 and 99." };
+  }
+
+  if (!saleEndsAt) {
+    return { ok: false, message: "Sale end date is required." };
+  }
+
+  const endsAtIso = `${saleEndsAt}T23:59:59.000Z`;
+  const updateResult = await admin
+    .from("products")
+    .update({
+      sale_percentage: salePercentage,
+      sale_ends_at: endsAtIso,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", productId);
+
+  if (updateResult.error) return { ok: false, message: updateResult.error.message };
+  return { ok: true, message: `${product.title} is now ${salePercentage}% off through ${saleEndsAt}.` };
+}
+
+export async function clearProductSaleInDatabaseSupabase(productId: string) {
+  const admin = await getAdminClient();
+  const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
+  if (error || !product) return { ok: false, message: "Product not found." };
+
+  const updateResult = await admin
+    .from("products")
+    .update({
+      sale_percentage: null,
+      sale_ends_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", productId);
+
+  if (updateResult.error) return { ok: false, message: updateResult.error.message };
+  return { ok: true, message: `${product.title} sale pricing was cleared.` };
+}
+
 function slugifyCategoryName(value: string) {
   return value
     .toLowerCase()
@@ -75,6 +127,7 @@ export async function createInventoryItemInDatabaseSupabase(input: {
   category: string;
   sku: string;
   location: string;
+  images: File[];
 }) {
   const title = input.title.trim();
   const description = input.description.trim();
@@ -83,11 +136,16 @@ export async function createInventoryItemInDatabaseSupabase(input: {
   const location = input.location.trim();
   const price = Number(input.price);
   const quantity = Number(input.quantity);
+  const images = input.images.filter((file) => file instanceof File);
 
   if (!title) return { ok: false, message: "Item title is required." };
   if (!categoryName) return { ok: false, message: "Category is required." };
   if (!Number.isFinite(price) || price < 0) return { ok: false, message: "Price must be zero or higher." };
   if (!Number.isInteger(quantity) || quantity < 0) return { ok: false, message: "Starting quantity must be zero or higher." };
+  if (images.length < 4) return { ok: false, message: "Please upload at least 4 photos for each item." };
+  if (images.length > MAX_IMAGE_COUNT) return { ok: false, message: "Each item can have up to 6 photos." };
+  if (images.some((file) => !file.type.startsWith("image/"))) return { ok: false, message: "Only image uploads are allowed." };
+  if (images.some((file) => file.size > MAX_IMAGE_BYTES)) return { ok: false, message: "Each image must be 10MB or smaller." };
 
   const admin = await getAdminClient();
   const normalizedSlug = slugifyCategoryName(categoryName);
@@ -129,15 +187,57 @@ export async function createInventoryItemInDatabaseSupabase(input: {
     location: location || null,
     inventory_quantity: quantity,
     status,
-  });
+  }).select("id").single();
 
-  if (insertResult.error) {
-    return { ok: false, message: insertResult.error.message };
+  if (insertResult.error || !insertResult.data) {
+    return { ok: false, message: insertResult.error?.message ?? "Could not create product." };
+  }
+
+  const productId = insertResult.data.id;
+  const bucket = getProductImagesBucket();
+  const uploadedPaths: string[] = [];
+  const imageRows: Array<{ product_id: string; image_url: string; storage_path: string; position: number }> = [];
+
+  for (const [index, file] of images.entries()) {
+    const safeFilename = slugifyFilename(file.name || `product-image-${Date.now()}.jpg`);
+    const storagePath = `${productId}/${Date.now()}-${index}-${safeFilename}`;
+    const arrayBuffer = await file.arrayBuffer();
+    const uploadResult = await admin.storage.from(bucket).upload(storagePath, arrayBuffer, {
+      contentType: file.type,
+      upsert: false,
+      cacheControl: "3600",
+    });
+
+    if (uploadResult.error) {
+      if (uploadedPaths.length) {
+        await admin.storage.from(bucket).remove(uploadedPaths);
+      }
+      await admin.from("products").delete().eq("id", productId);
+      return { ok: false, message: uploadResult.error.message };
+    }
+
+    uploadedPaths.push(storagePath);
+    const publicUrl = admin.storage.from(bucket).getPublicUrl(storagePath).data.publicUrl;
+    imageRows.push({
+      product_id: productId,
+      image_url: publicUrl,
+      storage_path: storagePath,
+      position: index,
+    });
+  }
+
+  const imagesInsert = await admin.from("product_images").insert(imageRows);
+  if (imagesInsert.error) {
+    if (uploadedPaths.length) {
+      await admin.storage.from(bucket).remove(uploadedPaths);
+    }
+    await admin.from("products").delete().eq("id", productId);
+    return { ok: false, message: imagesInsert.error.message };
   }
 
   return {
     ok: true,
-    message: `${title} was added to inventory with ${quantity} item${quantity === 1 ? "" : "s"} on hand.`,
+    message: `${title} was added with ${images.length} photo${images.length === 1 ? "" : "s"} and ${quantity} item${quantity === 1 ? "" : "s"} on hand.`,
   };
 }
 

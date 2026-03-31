@@ -20,7 +20,7 @@ export function InventoryCreateForm() {
   const [state, formAction, isPending] = useActionState(createInventoryItemAction, initialState);
 
   return (
-    <form action={formAction} style={{ display: "grid", gap: 14 }}>
+    <form action={formAction} style={{ display: "grid", gap: 14 }} encType="multipart/form-data">
       <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
         <label style={{ display: "grid", gap: 6 }}>
           <span style={{ color: "#6d655d", fontSize: 14 }}>Item title</span>
@@ -55,6 +55,21 @@ export function InventoryCreateForm() {
           <input name="location" style={inputStyle} />
         </label>
       </div>
+
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ color: "#6d655d", fontSize: 14 }}>Item photos</span>
+        <input
+          name="images"
+          type="file"
+          accept="image/*"
+          multiple
+          required
+          style={{ ...inputStyle, padding: 10 }}
+        />
+        <span style={{ color: "#6d655d", fontSize: 13 }}>
+          Upload at least 4 photos. You can add up to 6 images for each item.
+        </span>
+      </label>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <button disabled={isPending} style={{ background: "#bb4d00", color: "#fff", border: 0, borderRadius: 999, padding: "12px 18px", fontWeight: 700 }}>

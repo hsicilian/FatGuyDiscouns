@@ -30,6 +30,11 @@ export interface Product {
   title: string;
   description: string;
   price: number;
+  originalPrice: number;
+  salePrice: number | null;
+  salePercentage: number | null;
+  saleEndsAt: string | null;
+  isOnSale: boolean;
   category: string;
   quantity: number;
   status: ProductStatus;

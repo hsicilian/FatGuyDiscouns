@@ -7,6 +7,10 @@ export async function createInventoryItemAction(
   _previousState: FormActionState,
   formData: FormData,
 ): Promise<FormActionState> {
+  const files = formData
+    .getAll("images")
+    .filter((entry): entry is File => entry instanceof File && entry.size > 0);
+
   return createInventoryItem(
     String(formData.get("title") ?? ""),
     String(formData.get("description") ?? ""),
@@ -15,5 +19,6 @@ export async function createInventoryItemAction(
     String(formData.get("category") ?? ""),
     String(formData.get("sku") ?? ""),
     String(formData.get("location") ?? ""),
+    files,
   );
 }

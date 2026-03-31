@@ -262,7 +262,17 @@ export default async function StorePage({
 
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "end", flexWrap: "wrap" }}>
                 <div>
-                  <p style={{ margin: 0, fontSize: "1.24rem", fontWeight: 700 }}>{money(product.price)}</p>
+                  {product.isOnSale && product.salePrice != null ? (
+                    <div style={{ display: "grid", gap: 4 }}>
+                      <p style={{ margin: 0, color: "var(--muted)", textDecoration: "line-through" }}>{money(product.originalPrice)}</p>
+                      <p style={{ margin: 0, fontSize: "1.24rem", fontWeight: 700, color: "#b42318" }}>{money(product.salePrice)}</p>
+                      <p style={{ margin: 0, color: "#b42318", fontSize: 13, fontWeight: 700 }}>
+                        {product.salePercentage}% off through {product.saleEndsAt?.slice(0, 10)}
+                      </p>
+                    </div>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: "1.24rem", fontWeight: 700 }}>{money(product.price)}</p>
+                  )}
                   <p style={{ margin: "6px 0 0", color: "var(--muted)" }}>
                     {product.quantity > 0 ? `${product.quantity} available` : "Out of stock"}
                   </p>

@@ -27,11 +27,13 @@ import {
   adjustInventoryInDatabaseSupabase,
   applyBalanceAdjustmentsToDatabaseSupabase,
   applyPaymentToDatabaseSupabase,
+  clearProductSaleInDatabaseSupabase,
   createInventoryItemInDatabaseSupabase,
   removeClaimedItemFromDatabaseSupabase,
   submitClaimToDatabaseSupabase,
   submitRestockRequestToDatabaseSupabase,
   submitShipmentRequestToDatabaseSupabase,
+  updateProductSaleInDatabaseSupabase,
   updateClaimedItemInDatabaseSupabase,
   updateCurrentCustomerProfileSupabase,
   updateCustomerAccountStateSupabase,
@@ -157,10 +159,23 @@ export async function createInventoryItemInDatabase(input: {
   category: string;
   sku: string;
   location: string;
+  images: File[];
 }) {
   return shouldUseSupabase()
     ? createInventoryItemInDatabaseSupabase(input)
     : fallback.createInventoryItemInDatabase(input);
+}
+
+export async function updateProductSaleInDatabase(productId: string, salePercentage: number, saleEndsAt: string) {
+  return shouldUseSupabase()
+    ? updateProductSaleInDatabaseSupabase(productId, salePercentage, saleEndsAt)
+    : fallback.updateProductSaleInDatabase(productId, salePercentage, saleEndsAt);
+}
+
+export async function clearProductSaleInDatabase(productId: string) {
+  return shouldUseSupabase()
+    ? clearProductSaleInDatabaseSupabase(productId)
+    : fallback.clearProductSaleInDatabase(productId);
 }
 
 export async function submitRestockRequestToDatabase(productId: string) {

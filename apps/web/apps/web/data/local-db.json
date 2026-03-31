@@ -8,7 +8,12 @@
       "price": 28,
       "category": "Outerwear",
       "quantity": 2,
-      "status": "active"
+      "status": "active",
+      "originalPrice": 28,
+      "salePrice": null,
+      "salePercentage": null,
+      "saleEndsAt": null,
+      "isOnSale": false
     },
     {
       "id": "prod-002",
@@ -17,7 +22,12 @@
       "price": 12,
       "category": "Tees",
       "quantity": 1,
-      "status": "low_stock"
+      "status": "low_stock",
+      "originalPrice": 12,
+      "salePrice": null,
+      "salePercentage": null,
+      "saleEndsAt": null,
+      "isOnSale": false
     },
     {
       "id": "prod-003",
@@ -26,7 +36,12 @@
       "price": 18,
       "category": "Flannels",
       "quantity": 0,
-      "status": "out_of_stock"
+      "status": "out_of_stock",
+      "originalPrice": 18,
+      "salePrice": null,
+      "salePercentage": null,
+      "saleEndsAt": null,
+      "isOnSale": false
     }
   ],
   "customers": [

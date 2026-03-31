@@ -62,6 +62,11 @@ function createInitialDatabase(): LocalDatabase {
         title: "Vintage denim jacket",
         description: "Live-sale featured outerwear item.",
         price: 28,
+        originalPrice: 28,
+        salePrice: null,
+        salePercentage: null,
+        saleEndsAt: null,
+        isOnSale: false,
         category: "Outerwear",
         quantity: 2,
         status: "active",
@@ -71,6 +76,11 @@ function createInitialDatabase(): LocalDatabase {
         title: "Bundle lot tee",
         description: "Single-quantity live claim item.",
         price: 12,
+        originalPrice: 12,
+        salePrice: null,
+        salePercentage: null,
+        saleEndsAt: null,
+        isOnSale: false,
         category: "Tees",
         quantity: 1,
         status: "low_stock",
@@ -80,6 +90,11 @@ function createInitialDatabase(): LocalDatabase {
         title: "Retro flannel",
         description: "Held visible after sellout for restock requests.",
         price: 18,
+        originalPrice: 18,
+        salePrice: null,
+        salePercentage: null,
+        saleEndsAt: null,
+        isOnSale: false,
         category: "Flannels",
         quantity: 0,
         status: "out_of_stock",
@@ -269,7 +284,20 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
   const fallback = createInitialDatabase();
   return {
     activeCustomerId: db.activeCustomerId ?? fallback.activeCustomerId,
-    products: db.products ?? fallback.products,
+    products: (db.products ?? fallback.products).map((product) => {
+      const originalPrice = typeof product.originalPrice === "number" ? product.originalPrice : product.price;
+      const salePrice = typeof product.salePrice === "number" ? product.salePrice : null;
+      const isOnSale = Boolean(product.isOnSale && salePrice != null && product.saleEndsAt);
+      return {
+        ...product,
+        originalPrice,
+        salePrice,
+        salePercentage: typeof product.salePercentage === "number" ? product.salePercentage : null,
+        saleEndsAt: product.saleEndsAt ?? null,
+        isOnSale,
+        price: isOnSale && salePrice != null ? salePrice : originalPrice,
+      };
+    }),
     customers: db.customers ?? fallback.customers,
     balanceCycle: db.balanceCycle ?? fallback.balanceCycle,
     claimedItems: db.claimedItems ?? fallback.claimedItems,
@@ -657,6 +685,59 @@ export async function adjustInventoryInDatabase(productId: string, quantityChang
   };
 }
 
+export async function updateProductSaleInDatabase(productId: string, salePercentage: number, saleEndsAt: string) {
+  const db = await readDatabase();
+  const product = db.products.find((entry) => entry.id === productId);
+
+  if (!product) {
+    return { ok: false, message: "Product not found." };
+  }
+
+  if (!Number.isFinite(salePercentage) || salePercentage <= 0 || salePercentage >= 100) {
+    return { ok: false, message: "Sale percentage must be between 1 and 99." };
+  }
+
+  if (!saleEndsAt) {
+    return { ok: false, message: "Sale end date is required." };
+  }
+
+  const endsAtIso = `${saleEndsAt}T23:59:59.000Z`;
+  const salePrice = Math.round(product.originalPrice * (1 - salePercentage / 100) * 100) / 100;
+
+  product.salePercentage = salePercentage;
+  product.saleEndsAt = endsAtIso;
+  product.salePrice = salePrice;
+  product.isOnSale = true;
+  product.price = salePrice;
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: `${product.title} is now ${salePercentage}% off through ${saleEndsAt}.`,
+  };
+}
+
+export async function clearProductSaleInDatabase(productId: string) {
+  const db = await readDatabase();
+  const product = db.products.find((entry) => entry.id === productId);
+
+  if (!product) {
+    return { ok: false, message: "Product not found." };
+  }
+
+  product.salePercentage = null;
+  product.saleEndsAt = null;
+  product.salePrice = null;
+  product.isOnSale = false;
+  product.price = product.originalPrice;
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: `${product.title} sale pricing was cleared.`,
+  };
+}
+
 export async function createInventoryItemInDatabase(input: {
   title: string;
   description: string;
@@ -665,6 +746,7 @@ export async function createInventoryItemInDatabase(input: {
   category: string;
   sku: string;
   location: string;
+  images: File[];
 }) {
   const db = await readDatabase();
   const title = input.title.trim();
@@ -672,6 +754,7 @@ export async function createInventoryItemInDatabase(input: {
   const description = input.description.trim();
   const price = Number(input.price);
   const quantity = Number(input.quantity);
+  const images = input.images.filter((file) => file instanceof File);
 
   if (!title) {
     return { ok: false, message: "Item title is required." };
@@ -689,11 +772,20 @@ export async function createInventoryItemInDatabase(input: {
     return { ok: false, message: "Starting quantity must be zero or higher." };
   }
 
+  if (images.length < 4) {
+    return { ok: false, message: "Please upload at least 4 photos for each item." };
+  }
+
   db.products.unshift({
     id: `prod-${Date.now()}`,
     title,
     description,
     price,
+    originalPrice: price,
+    salePrice: null,
+    salePercentage: null,
+    saleEndsAt: null,
+    isOnSale: false,
     category,
     quantity,
     status: deriveProductStatus(quantity, "active"),
@@ -703,7 +795,7 @@ export async function createInventoryItemInDatabase(input: {
 
   return {
     ok: true,
-    message: `${title} was added to inventory with ${quantity} item${quantity === 1 ? "" : "s"} on hand.`,
+    message: `${title} was added with ${images.length} photo${images.length === 1 ? "" : "s"} and ${quantity} item${quantity === 1 ? "" : "s"} on hand.`,
   };
 }
 

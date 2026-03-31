@@ -12,11 +12,13 @@ import {
   adjustInventoryInDatabase,
   applyBalanceAdjustmentsToDatabase,
   applyPaymentToDatabase,
+  clearProductSaleInDatabase,
   createInventoryItemInDatabase,
   removeClaimedItemFromDatabase,
   submitClaimToDatabase,
   submitRestockRequestToDatabase,
   submitShipmentRequestToDatabase,
+  updateProductSaleInDatabase,
   updateClaimedItemInDatabase,
   updateCustomerAccountState,
   updateCustomerRoleInDatabase,
@@ -191,6 +193,7 @@ export async function createInventoryItem(
   category: string,
   sku: string,
   location: string,
+  images: File[],
 ): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
@@ -205,7 +208,50 @@ export async function createInventoryItem(
     category,
     sku,
     location,
+    images,
   });
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateProductSale(
+  productId: string,
+  salePercentage: number,
+  saleEndsAt: string,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateProductSaleInDatabase(productId, salePercentage, saleEndsAt);
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function clearProductSale(productId: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await clearProductSaleInDatabase(productId);
   revalidatePath("/");
   revalidatePath("/store");
   revalidatePath("/claims");

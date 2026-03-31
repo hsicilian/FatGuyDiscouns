@@ -17,9 +17,8 @@ export default async function RootLayout({
     { href: "/store", label: "Store" },
     { href: "/events", label: "Events" },
     ...(currentUser
-      ? [{ href: "/account", label: currentUser.role === "customer" ? "Account" : "Dashboard" }]
+      ? [{ href: currentUser.role === "customer" ? "/account" : "/admin", label: currentUser.role === "customer" ? "Account" : "Dashboard" }]
       : [{ href: "/login", label: "Login" }, { href: "/signup", label: "Sign Up" }]),
-    ...((currentUser?.role === "admin" || currentUser?.role === "master_admin") ? [{ href: "/admin", label: "Admin" }] : []),
     ...(currentUser?.role === "customer" ? [{ href: "/claims", label: "Claims" }] : []),
   ];
 
