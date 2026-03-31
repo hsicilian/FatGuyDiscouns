@@ -65,7 +65,12 @@ export function toProduct(row: Record<string, any>): Product {
   const salePercentage = row.sale_percentage == null ? null : Number(row.sale_percentage);
   const saleEndsAt = row.sale_ends_at ?? null;
   const salePrice = getSalePrice(originalPrice, salePercentage, saleEndsAt);
-  const imageRows = Array.isArray(row.product_images) ? row.product_images : [];
+  const rawImageRows = row.product_images;
+  const imageRows = Array.isArray(rawImageRows)
+    ? rawImageRows
+    : rawImageRows && typeof rawImageRows === "object"
+      ? [rawImageRows]
+      : [];
   return {
     id: row.id,
     title: row.title,
@@ -81,6 +86,7 @@ export function toProduct(row: Record<string, any>): Product {
     quantity: Number(row.inventory_quantity ?? 0),
     status: row.status,
     images: imageRows
+      .sort((left, right) => Number(left?.position ?? 0) - Number(right?.position ?? 0))
       .map((image) => image?.image_url)
       .filter((value): value is string => typeof value === "string" && value.length > 0),
   };
