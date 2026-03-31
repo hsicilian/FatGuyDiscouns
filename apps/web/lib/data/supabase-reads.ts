@@ -23,7 +23,7 @@ export async function getPlatformSummarySupabase() {
 
 export async function listProductsSupabase() {
   const actor = await getCurrentActor().catch(() => null);
-  const client = actor && actor.role !== "customer" ? await getAdminClient() : await getSessionClient();
+  const client = await getAdminClient();
   let query = client.from("products").select("id, title, description, price, inventory_quantity, status, categories(name)");
 
   if (!actor || actor.role === "customer") {
