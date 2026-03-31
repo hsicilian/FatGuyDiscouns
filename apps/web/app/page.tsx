@@ -55,6 +55,7 @@ export default async function HomePage() {
     <main>
       <section style={{ maxWidth: 1240, margin: "0 auto", padding: "38px 24px 28px" }}>
         <div
+          className="home-hero-grid"
           style={{
             display: "grid",
             gap: 26,
@@ -63,6 +64,7 @@ export default async function HomePage() {
           }}
         >
           <div
+            className="home-hero-main"
             style={{
               position: "relative",
               overflow: "hidden",
@@ -93,7 +95,7 @@ export default async function HomePage() {
               Shop the latest listings, claim what you want before it is gone, and keep everything organized inside one simple running balance.
             </p>
 
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 28 }}>
+            <div className="home-hero-actions" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 28 }}>
               <a
                 href="/store"
                 style={{
@@ -139,6 +141,7 @@ export default async function HomePage() {
 
           <div style={{ display: "grid", gap: 16 }}>
             <div
+              className="home-how-card"
               style={{
                 background: "rgba(255, 252, 246, 0.92)",
                 border: "1px solid var(--line)",
@@ -169,7 +172,7 @@ export default async function HomePage() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
+            <div className="home-stats-grid" style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
               <StoreStat label="Claimable now" value={String(inStockCount)} />
               <StoreStat label="Categories" value={String(categoryCount)} />
               <StoreStat label="Sold out" value={String(soldOutCount)} />
@@ -191,7 +194,7 @@ export default async function HomePage() {
           </a>
         </div>
 
-        <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
+        <div className="home-feature-grid" style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))" }}>
           {whyShopHere.map((item) => (
             <div
               key={item.title}
@@ -223,7 +226,7 @@ export default async function HomePage() {
           </a>
         </div>
 
-        <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
+        <div className="home-listings-grid" style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
           {featuredProducts.map((product) => (
             <article
               key={product.id}

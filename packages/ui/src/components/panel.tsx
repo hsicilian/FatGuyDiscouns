@@ -1,4 +1,11 @@
-import { palette, spacing } from "..";
+const palette = {
+  panel: "#fffaf3",
+  line: "#e8d6c3",
+};
+
+const spacing = {
+  lg: 24,
+};
 
 export function Panel({ children }: { children: React.ReactNode }) {
   return (
