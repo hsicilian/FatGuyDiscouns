@@ -482,12 +482,57 @@ export async function updateCurrentCustomerProfileSupabase(input: { street: stri
   if (!timezone) return { ok: false, message: "Timezone is required." };
 
   const admin = await getAdminClient();
-  await admin.from("customer_profiles").update({ timezone }).eq("user_id", actor.id);
-  await admin.from("addresses").delete().eq("user_id", actor.id).eq("is_default", true);
-  const { data: addressRow, error } = await admin.from("addresses").insert({ user_id: actor.id, line1: street, city, region, postal_code: postalCode, country: "US", is_default: true }).select("id").single();
-  if (error) return { ok: false, message: error.message };
+  const timezoneUpdate = await admin.from("customer_profiles").update({ timezone }).eq("user_id", actor.id);
+  if (timezoneUpdate.error) return { ok: false, message: timezoneUpdate.error.message };
 
-  await admin.from("customer_profiles").update({ default_address_id: addressRow.id }).eq("user_id", actor.id);
+  const existingDefault = await admin
+    .from("addresses")
+    .select("id")
+    .eq("user_id", actor.id)
+    .eq("is_default", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingDefault.error) {
+    return { ok: false, message: existingDefault.error.message };
+  }
+
+  let addressId = existingDefault.data?.id ?? null;
+
+  if (addressId) {
+    const updateAddress = await admin
+      .from("addresses")
+      .update({
+        line1: street,
+        city,
+        region,
+        postal_code: postalCode,
+        country: "US",
+        is_default: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", addressId)
+      .eq("user_id", actor.id);
+
+    if (updateAddress.error) return { ok: false, message: updateAddress.error.message };
+  } else {
+    const insertAddress = await admin
+      .from("addresses")
+      .insert({ user_id: actor.id, line1: street, city, region, postal_code: postalCode, country: "US", is_default: true })
+      .select("id")
+      .single();
+
+    if (insertAddress.error || !insertAddress.data) {
+      return { ok: false, message: insertAddress.error?.message ?? "Could not save address." };
+    }
+
+    addressId = insertAddress.data.id;
+  }
+
+  const profileUpdate = await admin.from("customer_profiles").update({ default_address_id: addressId }).eq("user_id", actor.id);
+  if (profileUpdate.error) return { ok: false, message: profileUpdate.error.message };
+
   return { ok: true, message: "Profile details updated." };
 }
 
