@@ -111,11 +111,33 @@ export async function updateShipmentInDatabaseSupabase(shipmentId: string, nextS
 
 export async function updateCustomerAccountStateSupabase(customerId: string, nextState: AccountState) {
   const admin = await getAdminClient();
-  const updates: Record<string, any> = { account_state: nextState, updated_at: new Date().toISOString() };
-  if (nextState === "approved") updates.approved_at = new Date().toISOString();
+  const timestamp = new Date().toISOString();
+  const { data: existingRoleRow, error: existingRoleError } = await admin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", customerId)
+    .maybeSingle();
 
-  const { error } = await admin.from("user_roles").update(updates).eq("user_id", customerId);
+  if (existingRoleError) {
+    return { ok: false, message: existingRoleError.message };
+  }
+
+  const { data: savedRoleRow, error } = await admin
+    .from("user_roles")
+    .upsert({
+      user_id: customerId,
+      role: existingRoleRow?.role ?? "customer",
+      account_state: nextState,
+      approved_at: nextState === "approved" ? timestamp : null,
+      updated_at: timestamp,
+    }, { onConflict: "user_id" })
+    .select("user_id, account_state")
+    .single();
+
   if (error) return { ok: false, message: error.message };
+  if (savedRoleRow.account_state !== nextState) {
+    return { ok: false, message: "Customer approval state did not save correctly." };
+  }
 
   const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
   await admin.from("notifications").insert({ type: "pending_approval", customer_id: customerId, payload: { label: `${customer.displayName} was updated to ${nextState.replaceAll("_", " ")}.` } });
