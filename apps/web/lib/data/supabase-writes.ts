@@ -16,6 +16,7 @@ import { getCurrentCustomerSupabase, listProductsSupabase } from "./supabase-rea
 import { createServerSupabaseClient } from "../supabase";
 
 export async function submitClaimToDatabaseSupabase(productId: string, requestedQuantity: number) {
+  const actor = await getCurrentActor();
   const customer = await getCurrentCustomerSupabase();
   const products = await listProductsSupabase();
   const product = products.find((entry) => entry.id === productId);
@@ -29,8 +30,12 @@ export async function submitClaimToDatabaseSupabase(productId: string, requested
   });
   if (!preview.ok) return preview;
 
-  const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.rpc("app_claim_product", { p_product_id: productId, p_quantity: requestedQuantity });
+  const admin = await getAdminClient();
+  const { error } = await admin.rpc("admin_claim_product", {
+    p_customer_id: actor.id,
+    p_product_id: productId,
+    p_quantity: requestedQuantity,
+  });
   if (error) return { ok: false, message: error.message };
   return { ok: true, message: `${product.title} has been added to the active running balance.` };
 }
