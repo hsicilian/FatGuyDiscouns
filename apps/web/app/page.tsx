@@ -29,7 +29,7 @@ export default async function HomePage() {
         }}
       >
         <h1 className="home-welcome-title" style={{ margin: "0 0 14px", fontSize: "clamp(2.7rem, 6vw, 4.4rem)", lineHeight: 0.95 }}>
-          Welcome To FatGuyDiscounts!
+          Welcome To Fat Guy Discounts!
         </h1>
         <p className="home-welcome-copy" style={{ margin: 0, color: "var(--muted)", fontSize: "1.08rem", lineHeight: 1.8, maxWidth: 760 }}>
           Shop, check your balance &amp; request shipments all in one place!
