@@ -13,6 +13,7 @@ import {
   archiveProductInDatabase,
   applyBalanceAdjustmentsToDatabase,
   applyPaymentToDatabase,
+  cancelShipmentRequestInDatabase,
   clearProductSaleInDatabase,
   createCategoryInDatabase,
   createInventoryItemInDatabase,
@@ -100,17 +101,18 @@ export async function submitClaim(productId: string, requestedQuantity: number):
   };
 }
 
-export async function addManualBalanceItem(title: string, quantity: number, unitPrice: number): Promise<FormActionState> {
+export async function addManualBalanceItem(title: string, quantity: number, unitPrice: number, customerId?: string): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
     return access;
   }
 
-  const result = await addManualBalanceItemToDatabase(title, quantity, unitPrice);
+  const result = await addManualBalanceItemToDatabase(title, quantity, unitPrice, customerId);
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/claims");
   revalidatePath("/admin/payments");
+  revalidatePath("/admin/customers");
 
   return {
     ...result,
@@ -154,17 +156,18 @@ export async function removeBalanceLineItem(claimId: string): Promise<FormAction
   };
 }
 
-export async function applyBalanceAdjustments(shippingChange: number, adjustmentChange: number): Promise<FormActionState> {
+export async function applyBalanceAdjustments(shippingChange: number, adjustmentChange: number, customerId?: string): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
     return access;
   }
 
-  const result = await applyBalanceAdjustmentsToDatabase(shippingChange, adjustmentChange);
+  const result = await applyBalanceAdjustmentsToDatabase(shippingChange, adjustmentChange, customerId);
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/claims");
   revalidatePath("/admin/payments");
+  revalidatePath("/admin/customers");
 
   return {
     ...result,
@@ -503,6 +506,28 @@ export async function submitShipmentRequest(addressConfirmed = false): Promise<F
   };
 }
 
+export async function cancelShipmentRequest(shipmentId?: string): Promise<FormActionState> {
+  const currentUser = await getCurrentSessionUser();
+
+  if (!currentUser || (currentUser.role !== "customer" && currentUser.role !== "admin" && currentUser.role !== "master_admin") || currentUser.accountState === "banned") {
+    return {
+      ok: false,
+      message: "Customer or admin access is required for this action.",
+    };
+  }
+
+  const result = await cancelShipmentRequestInDatabase(shipmentId);
+  revalidatePath("/account");
+  revalidatePath("/admin");
+  revalidatePath("/admin/shipments");
+  revalidatePath("/admin/customers");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
 export async function updateShipment(
   shipmentId: string,
   nextStatus: ShipmentStatus,
@@ -525,19 +550,20 @@ export async function updateShipment(
   };
 }
 
-export async function previewPaymentSubmission(paymentAmount: number, creditAmount: number): Promise<FormActionState> {
+export async function previewPaymentSubmission(paymentAmount: number, creditAmount: number, customerId?: string): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
     return access;
   }
 
-  const result = await applyPaymentToDatabase(paymentAmount, creditAmount);
+  const result = await applyPaymentToDatabase(paymentAmount, creditAmount, customerId);
   revalidatePath("/account");
   revalidatePath("/account/history");
   revalidatePath("/admin");
   revalidatePath("/admin/claims");
   revalidatePath("/admin/payments");
   revalidatePath("/admin/reports");
+  revalidatePath("/admin/customers");
 
   return {
     ...(result.ok ? result : await previewPaymentAction(paymentAmount, creditAmount)),

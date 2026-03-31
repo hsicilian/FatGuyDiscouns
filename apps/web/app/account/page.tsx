@@ -110,7 +110,10 @@ export default async function AccountPage() {
                 <strong>{currentCustomer.lastShipmentDate ?? "No shipment on record yet"}</strong>
               </div>
             </div>
-            <ShipmentRequestForm disabled={!shipmentPreview.allowed} />
+            <ShipmentRequestForm
+              disabled={!shipmentPreview.allowed}
+              canCancel={currentCustomer.shipmentStatus !== "none" && currentCustomer.shipmentStatus !== "completed"}
+            />
           </div>
 
           <section style={{ paddingTop: 4, borderTop: "1px solid rgba(232,214,195,0.88)" }}>

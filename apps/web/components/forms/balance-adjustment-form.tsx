@@ -9,11 +9,12 @@ const initialState: FormActionState = {
   message: "Adjust shipping and balance modifiers for the active cycle.",
 };
 
-export function BalanceAdjustmentForm() {
+export function BalanceAdjustmentForm({ customerId }: { customerId?: string }) {
   const [state, formAction, isPending] = useActionState(applyBalanceAdjustmentsAction, initialState);
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 10 }}>
+      {customerId ? <input type="hidden" name="customerId" value={customerId} /> : null}
       <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ color: "#6d655d", fontSize: 14 }}>Shipping change</span>

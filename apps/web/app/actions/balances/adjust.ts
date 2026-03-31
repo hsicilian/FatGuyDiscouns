@@ -9,5 +9,6 @@ export async function applyBalanceAdjustmentsAction(
 ): Promise<FormActionState> {
   const shippingChange = Number(formData.get("shippingChange") ?? 0);
   const adjustmentChange = Number(formData.get("adjustmentChange") ?? 0);
-  return applyBalanceAdjustments(shippingChange, adjustmentChange);
+  const customerId = String(formData.get("customerId") ?? "").trim() || undefined;
+  return applyBalanceAdjustments(shippingChange, adjustmentChange, customerId);
 }

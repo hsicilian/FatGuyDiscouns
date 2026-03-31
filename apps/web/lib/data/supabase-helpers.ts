@@ -208,9 +208,9 @@ export async function ensureActiveCycle(customerId: string) {
   return data;
 }
 
-export async function getTargetCycleContext() {
+export async function getTargetCycleContext(customerId?: string) {
   const actor = await getCurrentActor();
-  const cycle = await getSupabaseCycleRow();
+  const cycle = await getSupabaseCycleRow(customerId);
   if (!cycle) {
     return null;
   }

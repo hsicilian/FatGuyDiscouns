@@ -9,11 +9,12 @@ const initialState: FormActionState = {
   message: "Add a manual live-sale line item to the active cycle.",
 };
 
-export function ManualBalanceItemForm() {
+export function ManualBalanceItemForm({ customerId }: { customerId?: string }) {
   const [state, formAction, isPending] = useActionState(addManualBalanceItemAction, initialState);
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 10 }}>
+      {customerId ? <input type="hidden" name="customerId" value={customerId} /> : null}
       <label style={{ display: "grid", gap: 4 }}>
         <span style={{ color: "#6d655d", fontSize: 14 }}>Item title</span>
         <input name="title" placeholder="Live sale add-on" style={{ padding: 10, borderRadius: 12, border: "1px solid #d9c7b2" }} />

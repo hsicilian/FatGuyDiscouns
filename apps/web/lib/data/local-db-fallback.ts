@@ -1060,6 +1060,39 @@ export async function submitShipmentRequestToDatabase() {
   };
 }
 
+export async function cancelShipmentRequestInDatabase(shipmentId?: string) {
+  const db = await readDatabase();
+  const customer = findCurrentCustomer(db);
+
+  const shipmentIndex = shipmentId
+    ? db.shipmentRecords.findIndex((entry) => entry.id === shipmentId)
+    : db.shipmentRecords.findIndex((entry) => entry.customerName === customer.displayName && entry.status !== "completed");
+
+  if (shipmentIndex === -1) {
+    return { ok: false, message: "Open shipment request not found." };
+  }
+
+  const shipment = db.shipmentRecords[shipmentIndex];
+  if (shipment.status === "completed") {
+    return { ok: false, message: "Completed shipments cannot be canceled." };
+  }
+
+  db.shipmentRecords.splice(shipmentIndex, 1);
+
+  const shipmentCustomer = findCustomerByName(db, shipment.customerName);
+  if (shipmentCustomer) {
+    shipmentCustomer.shipmentStatus = "none";
+  }
+
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: `${shipment.customerName} shipment request was canceled.`,
+    nextStatus: "none",
+  };
+}
+
 export async function updateShipmentInDatabase(
   shipmentId: string,
   nextStatus: ShipmentStatus,

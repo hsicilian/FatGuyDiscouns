@@ -30,6 +30,7 @@ import {
   archiveProductInDatabaseSupabase,
   applyBalanceAdjustmentsToDatabaseSupabase,
   applyPaymentToDatabaseSupabase,
+  cancelShipmentRequestInDatabaseSupabase,
   clearProductSaleInDatabaseSupabase,
   createCategoryInDatabaseSupabase,
   createInventoryItemInDatabaseSupabase,
@@ -107,8 +108,8 @@ export async function updateCurrentCustomerProfile(input: { street: string; city
     : fallback.updateCurrentCustomerProfile(input);
 }
 
-export async function getBalanceCycle() {
-  return shouldUseSupabase() ? getBalanceCycleSupabase() : fallback.getBalanceCycle();
+export async function getBalanceCycle(customerId?: string) {
+  return shouldUseSupabase() ? getBalanceCycleSupabase(customerId) : fallback.getBalanceCycle();
 }
 
 export async function listClaimedItems() {
@@ -147,8 +148,8 @@ export async function getEventById(eventId: string) {
   return shouldUseSupabase() ? getEventByIdSupabase(eventId) : fallback.getEventById(eventId);
 }
 
-export async function getPaymentDefaults() {
-  return shouldUseSupabase() ? getPaymentDefaultsSupabase() : fallback.getPaymentDefaults();
+export async function getPaymentDefaults(customerId?: string) {
+  return shouldUseSupabase() ? getPaymentDefaultsSupabase(customerId) : fallback.getPaymentDefaults();
 }
 
 export async function getFinancialSummary() {
@@ -244,6 +245,12 @@ export async function submitShipmentRequestToDatabase() {
     : fallback.submitShipmentRequestToDatabase();
 }
 
+export async function cancelShipmentRequestInDatabase(shipmentId?: string) {
+  return shouldUseSupabase()
+    ? cancelShipmentRequestInDatabaseSupabase(shipmentId)
+    : fallback.cancelShipmentRequestInDatabase(shipmentId);
+}
+
 export async function updateShipmentInDatabase(
   shipmentId: string,
   nextStatus: Parameters<typeof fallback.updateShipmentInDatabase>[1],
@@ -275,9 +282,9 @@ export async function addCustomerNoteToDatabase(customerId: string, note: string
     : fallback.addCustomerNoteToDatabase(customerId, note);
 }
 
-export async function addManualBalanceItemToDatabase(title: string, quantity: number, unitPrice: number) {
+export async function addManualBalanceItemToDatabase(title: string, quantity: number, unitPrice: number, customerId?: string) {
   return shouldUseSupabase()
-    ? addManualBalanceItemToDatabaseSupabase(title, quantity, unitPrice)
+    ? addManualBalanceItemToDatabaseSupabase(title, quantity, unitPrice, customerId)
     : fallback.addManualBalanceItemToDatabase(title, quantity, unitPrice);
 }
 
@@ -293,15 +300,15 @@ export async function removeClaimedItemFromDatabase(claimId: string) {
     : fallback.removeClaimedItemFromDatabase(claimId);
 }
 
-export async function applyBalanceAdjustmentsToDatabase(shippingChange: number, adjustmentChange: number) {
+export async function applyBalanceAdjustmentsToDatabase(shippingChange: number, adjustmentChange: number, customerId?: string) {
   return shouldUseSupabase()
-    ? applyBalanceAdjustmentsToDatabaseSupabase(shippingChange, adjustmentChange)
+    ? applyBalanceAdjustmentsToDatabaseSupabase(shippingChange, adjustmentChange, customerId)
     : fallback.applyBalanceAdjustmentsToDatabase(shippingChange, adjustmentChange);
 }
 
-export async function applyPaymentToDatabase(paymentAmount: number, creditAmount: number) {
+export async function applyPaymentToDatabase(paymentAmount: number, creditAmount: number, customerId?: string) {
   return shouldUseSupabase()
-    ? applyPaymentToDatabaseSupabase(paymentAmount, creditAmount)
+    ? applyPaymentToDatabaseSupabase(paymentAmount, creditAmount, customerId)
     : fallback.applyPaymentToDatabase(paymentAmount, creditAmount);
 }
 

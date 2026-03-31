@@ -534,6 +534,39 @@ export async function submitShipmentRequestToDatabaseSupabase() {
   return { ok: true, message: "Shipment request submitted for admin review.", nextStatus };
 }
 
+export async function cancelShipmentRequestInDatabaseSupabase(shipmentId?: string) {
+  const actor = await getCurrentActor();
+  const admin = await getAdminClient();
+
+  let query = admin
+    .from("shipments")
+    .select("id, customer_id, status")
+    .neq("status", "completed")
+    .order("requested_at", { ascending: false })
+    .limit(1);
+
+  if (shipmentId) {
+    query = query.eq("id", shipmentId);
+  } else {
+    query = query.eq("customer_id", actor.id);
+  }
+
+  const { data: shipment, error } = await query.maybeSingle();
+  if (error) return { ok: false, message: error.message };
+  if (!shipment) return { ok: false, message: "Open shipment request not found." };
+  if (shipment.status === "completed") return { ok: false, message: "Completed shipments cannot be canceled." };
+
+  const deleteResult = await admin.from("shipments").delete().eq("id", shipment.id);
+  if (deleteResult.error) return { ok: false, message: deleteResult.error.message };
+
+  const customer = await getCustomerSummaryByUserId(shipment.customer_id, { admin: true });
+  return {
+    ok: true,
+    message: `${customer.displayName} shipment request was canceled.`,
+    nextStatus: "none",
+  };
+}
+
 export async function updateShipmentInDatabaseSupabase(shipmentId: string, nextStatus: ShipmentStatus, trackingNumber: string) {
   const admin = await getAdminClient();
   const { data: shipment, error } = await admin.from("shipments").select("id, customer_id").eq("id", shipmentId).single();
@@ -609,13 +642,13 @@ export async function addCustomerNoteToDatabaseSupabase(customerId: string, note
   return { ok: true, message: `Saved an internal note for ${customer.displayName}.` };
 }
 
-export async function addManualBalanceItemToDatabaseSupabase(title: string, quantity: number, unitPrice: number) {
+export async function addManualBalanceItemToDatabaseSupabase(title: string, quantity: number, unitPrice: number, customerId?: string) {
   const actor = await getCurrentActor();
   const trimmedTitle = title.trim();
   if (!trimmedTitle) return { ok: false, message: "Enter an item title." };
   if (quantity < 1 || unitPrice < 0) return { ok: false, message: "Quantity must be at least 1 and price cannot be negative." };
 
-  const context = await getTargetCycleContext();
+  const context = await getTargetCycleContext(customerId);
   if (!context) return { ok: false, message: "No active balance cycle is available for admin adjustments yet." };
 
   const admin = await getAdminClient();
@@ -662,8 +695,8 @@ export async function removeClaimedItemFromDatabaseSupabase(claimId: string) {
   return { ok: true, message: `${item.description} was removed from the active balance.` };
 }
 
-export async function applyBalanceAdjustmentsToDatabaseSupabase(shippingChange: number, adjustmentChange: number) {
-  const context = await getTargetCycleContext();
+export async function applyBalanceAdjustmentsToDatabaseSupabase(shippingChange: number, adjustmentChange: number, customerId?: string) {
+  const context = await getTargetCycleContext(customerId);
   if (!context) return { ok: false, message: "No active balance cycle is available for admin adjustments yet." };
 
   const nextShipping = Number(context.cycle.shipping_total ?? 0) + shippingChange;
@@ -676,8 +709,8 @@ export async function applyBalanceAdjustmentsToDatabaseSupabase(shippingChange: 
   return { ok: true, message: "Balance charges were updated." };
 }
 
-export async function applyPaymentToDatabaseSupabase(paymentAmount: number, creditAmount: number) {
-  const context = await getTargetCycleContext();
+export async function applyPaymentToDatabaseSupabase(paymentAmount: number, creditAmount: number, customerId?: string) {
+  const context = await getTargetCycleContext(customerId);
   if (!context) return { ok: false, message: "No active balance cycle is available for payment." };
   if (paymentAmount < 0 || creditAmount < 0) return { ok: false, message: "Payment and credit amounts must be zero or higher." };
 

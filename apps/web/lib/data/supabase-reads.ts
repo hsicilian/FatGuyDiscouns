@@ -150,8 +150,8 @@ export async function listCustomersSupabase() {
   return Promise.all((data ?? []).map((row) => getCustomerSummaryByUserId(row.user_id, { admin: true })));
 }
 
-export async function getBalanceCycleSupabase() {
-  const context = await getTargetCycleContext();
+export async function getBalanceCycleSupabase(customerId?: string) {
+  const context = await getTargetCycleContext(customerId);
   return context?.summary ?? ZERO_CYCLE;
 }
 
@@ -327,8 +327,8 @@ export async function getEventByIdSupabase(eventId: string) {
   return data ? toShowEvent(data as Record<string, any>) : null;
 }
 
-export async function getPaymentDefaultsSupabase() {
-  const context = await getTargetCycleContext();
+export async function getPaymentDefaultsSupabase(customerId?: string) {
+  const context = await getTargetCycleContext(customerId);
   if (!context) {
     return { paymentAmount: 0, creditAmount: 0 };
   }

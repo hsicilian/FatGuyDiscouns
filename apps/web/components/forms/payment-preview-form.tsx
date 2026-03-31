@@ -9,11 +9,20 @@ const initialState: FormActionState = {
   message: "Enter payment amounts to apply them to the active balance.",
 };
 
-export function PaymentPreviewForm({ defaultPayment, defaultCredit }: { defaultPayment: number; defaultCredit: number }) {
+export function PaymentPreviewForm({
+  defaultPayment,
+  defaultCredit,
+  customerId,
+}: {
+  defaultPayment: number;
+  defaultCredit: number;
+  customerId?: string;
+}) {
   const [state, formAction, isPending] = useActionState(previewPaymentAction, initialState);
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 12, maxWidth: 360 }}>
+      {customerId ? <input type="hidden" name="customerId" value={customerId} /> : null}
       <label style={{ display: "grid", gap: 6 }}>
         <span>Payment amount</span>
         <input name="paymentAmount" type="number" step="0.01" min="0" defaultValue={defaultPayment} style={{ padding: 12, borderRadius: 12, border: "1px solid #d9c7b2" }} />
