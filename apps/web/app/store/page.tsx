@@ -84,6 +84,10 @@ function money(value: number) {
   return `$${value.toFixed(2)}`;
 }
 
+function getCardImage(images: string[]) {
+  return images[0] ?? "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80";
+}
+
 export default async function StorePage({
   searchParams,
 }: {
@@ -219,9 +223,12 @@ export default async function StorePage({
       </div>
 
       <div id="store-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18 }}>
-        {filteredProducts.map((product) => (
-          <Panel key={product.id}>
-            <article style={{ display: "grid", gap: 16 }}>
+        {filteredProducts.map((product) => {
+          const cardImage = getCardImage(product.images);
+
+          return (
+            <Panel key={product.id}>
+              <article style={{ display: "grid", gap: 16 }}>
               <a
                 href={`/store/${product.id}`}
                 style={{
@@ -235,19 +242,17 @@ export default async function StorePage({
                   overflow: "hidden",
                 }}
               >
-                {product.images[0] ? (
-                  <img
-                    src={product.images[0]}
-                    alt={product.title}
-                    style={{
-                      position: "absolute",
-                      inset: 0,
-                      width: "100%",
-                      height: "100%",
-                      objectFit: "cover",
-                    }}
-                  />
-                ) : null}
+                <img
+                  src={cardImage}
+                  alt={product.title}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
                 <div
                   style={{
                     position: "absolute",
@@ -312,9 +317,10 @@ export default async function StorePage({
                   {product.quantity === 0 ? <RestockRequestForm productId={product.id} /> : null}
                 </div>
               </div>
-            </article>
-          </Panel>
-        ))}
+              </article>
+            </Panel>
+          );
+        })}
       </div>
 
       {filteredProducts.length === 0 ? (
