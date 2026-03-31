@@ -227,14 +227,34 @@ export default async function StorePage({
                 style={{
                   minHeight: 220,
                   borderRadius: 20,
-                  background: product.images[0]
-                    ? `center / cover no-repeat url("${product.images[0]}"), linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)`
-                    : "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
+                  background: "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
                   padding: 18,
                   display: "flex",
                   alignItems: "end",
+                  position: "relative",
+                  overflow: "hidden",
                 }}
               >
+                {product.images[0] ? (
+                  <img
+                    src={product.images[0]}
+                    alt={product.title}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                ) : null}
+                <div
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    background: "linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(16,12,8,0.18) 100%)",
+                  }}
+                />
                 <span
                   style={{
                     display: "inline-flex",
@@ -248,6 +268,8 @@ export default async function StorePage({
                     letterSpacing: "0.08em",
                     color: "var(--accent-strong)",
                     fontWeight: 700,
+                    position: "relative",
+                    zIndex: 1,
                   }}
                 >
                   {product.category}
