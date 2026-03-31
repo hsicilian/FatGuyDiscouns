@@ -187,7 +187,7 @@ export async function getTargetCycleContext() {
 }
 
 export async function getCustomerSummaryByUserId(userId: string, options?: { admin?: boolean }) {
-  const client = options?.admin ? await getAdminClient() : await createServerSupabaseClient();
+  const client = await getAdminClient();
 
   const [{ data: roleRow }, { data: profileRow }, { data: addressRow }, { data: shipmentRow }] = await Promise.all([
     client.from("user_roles").select("role, account_state").eq("user_id", userId).single(),
@@ -196,9 +196,7 @@ export async function getCustomerSummaryByUserId(userId: string, options?: { adm
     client.from("shipments").select("status, shipment_date, requested_at").eq("customer_id", userId).order("requested_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
 
-  const authEmail = options?.admin
-    ? (await (client as any).auth.admin.getUserById(userId)).data.user?.email
-    : (await (client as any).auth.getUser()).data.user?.email;
+  const authEmail = (await (client as any).auth.admin.getUserById(userId)).data.user?.email;
   const displayName = profileRow?.display_name ?? authEmail ?? "Customer";
 
   return {
