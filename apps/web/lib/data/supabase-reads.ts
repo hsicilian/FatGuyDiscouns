@@ -17,6 +17,42 @@ import {
   toShowEvent,
 } from "./supabase-helpers";
 
+async function attachProductImages(
+  client: Awaited<ReturnType<typeof getAdminClient>>,
+  rows: Array<Record<string, any>>,
+) {
+  if (rows.length === 0) {
+    return rows;
+  }
+
+  const productIds = rows.map((row) => row.id).filter((value): value is string => typeof value === "string");
+  if (productIds.length === 0) {
+    return rows;
+  }
+
+  const { data: imageRows, error } = await client
+    .from("product_images")
+    .select("product_id, image_url, position")
+    .in("product_id", productIds)
+    .order("position", { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  const imageMap = new Map<string, Array<Record<string, any>>>();
+  for (const imageRow of imageRows ?? []) {
+    const existing = imageMap.get(imageRow.product_id) ?? [];
+    existing.push(imageRow as Record<string, any>);
+    imageMap.set(imageRow.product_id, existing);
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    product_images: imageMap.get(row.id) ?? [],
+  }));
+}
+
 export async function getPlatformSummarySupabase() {
   return platformSummary;
 }
@@ -24,7 +60,7 @@ export async function getPlatformSummarySupabase() {
 export async function listProductsSupabase(options?: { includeArchived?: boolean }) {
   const actor = await getCurrentActor().catch(() => null);
   const client = await getAdminClient();
-  let query = client.from("products").select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, categories(name), product_images(image_url, position)");
+  let query = client.from("products").select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, categories(name)");
 
   if (options?.includeArchived) {
     query = query.eq("status", "archived");
@@ -36,7 +72,8 @@ export async function listProductsSupabase(options?: { includeArchived?: boolean
 
   const { data, error } = await query.order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((row) => toProduct(row as Record<string, any>));
+  const rowsWithImages = await attachProductImages(client, (data ?? []) as Array<Record<string, any>>);
+  return rowsWithImages.map((row) => toProduct(row));
 }
 
 export async function getProductByIdSupabase(productId: string) {
