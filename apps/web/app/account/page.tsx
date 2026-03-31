@@ -119,6 +119,16 @@ export default async function AccountPage() {
             <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
               Update your shipping address and timezone so deliveries and event times stay accurate.
             </p>
+            <div style={{ display: "grid", gap: 10, marginBottom: 18 }}>
+              <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
+                <p style={{ margin: 0, color: "var(--muted)" }}>Address on file</p>
+                <strong>{currentCustomer.address}</strong>
+              </div>
+              <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
+                <p style={{ margin: 0, color: "var(--muted)" }}>Timezone on file</p>
+                <strong>{currentCustomer.timezone}</strong>
+              </div>
+            </div>
             <ProfileForm
               defaultStreet={currentCustomer.street}
               defaultCity={currentCustomer.city}

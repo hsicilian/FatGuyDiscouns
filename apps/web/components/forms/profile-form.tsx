@@ -30,7 +30,13 @@ export function ProfileForm({
         <span style={{ color: "var(--muted)", fontSize: 14 }}>Street address</span>
         <input name="street" defaultValue={defaultStreet} autoComplete="address-line1" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
       </label>
-      <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+      <div
+        style={{
+          display: "grid",
+          gap: 12,
+          gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr)",
+        }}
+      >
         <label style={{ display: "grid", gap: 6 }}>
           <span style={{ color: "var(--muted)", fontSize: 14 }}>City</span>
           <input name="city" defaultValue={defaultCity} autoComplete="address-level2" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
