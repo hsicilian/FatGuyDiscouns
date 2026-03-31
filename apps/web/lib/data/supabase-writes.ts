@@ -140,13 +140,30 @@ export async function deleteArchivedProductInDatabaseSupabase(productId: string)
   if (error || !product) return { ok: false, message: "Product not found." };
   if (product.status !== "archived") return { ok: false, message: "Only archived items can be deleted." };
 
-  const lineItemRefs = await admin
-    .from("balance_line_items")
-    .select("id", { count: "exact", head: true })
+  const { data: imageRows, error: imageError } = await admin
+    .from("product_images")
+    .select("storage_path")
     .eq("product_id", productId);
-  if (lineItemRefs.error) return { ok: false, message: lineItemRefs.error.message };
-  if ((lineItemRefs.count ?? 0) > 0) {
-    return { ok: false, message: "This item has claim history and cannot be permanently deleted." };
+
+  if (imageError) {
+    return { ok: false, message: imageError.message };
+  }
+
+  const imagePaths = (imageRows ?? [])
+    .map((row) => row.storage_path)
+    .filter((value): value is string => typeof value === "string" && value.length > 0);
+
+  if (imagePaths.length > 0) {
+    await admin.storage.from(getProductImagesBucket()).remove(imagePaths);
+  }
+
+  const detachHistory = await admin
+    .from("balance_line_items")
+    .update({ product_id: null })
+    .eq("product_id", productId);
+
+  if (detachHistory.error) {
+    return { ok: false, message: detachHistory.error.message };
   }
 
   const deleteResult = await admin.from("products").delete().eq("id", productId);

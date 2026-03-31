@@ -813,11 +813,6 @@ export async function deleteArchivedProductInDatabase(productId: string) {
   const product = db.products[productIndex];
   if (product.status !== "archived") return { ok: false, message: "Only archived items can be deleted." };
 
-  const hasClaims = db.claimedItems.some((entry) => entry.productTitle === product.title);
-  if (hasClaims) {
-    return { ok: false, message: "This item has claim history and cannot be permanently deleted." };
-  }
-
   db.products.splice(productIndex, 1);
   await writeDatabase(db);
   return { ok: true, message: `${product.title} was permanently deleted.` };
