@@ -16,7 +16,7 @@ import {
   toProduct,
   toShowEvent,
 } from "./supabase-helpers";
-import { productMatchesLookup } from "../products";
+import { isUuidLike, productMatchesLookup } from "../products";
 
 async function attachProductImages(
   client: Awaited<ReturnType<typeof getAdminClient>>,
@@ -80,21 +80,23 @@ export async function listProductsSupabase(options?: { includeArchived?: boolean
 export async function getProductByIdSupabase(productId: string) {
   const actor = await getCurrentActor().catch(() => null);
   const client = await getAdminClient();
-  let query = client
-    .from("products")
-    .select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, categories(name), product_images(image_url, position)")
-    .eq("id", productId);
+  if (isUuidLike(productId)) {
+    let query = client
+      .from("products")
+      .select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, categories(name), product_images(image_url, position)")
+      .eq("id", productId);
 
-  if (!actor || actor.role === "customer") {
-    query = query.in("status", ["active", "low_stock", "out_of_stock"]);
-  } else {
-    query = query.in("status", ["draft", "active", "low_stock", "out_of_stock", "hidden"]);
-  }
+    if (!actor || actor.role === "customer") {
+      query = query.in("status", ["active", "low_stock", "out_of_stock"]);
+    } else {
+      query = query.in("status", ["draft", "active", "low_stock", "out_of_stock", "hidden"]);
+    }
 
-  const { data, error } = await query.maybeSingle();
-  if (error) throw error;
-  if (data) {
-    return toProduct(data as Record<string, any>);
+    const { data, error } = await query.maybeSingle();
+    if (error) throw error;
+    if (data) {
+      return toProduct(data as Record<string, any>);
+    }
   }
 
   let fallbackQuery = client
