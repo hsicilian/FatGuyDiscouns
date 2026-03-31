@@ -117,6 +117,7 @@ export default async function StorePage({
   return (
     <main style={{ maxWidth: 1240, margin: "0 auto", padding: "28px 24px 72px" }}>
       <section
+        className="store-hero-grid"
         style={{
           display: "grid",
           gap: 20,
@@ -126,6 +127,7 @@ export default async function StorePage({
         }}
       >
         <div
+          className="store-hero-main"
           style={{
             background: "linear-gradient(145deg, rgba(255, 249, 239, 0.96) 0%, rgba(252, 237, 217, 0.94) 100%)",
             border: "1px solid rgba(222, 197, 174, 0.92)",
@@ -143,7 +145,7 @@ export default async function StorePage({
           <p style={{ margin: 0, maxWidth: 640, color: "var(--muted)", lineHeight: 1.8, fontSize: "1.03rem" }}>
             Browse available items, filter by category, and claim what you want once your customer account is approved.
           </p>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
+          <div className="store-hero-actions" style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
             <a href="#store-grid" style={{ ...ctaStyle, background: "var(--accent)", color: "#fff" }}>
               Shop Available Items
             </a>
@@ -153,7 +155,7 @@ export default async function StorePage({
           </div>
         </div>
 
-        <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+        <div className="store-hero-stats" style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
           <Panel>
             <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--muted)" }}>Visible items</p>
             <p style={{ margin: "10px 0 0", fontSize: "2rem", fontWeight: 700 }}>{filteredProducts.length}</p>

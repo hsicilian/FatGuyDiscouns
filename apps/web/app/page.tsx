@@ -18,6 +18,7 @@ export default async function HomePage() {
   return (
     <main style={{ maxWidth: 1240, margin: "0 auto", padding: "36px 24px 72px" }}>
       <section
+        className="home-welcome-panel"
         style={{
           background: "linear-gradient(145deg, rgba(255, 249, 239, 0.96) 0%, rgba(255, 239, 218, 0.93) 100%)",
           border: "1px solid rgba(222, 197, 174, 0.95)",
@@ -27,16 +28,16 @@ export default async function HomePage() {
           marginBottom: 28,
         }}
       >
-        <h1 style={{ margin: "0 0 14px", fontSize: "clamp(2.7rem, 6vw, 4.4rem)", lineHeight: 0.95 }}>
+        <h1 className="home-welcome-title" style={{ margin: "0 0 14px", fontSize: "clamp(2.7rem, 6vw, 4.4rem)", lineHeight: 0.95 }}>
           Welcome To FatGuyDiscounts!
         </h1>
-        <p style={{ margin: 0, color: "var(--muted)", fontSize: "1.08rem", lineHeight: 1.8, maxWidth: 760 }}>
+        <p className="home-welcome-copy" style={{ margin: 0, color: "var(--muted)", fontSize: "1.08rem", lineHeight: 1.8, maxWidth: 760 }}>
           Shop, check your balance &amp; request shipments all in one place!
         </p>
       </section>
 
       <section>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
+        <div className="home-section-heading" style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
           <div>
             <p style={{ margin: 0, fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--accent-strong)", fontWeight: 700 }}>
               Fresh inventory

@@ -19,7 +19,6 @@ export default async function RootLayout({
     ...(currentUser
       ? [{ href: currentUser.role === "customer" ? "/account" : "/admin", label: currentUser.role === "customer" ? "Account" : "Dashboard" }]
       : [{ href: "/login", label: "Login" }, { href: "/signup", label: "Sign Up" }]),
-    ...(currentUser?.role === "customer" ? [{ href: "/claims", label: "Claims" }] : []),
   ];
 
   return (
@@ -64,13 +63,23 @@ export default async function RootLayout({
                   </div>
                 )}
               </div>
-              <nav className="site-nav" style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
+              <nav className="site-nav site-nav-desktop" style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
                 {navLinks.map((link) => (
                   <a key={link.href} href={link.href} style={{ color: "#5c5247", fontWeight: 700 }}>
                     {link.label}
                   </a>
                 ))}
               </nav>
+              <details className="mobile-nav-menu">
+                <summary>Menu</summary>
+                <nav className="site-nav-mobile">
+                  {navLinks.map((link) => (
+                    <a key={link.href} href={link.href}>
+                      {link.label}
+                    </a>
+                  ))}
+                </nav>
+              </details>
             </div>
           </header>
           {children}
