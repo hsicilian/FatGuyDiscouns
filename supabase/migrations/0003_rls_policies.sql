@@ -21,62 +21,62 @@ alter table public.notifications enable row level security;
 alter table public.customer_notes enable row level security;
 alter table public.events enable row level security;
 
-create policy if not exists products_public_read
+create policy products_public_read
 on public.products
 for select
 using (status in ('active', 'low_stock', 'out_of_stock'));
 
-create policy if not exists categories_public_read
+create policy categories_public_read
 on public.categories
 for select
 using (true);
 
-create policy if not exists events_public_read
+create policy events_public_read
 on public.events
 for select
 using (true);
 
-create policy if not exists customer_profiles_owner_read
+create policy customer_profiles_owner_read
 on public.customer_profiles
 for select
 using (auth.uid() = user_id or public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists customer_profiles_owner_update
+create policy customer_profiles_owner_update
 on public.customer_profiles
 for update
 using (auth.uid() = user_id or public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists addresses_owner_access
+create policy addresses_owner_access
 on public.addresses
 for all
 using (auth.uid() = user_id or public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists user_roles_admin_read
+create policy user_roles_admin_read
 on public.user_roles
 for select
 using (auth.uid() = user_id or public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists user_roles_admin_update
+create policy user_roles_admin_update
 on public.user_roles
 for update
 using (public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists products_admin_write
+create policy products_admin_write
 on public.products
 for all
 using (public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists product_images_admin_write
+create policy product_images_admin_write
 on public.product_images
 for all
 using (public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists balance_cycles_owner_read
+create policy balance_cycles_owner_read
 on public.balance_cycles
 for select
 using (customer_id = auth.uid() or public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists balance_line_items_owner_read
+create policy balance_line_items_owner_read
 on public.balance_line_items
 for select
 using (
@@ -88,7 +88,7 @@ using (
   )
 );
 
-create policy if not exists payments_owner_read
+create policy payments_owner_read
 on public.payments
 for select
 using (
@@ -100,27 +100,27 @@ using (
   )
 );
 
-create policy if not exists credits_owner_read
+create policy credits_owner_read
 on public.credits
 for select
 using (customer_id = auth.uid() or public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists shipments_owner_read
+create policy shipments_owner_read
 on public.shipments
 for select
 using (customer_id = auth.uid() or public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists shipments_admin_write
+create policy shipments_admin_write
 on public.shipments
 for all
 using (public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists notifications_admin_read
+create policy notifications_admin_read
 on public.notifications
 for select
 using (public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists customer_notes_admin_only
+create policy customer_notes_admin_only
 on public.customer_notes
 for all
 using (public.current_app_role() in ('admin', 'master_admin'));

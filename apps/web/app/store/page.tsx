@@ -31,39 +31,42 @@ function sortProducts(products: Awaited<ReturnType<typeof listProducts>>, sort: 
   }
 }
 
-const linkPillStyle: React.CSSProperties = {
+const ctaStyle: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
-  background: "var(--accent)",
-  color: "#fff",
-  borderRadius: 999,
+  minHeight: 46,
   padding: "12px 16px",
+  borderRadius: 999,
   fontWeight: 700,
 };
 
 function renderClaimCta(session: Awaited<ReturnType<typeof getCurrentSessionAccount>>) {
   if (!session) {
-    return <a href="/login" style={linkPillStyle}>Login to Claim</a>;
+    return <a href="/login" style={{ ...ctaStyle, background: "var(--accent)", color: "#fff" }}>Login to Claim</a>;
   }
 
   if (session.role !== "customer") {
-    return <a href="/admin" style={linkPillStyle}>Open Admin</a>;
+    return <a href="/admin" style={{ ...ctaStyle, background: "#1d1d1d", color: "#fff" }}>Open Admin</a>;
   }
 
   if (canClaim(session.role, session.accountState)) {
-    return <a href="/claims" style={linkPillStyle}>Claim This Item</a>;
+    return <a href="/claims" style={{ ...ctaStyle, background: "var(--accent)", color: "#fff" }}>Claim This Item</a>;
   }
 
   if (session.accountState === "pending_approval") {
-    return <a href="/account" style={linkPillStyle}>Approval Pending</a>;
+    return <a href="/account" style={{ ...ctaStyle, background: "rgba(255,255,255,0.82)", border: "1px solid var(--line)" }}>Approval Pending</a>;
   }
 
   if (session.accountState === "claiming_disabled") {
-    return <a href="/account" style={linkPillStyle}>Claiming Disabled</a>;
+    return <a href="/account" style={{ ...ctaStyle, background: "rgba(255,255,255,0.82)", border: "1px solid var(--line)" }}>Claiming Disabled</a>;
   }
 
-  return <a href="/account" style={linkPillStyle}>Account Unavailable</a>;
+  return <a href="/account" style={{ ...ctaStyle, background: "rgba(255,255,255,0.82)", border: "1px solid var(--line)" }}>Account Unavailable</a>;
+}
+
+function money(value: number) {
+  return `$${value.toFixed(2)}`;
 }
 
 export default async function StorePage({
@@ -92,29 +95,87 @@ export default async function StorePage({
   );
 
   return (
-    <main style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px 72px" }}>
-      <div style={{ marginBottom: 24 }}>
-        <p style={{ textTransform: "uppercase", letterSpacing: "0.12em", fontSize: 12, color: "#8e3200" }}>Storefront</p>
-        <h1 style={{ margin: "0 0 12px" }}>Claim-ready product browsing</h1>
-        <p style={{ color: "#6d655d", maxWidth: 720, lineHeight: 1.7 }}>
-          Search, filter, and sort are now available on the web store so customers can browse more like a real shop before they claim.
-        </p>
-      </div>
+    <main style={{ maxWidth: 1240, margin: "0 auto", padding: "28px 24px 72px" }}>
+      <section
+        style={{
+          display: "grid",
+          gap: 20,
+          gridTemplateColumns: "minmax(0, 1.2fr) minmax(280px, 0.7fr)",
+          alignItems: "stretch",
+          marginBottom: 24,
+        }}
+      >
+        <div
+          style={{
+            background: "linear-gradient(145deg, rgba(255, 249, 239, 0.96) 0%, rgba(252, 237, 217, 0.94) 100%)",
+            border: "1px solid rgba(222, 197, 174, 0.92)",
+            borderRadius: 34,
+            padding: "32px clamp(22px, 4vw, 38px)",
+            boxShadow: "var(--shadow)",
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--accent-strong)", fontWeight: 700 }}>
+            Shop the current drop
+          </p>
+          <h1 style={{ margin: "14px 0 12px", fontSize: "clamp(2.6rem, 5vw, 4.2rem)", lineHeight: 0.96 }}>
+            Claim-ready finds, updated live.
+          </h1>
+          <p style={{ margin: 0, maxWidth: 640, color: "var(--muted)", lineHeight: 1.8, fontSize: "1.03rem" }}>
+            Browse available items, filter by category, and claim what you want once your customer account is approved.
+          </p>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 24 }}>
+            <a href="/claims" style={{ ...ctaStyle, background: "var(--accent)", color: "#fff" }}>
+              View Claiming
+            </a>
+            <a href="/events" style={{ ...ctaStyle, background: "rgba(255,255,255,0.8)", border: "1px solid var(--line)" }}>
+              Upcoming Shows
+            </a>
+          </div>
+        </div>
 
-      <section style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 22, padding: 20, marginBottom: 24, boxShadow: "var(--shadow)" }}>
+        <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+          <Panel>
+            <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--muted)" }}>Visible items</p>
+            <p style={{ margin: "10px 0 0", fontSize: "2rem", fontWeight: 700 }}>{filteredProducts.length}</p>
+          </Panel>
+          <Panel>
+            <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--muted)" }}>Categories</p>
+            <p style={{ margin: "10px 0 0", fontSize: "2rem", fontWeight: 700 }}>{categories.length - 1}</p>
+          </Panel>
+          <Panel>
+            <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--muted)" }}>Ready to claim</p>
+            <p style={{ margin: "10px 0 0", fontSize: "2rem", fontWeight: 700 }}>{products.filter((product) => product.quantity > 0).length}</p>
+          </Panel>
+          <Panel>
+            <p style={{ margin: 0, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.12em", color: "var(--muted)" }}>Need restock</p>
+            <p style={{ margin: "10px 0 0", fontSize: "2rem", fontWeight: 700 }}>{products.filter((product) => product.quantity === 0).length}</p>
+          </Panel>
+        </div>
+      </section>
+
+      <section
+        style={{
+          background: "rgba(255, 251, 244, 0.88)",
+          border: "1px solid var(--line)",
+          borderRadius: 24,
+          padding: 20,
+          marginBottom: 20,
+          boxShadow: "var(--shadow-soft)",
+        }}
+      >
         <form style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", alignItems: "end" }}>
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ color: "#6d655d", fontSize: 14 }}>Search items</span>
+            <span style={{ color: "var(--muted)", fontSize: 14 }}>Search</span>
             <input
               type="search"
               name="search"
               defaultValue={search}
-              placeholder="Search titles and descriptions"
+              placeholder="Search by title or description"
               style={{ padding: 12, borderRadius: 14, border: "1px solid #d9c7b2" }}
             />
           </label>
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ color: "#6d655d", fontSize: 14 }}>Category</span>
+            <span style={{ color: "var(--muted)", fontSize: 14 }}>Category</span>
             <select name="category" defaultValue={category} style={{ padding: 12, borderRadius: 14, border: "1px solid #d9c7b2" }}>
               {categories.map((entry) => (
                 <option key={entry} value={entry}>{entry === "all" ? "All categories" : entry}</option>
@@ -122,50 +183,89 @@ export default async function StorePage({
             </select>
           </label>
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ color: "#6d655d", fontSize: 14 }}>Sort</span>
+            <span style={{ color: "var(--muted)", fontSize: 14 }}>Sort</span>
             <select name="sort" defaultValue={sort} style={{ padding: 12, borderRadius: 14, border: "1px solid #d9c7b2" }}>
               {Object.entries(sortOptions).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
           </label>
-          <button style={{ background: "#1f1d1a", color: "#fff", border: 0, borderRadius: 999, padding: "12px 18px", minHeight: 46 }}>
-            Apply
+          <button style={{ minHeight: 46, background: "#1d1d1d", color: "#fff", border: 0, borderRadius: 999, padding: "12px 18px", fontWeight: 700 }}>
+            Apply Filters
           </button>
         </form>
       </section>
 
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 16 }}>
-        <p style={{ margin: 0, color: "#6d655d" }}>{filteredProducts.length} item{filteredProducts.length === 1 ? "" : "s"} shown</p>
-        <a href="/store" style={{ color: "#8e3200", fontWeight: 700 }}>Reset filters</a>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 18, alignItems: "center" }}>
+        <p style={{ margin: 0, color: "var(--muted)" }}>
+          Showing {filteredProducts.length} item{filteredProducts.length === 1 ? "" : "s"}
+        </p>
+        <a href="/store" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Clear filters</a>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 18 }}>
         {filteredProducts.map((product) => (
           <Panel key={product.id}>
-            <div style={{ background: "#f0dfcc", borderRadius: 16, height: 180, marginBottom: 16 }} />
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
-              <p style={{ color: "#6d655d", marginTop: 0, marginBottom: 8 }}>{product.category}</p>
-              <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: product.quantity > 0 ? "#2f5d32" : "#8e3200" }}>
-                {PRODUCT_STATUS_LABELS[product.status]}
-              </span>
-            </div>
-            <h2 style={{ marginTop: 0, fontSize: "1.25rem" }}>{product.title}</h2>
-            <p style={{ color: "#6d655d", minHeight: 48 }}>{product.description}</p>
-            <p style={{ fontSize: "1.2rem", fontWeight: 700 }}>${product.price.toFixed(2)}</p>
-            <p style={{ color: "#6d655d" }}>Available now: {product.quantity}</p>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {renderClaimCta(currentSession)}
-              {product.quantity === 0 ? <RestockRequestForm productId={product.id} /> : null}
-            </div>
+            <article style={{ display: "grid", gap: 16 }}>
+              <div
+                style={{
+                  minHeight: 220,
+                  borderRadius: 20,
+                  background: "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
+                  padding: 18,
+                  display: "flex",
+                  alignItems: "end",
+                }}
+              >
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    padding: "8px 12px",
+                    borderRadius: 999,
+                    background: "rgba(255,255,255,0.82)",
+                    fontSize: 12,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.08em",
+                    color: "var(--accent-strong)",
+                    fontWeight: 700,
+                  }}
+                >
+                  {product.category}
+                </span>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
+                <h2 style={{ margin: 0, fontSize: "1.28rem" }}>{product.title}</h2>
+                <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: product.quantity > 0 ? "#2f5d32" : "var(--accent-strong)" }}>
+                  {PRODUCT_STATUS_LABELS[product.status]}
+                </span>
+              </div>
+
+              <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.7, minHeight: 72 }}>{product.description}</p>
+
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "end", flexWrap: "wrap" }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: "1.24rem", fontWeight: 700 }}>{money(product.price)}</p>
+                  <p style={{ margin: "6px 0 0", color: "var(--muted)" }}>
+                    {product.quantity > 0 ? `${product.quantity} available` : "Out of stock"}
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  {renderClaimCta(currentSession)}
+                  {product.quantity === 0 ? <RestockRequestForm productId={product.id} /> : null}
+                </div>
+              </div>
+            </article>
           </Panel>
         ))}
       </div>
 
       {filteredProducts.length === 0 ? (
-        <section style={{ marginTop: 20, background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 22 }}>
-          <h2 style={{ marginTop: 0 }}>No items matched</h2>
-          <p style={{ color: "#6d655d", marginBottom: 0 }}>Try broadening the search, switching categories, or resetting filters.</p>
+        <section style={{ marginTop: 20, background: "rgba(255, 251, 244, 0.88)", border: "1px solid var(--line)", borderRadius: 20, padding: 22 }}>
+          <h2 style={{ marginTop: 0 }}>No items matched that search</h2>
+          <p style={{ color: "var(--muted)", marginBottom: 0 }}>Try another keyword, switch categories, or clear filters to see everything again.</p>
         </section>
       ) : null}
     </main>

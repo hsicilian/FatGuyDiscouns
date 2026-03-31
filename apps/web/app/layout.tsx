@@ -32,16 +32,19 @@ export default async function RootLayout({
               position: "sticky",
               top: 0,
               zIndex: 20,
-              backdropFilter: "blur(14px)",
-              background: "rgba(247, 241, 232, 0.92)",
-              borderBottom: "1px solid var(--line)",
+              backdropFilter: "blur(16px)",
+              background: "rgba(255, 249, 242, 0.92)",
+              borderBottom: "1px solid rgba(219, 198, 174, 0.8)",
             }}
           >
-            <div style={{ maxWidth: 1200, margin: "0 auto", padding: "16px 24px", display: "grid", gap: 14 }}>
+            <div style={{ maxWidth: 1240, margin: "0 auto", padding: "16px 24px", display: "grid", gap: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-                <a href="/" style={{ fontSize: 24, fontWeight: 700 }}>
-                  Fatguydiscounts
-                </a>
+                <div style={{ display: "grid", gap: 2 }}>
+                  <a href="/" style={{ fontSize: 24, fontWeight: 800, letterSpacing: "-0.04em" }}>
+                    Fatguydiscounts
+                  </a>
+                  <span style={{ color: "var(--muted)", fontSize: 13 }}>Claim-first deals for repeat shoppers</span>
+                </div>
                 {currentUser ? (
                   <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
                     <div style={{ padding: "10px 14px", borderRadius: 999, border: "1px solid var(--line)", background: "var(--panel)" }}>
@@ -52,18 +55,18 @@ export default async function RootLayout({
                   </div>
                 ) : (
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <a href="/login" style={{ padding: "10px 14px", borderRadius: 999, border: "1px solid var(--line)", background: "var(--panel)", fontWeight: 600 }}>
+                    <a href="/login" style={{ padding: "10px 16px", borderRadius: 999, border: "1px solid var(--line)", background: "rgba(255,255,255,0.76)", fontWeight: 700 }}>
                       Sign In
                     </a>
-                    <a href="/signup" style={{ padding: "10px 14px", borderRadius: 999, border: "1px solid var(--line)", background: "#bb4d00", color: "#fff", fontWeight: 600 }}>
+                    <a href="/signup" style={{ padding: "10px 16px", borderRadius: 999, border: "1px solid var(--line)", background: "#bb4d00", color: "#fff", fontWeight: 700, boxShadow: "0 12px 24px rgba(187, 77, 0, 0.18)" }}>
                       Create Account
                     </a>
                   </div>
                 )}
               </div>
-              <nav style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <nav style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
                 {navLinks.map((link) => (
-                  <a key={link.href} href={link.href} style={{ color: "#5c5247", fontWeight: 600 }}>
+                  <a key={link.href} href={link.href} style={{ color: "#5c5247", fontWeight: 700 }}>
                     {link.label}
                   </a>
                 ))}

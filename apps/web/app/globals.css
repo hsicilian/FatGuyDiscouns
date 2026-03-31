@@ -1,15 +1,16 @@
 :root {
   color-scheme: light;
-  --bg: #f5ecdf;
-  --bg-soft: #fff7ec;
-  --panel: rgba(255, 250, 243, 0.88);
-  --panel-strong: #fff9f1;
-  --ink: #1f1d1a;
-  --muted: #6d655d;
+  --bg: #f6ede2;
+  --bg-soft: #fff8ee;
+  --panel: rgba(255, 251, 245, 0.9);
+  --panel-strong: #fffaf4;
+  --ink: #231c15;
+  --muted: #6f6256;
   --accent: #bb4d00;
   --accent-strong: #8e3200;
-  --line: #e8d6c3;
-  --shadow: 0 20px 55px rgba(120, 72, 25, 0.12);
+  --line: #e3d2be;
+  --shadow: 0 24px 60px rgba(120, 72, 25, 0.12);
+  --shadow-soft: 0 14px 34px rgba(120, 72, 25, 0.1);
 }
 
 * {
@@ -22,11 +23,12 @@ body {
   padding: 0;
   min-height: 100%;
   background:
-    radial-gradient(circle at top left, rgba(255, 234, 205, 0.95) 0%, rgba(255, 234, 205, 0) 34%),
-    radial-gradient(circle at top right, rgba(221, 122, 35, 0.12) 0%, rgba(221, 122, 35, 0) 28%),
-    linear-gradient(180deg, #fff7ec 0%, var(--bg) 42%, #f0e0cd 100%);
+    radial-gradient(circle at top left, rgba(255, 233, 204, 0.9) 0%, rgba(255, 233, 204, 0) 34%),
+    radial-gradient(circle at top right, rgba(204, 108, 31, 0.14) 0%, rgba(204, 108, 31, 0) 26%),
+    linear-gradient(180deg, #fffaf2 0%, var(--bg) 46%, #efdfcb 100%);
   color: var(--ink);
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
 }
 
 body::before {
@@ -37,6 +39,16 @@ body::before {
   background-image: linear-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
   background-size: 36px 36px;
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.3), transparent 78%);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: Georgia, "Times New Roman", serif;
+  letter-spacing: -0.03em;
 }
 
 button,

@@ -1,4 +1,4 @@
-﻿create extension if not exists "pgcrypto";
+create extension if not exists "pgcrypto";
 
 create type public.invoice_status as enum ('draft', 'paid', 'archived');
 create type public.line_item_status as enum ('claimed', 'adjusted', 'archived');
@@ -261,22 +261,22 @@ create index if not exists idx_shipments_cycle on public.shipments(cycle_id);
 alter table public.archived_invoices enable row level security;
 alter table public.restock_requests enable row level security;
 
-create policy if not exists archived_invoices_owner_read
+create policy archived_invoices_owner_read
 on public.archived_invoices
 for select
 using (customer_id = auth.uid() or public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists restock_requests_customer_insert
+create policy restock_requests_customer_insert
 on public.restock_requests
 for insert
 with check (auth.uid() = customer_id or customer_id is null);
 
-create policy if not exists restock_requests_admin_read
+create policy restock_requests_admin_read
 on public.restock_requests
 for select
 using (public.current_app_role() in ('admin', 'master_admin'));
 
-create policy if not exists restock_requests_admin_update
+create policy restock_requests_admin_update
 on public.restock_requests
 for update
 using (public.current_app_role() in ('admin', 'master_admin'));
@@ -287,3 +287,4 @@ alter table if exists public.balance_cycles
   add column if not exists adjustments_total numeric(12,2) not null default 0,
   add column if not exists payments_applied numeric(12,2) not null default 0,
   add column if not exists credits_applied numeric(12,2) not null default 0;
+
