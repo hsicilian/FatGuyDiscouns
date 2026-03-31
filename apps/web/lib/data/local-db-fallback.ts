@@ -418,7 +418,7 @@ export async function createPendingCustomerProfile(input: {
       role: "customer" as const,
       accountState: "pending_approval" as const,
       timezone: "America/New_York",
-      address: "Address pending confirmation",
+      address: "No address on file yet",
       street: "",
       city: "",
       region: "",

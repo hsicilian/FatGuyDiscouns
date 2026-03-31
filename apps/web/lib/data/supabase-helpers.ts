@@ -37,14 +37,14 @@ export function formatCycleLabel(date: Date) {
 
 export function formatAddress(address: Record<string, unknown> | null | undefined) {
   if (!address) {
-    return "Address pending confirmation";
+    return "No address on file yet";
   }
 
   const parts = [address.line1, address.line2, address.city, address.region, address.postal_code]
     .map((value) => (typeof value === "string" ? value.trim() : ""))
     .filter(Boolean);
 
-  return parts.length > 0 ? parts.join(", ") : "Address pending confirmation";
+  return parts.length > 0 ? parts.join(", ") : "No address on file yet";
 }
 
 export function getAddressParts(address: Record<string, any> | null | undefined) {
