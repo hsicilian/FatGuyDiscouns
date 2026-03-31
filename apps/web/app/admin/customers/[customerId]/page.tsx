@@ -1,10 +1,20 @@
-import { accountStateLabel, shipmentStatusLabel } from "@fatguydiscounts/core";
+import { accountStateLabel, calculateBalanceDue, shipmentStatusLabel } from "@fatguydiscounts/core";
 import { ApprovalActionForm } from "../../../../components/forms/approval-action-form";
+import { BalanceAdjustmentForm } from "../../../../components/forms/balance-adjustment-form";
 import { CustomerNoteForm } from "../../../../components/forms/customer-note-form";
+import { ManualBalanceItemForm } from "../../../../components/forms/manual-balance-item-form";
+import { PaymentPreviewForm } from "../../../../components/forms/payment-preview-form";
 import { PromoteAdminForm } from "../../../../components/forms/promote-admin-form";
 import { ensureAdminAccess } from "../../../../lib/auth/guards";
 import { getCurrentSessionAccount } from "../../../../lib/auth/session";
-import { getFinancialSummary, listClaimedItemsForCustomer, listCustomerNotes, listCustomers, listRestockRequests } from "../../../../lib/data/local-db";
+import {
+  getBalanceCycle,
+  getPaymentDefaults,
+  listClaimedItemsForCustomer,
+  listCustomerNotes,
+  listCustomers,
+  listRestockRequests,
+} from "../../../../lib/data/local-db";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -19,9 +29,10 @@ export default async function AdminCustomerDetailPage({
   await ensureAdminAccess();
   const { customerId } = await params;
 
-  const [customers, financialSummary, notes, claimedItems, restockRequests, currentSession] = await Promise.all([
+  const [customers, balanceCycle, paymentDefaults, notes, claimedItems, restockRequests, currentSession] = await Promise.all([
     listCustomers(),
-    getFinancialSummary(),
+    getBalanceCycle(customerId),
+    getPaymentDefaults(customerId),
     listCustomerNotes(customerId),
     listClaimedItemsForCustomer(customerId),
     listRestockRequests(customerId),
@@ -39,10 +50,10 @@ export default async function AdminCustomerDetailPage({
     );
   }
 
-  const balanceRow = financialSummary.customerBalances.find((entry) => entry.customer === customer.displayName);
   const isMasterAdmin = currentSession?.role === "master_admin";
   const canPromote = isMasterAdmin && customer.role === "customer";
   const canManageAccountState = customer.role === "customer";
+  const currentBalance = calculateBalanceDue(balanceCycle);
 
   return (
     <main style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 24px 72px", display: "grid", gap: 24 }}>
@@ -69,7 +80,15 @@ export default async function AdminCustomerDetailPage({
         </div>
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 20, boxShadow: "var(--shadow)" }}>
           <p style={{ marginTop: 0, color: "var(--muted)" }}>Current balance</p>
-          <strong>{currency.format(balanceRow?.amount ?? 0)}</strong>
+          <strong>{currency.format(currentBalance)}</strong>
+        </div>
+        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 20, boxShadow: "var(--shadow)" }}>
+          <p style={{ marginTop: 0, color: "var(--muted)" }}>Cycle due date</p>
+          <strong>{balanceCycle.dueDate}</strong>
+        </div>
+        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 20, boxShadow: "var(--shadow)" }}>
+          <p style={{ marginTop: 0, color: "var(--muted)" }}>Credit on file</p>
+          <strong>{currency.format(customer.creditBalance)}</strong>
         </div>
       </section>
 
@@ -91,6 +110,53 @@ export default async function AdminCustomerDetailPage({
             )) : <p style={{ margin: 0, color: "var(--muted)" }}>No notes yet.</p>}
           </div>
           <CustomerNoteForm customerId={customer.id} />
+        </div>
+      </section>
+
+      <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)", display: "grid", gap: 18 }}>
+        <div>
+          <h2 style={{ margin: "0 0 8px" }}>Billing and payments</h2>
+          <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.7 }}>
+            Everything on this panel applies only to {customer.displayName}. Add manual items, adjust shipping or credits, and record payments against this customer's active cycle.
+          </p>
+        </div>
+
+        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
+          <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+            <p style={{ marginTop: 0, color: "var(--muted)" }}>Subtotal</p>
+            <strong>{currency.format(balanceCycle.subtotal)}</strong>
+          </div>
+          <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+            <p style={{ marginTop: 0, color: "var(--muted)" }}>Shipping</p>
+            <strong>{currency.format(balanceCycle.shipping)}</strong>
+          </div>
+          <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+            <p style={{ marginTop: 0, color: "var(--muted)" }}>Adjustments</p>
+            <strong>{currency.format(balanceCycle.adjustments)}</strong>
+          </div>
+          <div style={{ padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+            <p style={{ marginTop: 0, color: "var(--muted)" }}>Payments applied</p>
+            <strong>{currency.format(balanceCycle.paymentsApplied + balanceCycle.creditsApplied)}</strong>
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+          <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
+            <h3 style={{ marginTop: 0 }}>Add manual item</h3>
+            <ManualBalanceItemForm customerId={customer.id} />
+          </div>
+          <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
+            <h3 style={{ marginTop: 0 }}>Shipping and adjustments</h3>
+            <BalanceAdjustmentForm customerId={customer.id} />
+          </div>
+          <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
+            <h3 style={{ marginTop: 0 }}>Apply payment or credit</h3>
+            <PaymentPreviewForm
+              defaultPayment={paymentDefaults.paymentAmount}
+              defaultCredit={paymentDefaults.creditAmount}
+              customerId={customer.id}
+            />
+          </div>
         </div>
       </section>
 

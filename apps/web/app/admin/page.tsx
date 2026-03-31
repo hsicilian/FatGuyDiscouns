@@ -9,7 +9,6 @@ const cards = [
   { href: "/admin/inventory", title: "Inventory management", body: "Track quantity, out-of-stock visibility, low-stock alerts, and restock requests." },
   { href: "/admin/customers", title: "Customer CRM", body: "Search customer records, review notes, shipment history, overdue status, and balances." },
   { href: "/admin/claims", title: "Claims and adjustments", body: "Manage claim line items, manual additions, shipping charges, and payment adjustments." },
-  { href: "/admin/payments", title: "Payments", body: "Apply payments and credits, clear balances, and archive completed billing cycles." },
   { href: "/admin/shipments", title: "Shipment queue", body: "Process requests, add tracking, complete shipments, and update last shipment dates." },
   { href: "/admin/events", title: "Events calendar", body: "Add upcoming live sales, keep the calendar current, and drive shoppers to internal event pages." },
   { href: "/admin/reports", title: "Financial reports", body: "Master-admin-only summaries for unpaid totals and customer balances." },
