@@ -2,16 +2,16 @@
   "activeCustomerId": "cust-001",
   "categories": [
     {
+      "id": "cat-003",
+      "name": "Flannels"
+    },
+    {
       "id": "cat-001",
       "name": "Outerwear"
     },
     {
       "id": "cat-002",
       "name": "Tees"
-    },
-    {
-      "id": "cat-003",
-      "name": "Flannels"
     }
   ],
   "products": [

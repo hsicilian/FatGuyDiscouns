@@ -34,7 +34,19 @@ export default async function AdminCustomerDetailPage({
   await ensureAdminAccess();
   const { customerId } = await params;
 
-  const [customers, balanceCycle, paymentDefaults, notes, customerMessages, claimedItems, claimHistory, paymentHistory, invoiceHistory, restockRequests, currentSession] = await Promise.all([
+  const [
+    customers,
+    balanceCycle,
+    paymentDefaults,
+    notes,
+    customerMessages,
+    claimedItems,
+    claimHistory,
+    paymentHistory,
+    invoiceHistory,
+    restockRequests,
+    currentSession,
+  ] = await Promise.all([
     listCustomers(),
     getBalanceCycle(customerId),
     getPaymentDefaults(customerId),
@@ -207,12 +219,17 @@ export default async function AdminCustomerDetailPage({
           <h2 style={{ marginTop: 0 }}>Current claims waiting for shipment</h2>
           <div style={{ display: "grid", gap: 12 }}>
             {claimedItems.length > 0 ? claimedItems.map((item) => (
-              <div key={item.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12, display: "flex", justifyContent: "space-between", gap: 12 }}>
-                <div>
-                  <strong>{item.productTitle}</strong>
-                  <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>Qty {item.quantity} • {item.status}</p>
+              <div key={item.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12, display: "grid", gap: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div>
+                    <strong>{item.productTitle}</strong>
+                    <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>Qty {item.quantity} | {item.status}</p>
+                  </div>
+                  <strong>{currency.format(item.quantity * item.unitPrice)}</strong>
                 </div>
-                <strong>{currency.format(item.quantity * item.unitPrice)}</strong>
+                <div style={{ paddingTop: 12, borderTop: "1px solid rgba(232,214,195,0.88)" }}>
+                  <BalanceLineItemForm claimId={item.id} quantity={item.quantity} unitPrice={item.unitPrice} />
+                </div>
               </div>
             )) : <p style={{ margin: 0, color: "var(--muted)" }}>No active claimed items found.</p>}
           </div>
@@ -224,7 +241,7 @@ export default async function AdminCustomerDetailPage({
             {restockRequests.length > 0 ? restockRequests.map((request) => (
               <div key={request.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12 }}>
                 <strong>{request.productTitle}</strong>
-                <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>{request.status} • {request.createdAt}</p>
+                <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>{request.status} | {request.createdAt}</p>
               </div>
             )) : <p style={{ margin: 0, color: "var(--muted)" }}>No restock requests on file.</p>}
           </div>
@@ -240,7 +257,7 @@ export default async function AdminCustomerDetailPage({
                 <div>
                   <strong>{item.productTitle}</strong>
                   <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>
-                    Qty {item.quantity} • {item.status} • {item.createdAt}
+                    Qty {item.quantity} | {item.status} | {item.createdAt}
                   </p>
                 </div>
                 <strong>{currency.format(item.quantity * item.unitPrice)}</strong>
