@@ -15,6 +15,7 @@ import {
   applyPaymentToDatabase,
   clearProductSaleInDatabase,
   createInventoryItemInDatabase,
+  createInventoryItemsBulkInDatabase,
   deleteArchivedProductInDatabase,
   markNotificationReadInDatabase,
   removeClaimedItemFromDatabase,
@@ -213,6 +214,35 @@ export async function createInventoryItem(
     location,
     images,
   });
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function createInventoryItemsBulk(
+  items: Array<{
+    title: string;
+    description: string;
+    price: number;
+    quantity: number;
+    category: string;
+    sku: string;
+    location: string;
+  }>,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await createInventoryItemsBulkInDatabase(items);
   revalidatePath("/");
   revalidatePath("/store");
   revalidatePath("/claims");

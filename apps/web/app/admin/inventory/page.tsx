@@ -2,6 +2,7 @@ import { PRODUCT_STATUS_LABELS } from "@fatguydiscounts/core";
 import { Panel } from "@fatguydiscounts/ui";
 import { ArchiveProductForm } from "../../../components/forms/archive-product-form";
 import { InventoryAdjustForm } from "../../../components/forms/inventory-adjust-form";
+import { InventoryBulkImportForm } from "../../../components/forms/inventory-bulk-import-form";
 import { InventoryCreateForm } from "../../../components/forms/inventory-create-form";
 import { InventorySaleForm } from "../../../components/forms/inventory-sale-form";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
@@ -91,6 +92,21 @@ export default async function AdminInventoryPage({
             </p>
           </div>
           <InventoryCreateForm />
+        </div>
+      </Panel>
+
+      <Panel>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div>
+            <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0, marginBottom: 8 }}>
+              Bulk import
+            </p>
+            <h2 style={{ margin: "0 0 8px" }}>Upload several inventory rows at once</h2>
+            <p style={{ color: "var(--muted)", lineHeight: 1.7, margin: 0 }}>
+              Import a CSV when you have a batch of titles, prices, stock counts, and categories ready to go. Photos can still be added item by item afterward.
+            </p>
+          </div>
+          <InventoryBulkImportForm />
         </div>
       </Panel>
 

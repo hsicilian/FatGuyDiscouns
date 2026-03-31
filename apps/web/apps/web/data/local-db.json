@@ -6,48 +6,63 @@
       "title": "Vintage denim jacket",
       "description": "Live-sale featured outerwear item.",
       "price": 28,
-      "category": "Outerwear",
-      "quantity": 2,
-      "status": "active",
       "originalPrice": 28,
       "salePrice": null,
       "salePercentage": null,
       "saleEndsAt": null,
       "isOnSale": false,
       "archivedAt": null,
-      "images": []
+      "category": "Outerwear",
+      "quantity": 2,
+      "status": "active",
+      "images": [
+        "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80"
+      ]
     },
     {
       "id": "prod-002",
       "title": "Bundle lot tee",
       "description": "Single-quantity live claim item.",
       "price": 12,
-      "category": "Tees",
-      "quantity": 1,
-      "status": "low_stock",
       "originalPrice": 12,
       "salePrice": null,
       "salePercentage": null,
       "saleEndsAt": null,
       "isOnSale": false,
       "archivedAt": null,
-      "images": []
+      "category": "Tees",
+      "quantity": 1,
+      "status": "low_stock",
+      "images": [
+        "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?auto=format&fit=crop&w=1200&q=80"
+      ]
     },
     {
       "id": "prod-003",
       "title": "Retro flannel",
       "description": "Held visible after sellout for restock requests.",
       "price": 18,
-      "category": "Flannels",
-      "quantity": 0,
-      "status": "out_of_stock",
       "originalPrice": 18,
       "salePrice": null,
       "salePercentage": null,
       "saleEndsAt": null,
       "isOnSale": false,
       "archivedAt": null,
-      "images": []
+      "category": "Flannels",
+      "quantity": 0,
+      "status": "out_of_stock",
+      "images": [
+        "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80",
+        "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80"
+      ]
     }
   ],
   "customers": [
@@ -188,19 +203,22 @@
       "id": "notif-001",
       "type": "pending_approval",
       "label": "3 customer accounts are waiting for approval",
-      "createdAt": "2026-03-29T08:30:00-04:00"
+      "createdAt": "2026-03-29T08:30:00-04:00",
+      "readAt": null
     },
     {
       "id": "notif-002",
       "type": "shipment_request",
       "label": "Jordan Rivers requested shipment confirmation",
-      "createdAt": "2026-03-29T09:05:00-04:00"
+      "createdAt": "2026-03-29T09:05:00-04:00",
+      "readAt": null
     },
     {
       "id": "notif-003",
       "type": "low_stock",
       "label": "Bundle lot tee reached low stock",
-      "createdAt": "2026-03-29T09:22:00-04:00"
+      "createdAt": "2026-03-29T09:22:00-04:00",
+      "readAt": null
     }
   ],
   "events": [

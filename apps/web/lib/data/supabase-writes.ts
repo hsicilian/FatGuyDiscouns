@@ -305,6 +305,97 @@ export async function createInventoryItemInDatabaseSupabase(input: {
   };
 }
 
+export async function createInventoryItemsBulkInDatabaseSupabase(input: Array<{
+  title: string;
+  description: string;
+  price: number;
+  quantity: number;
+  category: string;
+  sku: string;
+  location: string;
+}>) {
+  if (input.length === 0) {
+    return { ok: false, message: "Add at least one inventory row to import." };
+  }
+
+  const admin = await getAdminClient();
+  const categoryIdByName = new Map<string, string>();
+  let createdCount = 0;
+
+  for (const row of input) {
+    const title = row.title.trim();
+    const description = row.description.trim();
+    const categoryName = row.category.trim();
+    const sku = row.sku.trim();
+    const location = row.location.trim();
+    const price = Number(row.price);
+    const quantity = Number(row.quantity);
+
+    if (!title) return { ok: false, message: "Every imported row needs an item title." };
+    if (!categoryName) return { ok: false, message: "Every imported row needs a category." };
+    if (!Number.isFinite(price) || price < 0) return { ok: false, message: `Price must be zero or higher for ${title}.` };
+    if (!Number.isInteger(quantity) || quantity < 0) return { ok: false, message: `Starting quantity must be zero or higher for ${title}.` };
+
+    let categoryId = categoryIdByName.get(categoryName) ?? null;
+    if (!categoryId) {
+      const normalizedSlug = slugifyCategoryName(categoryName);
+      const existingCategory = await admin
+        .from("categories")
+        .select("id")
+        .or(`name.eq.${categoryName},slug.eq.${normalizedSlug}`)
+        .maybeSingle();
+
+      if (existingCategory.error) {
+        return { ok: false, message: existingCategory.error.message };
+      }
+
+      if (existingCategory.data?.id) {
+        categoryId = existingCategory.data.id;
+      } else {
+        const insertedCategory = await admin
+          .from("categories")
+          .insert({ name: categoryName, slug: normalizedSlug })
+          .select("id")
+          .single();
+
+        if (insertedCategory.error || !insertedCategory.data) {
+          return { ok: false, message: insertedCategory.error?.message ?? `Could not create category for ${title}.` };
+        }
+
+        categoryId = insertedCategory.data.id;
+      }
+
+      if (!categoryId) {
+        return { ok: false, message: `Could not resolve a category for ${title}.` };
+      }
+
+      categoryIdByName.set(categoryName, categoryId);
+    }
+
+    const insertResult = await admin.from("products").insert({
+      title,
+      description,
+      price,
+      category_id: categoryId,
+      sku: sku || null,
+      location: location || null,
+      inventory_quantity: quantity,
+      status: deriveProductStatus(quantity, "active"),
+    });
+
+    if (insertResult.error) {
+      return { ok: false, message: insertResult.error.message };
+    }
+
+    createdCount += 1;
+  }
+
+  return {
+    ok: true,
+    message: `${createdCount} inventory item${createdCount === 1 ? "" : "s"} imported successfully.`,
+  };
+}
+
 export async function submitRestockRequestToDatabaseSupabase(productId: string) {
   const actor = await getCurrentActor().catch(() => null);
   const admin = await getAdminClient();

@@ -31,6 +31,7 @@ import {
   applyPaymentToDatabaseSupabase,
   clearProductSaleInDatabaseSupabase,
   createInventoryItemInDatabaseSupabase,
+  createInventoryItemsBulkInDatabaseSupabase,
   deleteArchivedProductInDatabaseSupabase,
   markNotificationReadInDatabaseSupabase,
   removeClaimedItemFromDatabaseSupabase,
@@ -184,6 +185,20 @@ export async function createInventoryItemInDatabase(input: {
   return shouldUseSupabase()
     ? createInventoryItemInDatabaseSupabase(input)
     : fallback.createInventoryItemInDatabase(input);
+}
+
+export async function createInventoryItemsBulkInDatabase(input: Array<{
+  title: string;
+  description: string;
+  price: number;
+  quantity: number;
+  category: string;
+  sku: string;
+  location: string;
+}>) {
+  return shouldUseSupabase()
+    ? createInventoryItemsBulkInDatabaseSupabase(input)
+    : fallback.createInventoryItemsBulkInDatabase(input);
 }
 
 export async function updateProductSaleInDatabase(productId: string, salePercentage: number, saleEndsAt: string) {

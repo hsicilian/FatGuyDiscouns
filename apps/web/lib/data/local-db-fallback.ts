@@ -867,6 +867,70 @@ export async function createInventoryItemInDatabase(input: {
   };
 }
 
+export async function createInventoryItemsBulkInDatabase(input: Array<{
+  title: string;
+  description: string;
+  price: number;
+  quantity: number;
+  category: string;
+  sku: string;
+  location: string;
+}>) {
+  const db = await readDatabase();
+
+  if (input.length === 0) {
+    return { ok: false, message: "Add at least one inventory row to import." };
+  }
+
+  for (const row of input) {
+    const title = row.title.trim();
+    const category = row.category.trim();
+    const description = row.description.trim();
+    const price = Number(row.price);
+    const quantity = Number(row.quantity);
+
+    if (!title) {
+      return { ok: false, message: "Every imported row needs an item title." };
+    }
+
+    if (!category) {
+      return { ok: false, message: "Every imported row needs a category." };
+    }
+
+    if (!Number.isFinite(price) || price < 0) {
+      return { ok: false, message: `Price must be zero or higher for ${title}.` };
+    }
+
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      return { ok: false, message: `Starting quantity must be zero or higher for ${title}.` };
+    }
+
+    db.products.unshift({
+      id: `prod-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      title,
+      description,
+      price,
+      originalPrice: price,
+      salePrice: null,
+      salePercentage: null,
+      saleEndsAt: null,
+      isOnSale: false,
+      archivedAt: null,
+      category,
+      quantity,
+      status: deriveProductStatus(quantity, "active"),
+      images: [],
+    });
+  }
+
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: `${input.length} inventory item${input.length === 1 ? "" : "s"} imported successfully.`,
+  };
+}
+
 export async function submitRestockRequestToDatabase(productId: string) {
   const db = await readDatabase();
   const product = db.products.find((entry) => entry.id === productId);
