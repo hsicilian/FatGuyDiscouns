@@ -6,6 +6,7 @@ import { CategoryDeleteForm } from "../../../components/forms/category-delete-fo
 import { InventoryAdjustForm } from "../../../components/forms/inventory-adjust-form";
 import { InventoryBulkImportForm } from "../../../components/forms/inventory-bulk-import-form";
 import { InventoryCreateForm } from "../../../components/forms/inventory-create-form";
+import { InventoryImageManager } from "../../../components/forms/inventory-image-manager";
 import { InventorySaleForm } from "../../../components/forms/inventory-sale-form";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
 import { listCategories, listProducts } from "../../../lib/data/local-db";
@@ -237,6 +238,17 @@ export default async function AdminInventoryPage({
                 </div>
               </div>
               <div style={{ display: "grid", gap: 14 }}>
+                <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                  <InventoryImageManager
+                    productId={product.id}
+                    productTitle={product.title}
+                    currentImages={product.imageRecords ?? product.images.map((image, index) => ({
+                      id: `${product.id}-image-${index}`,
+                      url: image,
+                      position: index,
+                    }))}
+                  />
+                </div>
                 <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
                   <InventoryAdjustForm productId={product.id} />
                 </div>

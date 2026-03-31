@@ -85,6 +85,12 @@ function createInitialDatabase(): LocalDatabase {
           "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80",
           "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80",
         ],
+        imageRecords: [
+          { id: "prod-001-image-0", url: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80", position: 0 },
+          { id: "prod-001-image-1", url: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80", position: 1 },
+          { id: "prod-001-image-2", url: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=1200&q=80", position: 2 },
+          { id: "prod-001-image-3", url: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80", position: 3 },
+        ],
       },
       {
         id: "prod-002",
@@ -106,6 +112,12 @@ function createInitialDatabase(): LocalDatabase {
           "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=1200&q=80",
           "https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?auto=format&fit=crop&w=1200&q=80",
         ],
+        imageRecords: [
+          { id: "prod-002-image-0", url: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80", position: 0 },
+          { id: "prod-002-image-1", url: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80", position: 1 },
+          { id: "prod-002-image-2", url: "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?auto=format&fit=crop&w=1200&q=80", position: 2 },
+          { id: "prod-002-image-3", url: "https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?auto=format&fit=crop&w=1200&q=80", position: 3 },
+        ],
       },
       {
         id: "prod-003",
@@ -126,6 +138,12 @@ function createInitialDatabase(): LocalDatabase {
           "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80",
           "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80",
           "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80",
+        ],
+        imageRecords: [
+          { id: "prod-003-image-0", url: "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80", position: 0 },
+          { id: "prod-003-image-1", url: "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80", position: 1 },
+          { id: "prod-003-image-2", url: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80", position: 2 },
+          { id: "prod-003-image-3", url: "https://images.unsplash.com/photo-1529139574466-a303027c1d8b?auto=format&fit=crop&w=1200&q=80", position: 3 },
         ],
       },
     ],
@@ -332,6 +350,13 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
         isOnSale,
         archivedAt: product.archivedAt ?? null,
         images: Array.isArray(product.images) ? product.images.filter((image): image is string => typeof image === "string" && image.length > 0) : [],
+        imageRecords: Array.isArray(product.imageRecords) && product.imageRecords.length > 0
+          ? product.imageRecords
+            .filter((image) => Boolean(image?.id) && typeof image?.url === "string" && image.url.length > 0)
+            .sort((left, right) => left.position - right.position)
+          : (Array.isArray(product.images) ? product.images : [])
+            .filter((image): image is string => typeof image === "string" && image.length > 0)
+            .map((image, index) => ({ id: `${product.id}-image-${index}`, url: image, position: index })),
         price: isOnSale && salePrice != null ? salePrice : originalPrice,
       };
     }),
@@ -865,9 +890,14 @@ export async function createInventoryItemInDatabase(input: {
     archivedAt: null,
     category,
     quantity,
-    status: deriveProductStatus(quantity, "active"),
-    images: images.map((image) => `/api/admin/product-images?preview=${encodeURIComponent(image.name)}`),
-  });
+      status: deriveProductStatus(quantity, "active"),
+      images: images.map((image) => `/api/admin/product-images?preview=${encodeURIComponent(image.name)}`),
+      imageRecords: images.map((image, index) => ({
+        id: `prod-${Date.now()}-image-${index}`,
+        url: `/api/admin/product-images?preview=${encodeURIComponent(image.name)}`,
+        position: index,
+      })),
+    });
 
   if (!db.categories.some((entry) => entry.name.toLowerCase() === category.toLowerCase())) {
     db.categories.push({
@@ -938,6 +968,7 @@ export async function createInventoryItemsBulkInDatabase(input: Array<{
       quantity,
       status: deriveProductStatus(quantity, "active"),
       images: [],
+      imageRecords: [],
     });
 
     if (!db.categories.some((entry) => entry.name.toLowerCase() === category.toLowerCase())) {

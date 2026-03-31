@@ -7,6 +7,7 @@ import type {
   ClaimedItem,
   CustomerSummary,
   Product,
+  ProductImageRecord,
   ShowEvent,
 } from "@fatguydiscounts/types";
 import { getCurrentSessionUser } from "../auth/session";
@@ -71,6 +72,14 @@ export function toProduct(row: Record<string, any>): Product {
     : rawImageRows && typeof rawImageRows === "object"
       ? [rawImageRows]
       : [];
+  const normalizedImageRows = imageRows
+    .sort((left, right) => Number(left?.position ?? 0) - Number(right?.position ?? 0))
+    .map((image, index) => ({
+      id: typeof image?.id === "string" && image.id.length > 0 ? image.id : `${row.id}-image-${index}`,
+      url: typeof image?.image_url === "string" ? image.image_url : "",
+      position: Number(image?.position ?? index),
+    }))
+    .filter((image): image is ProductImageRecord => image.url.length > 0);
   return {
     id: row.id,
     title: row.title,
@@ -85,10 +94,8 @@ export function toProduct(row: Record<string, any>): Product {
     category: row.categories?.name ?? "Uncategorized",
     quantity: Number(row.inventory_quantity ?? 0),
     status: row.status,
-    images: imageRows
-      .sort((left, right) => Number(left?.position ?? 0) - Number(right?.position ?? 0))
-      .map((image) => image?.image_url)
-      .filter((value): value is string => typeof value === "string" && value.length > 0),
+    images: normalizedImageRows.map((image) => image.url),
+    imageRecords: normalizedImageRows,
   };
 }
 

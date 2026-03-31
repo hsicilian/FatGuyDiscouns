@@ -33,7 +33,7 @@ async function attachProductImages(
 
   const { data: imageRows, error } = await client
     .from("product_images")
-    .select("product_id, image_url, position")
+    .select("id, product_id, image_url, position")
     .in("product_id", productIds)
     .order("position", { ascending: true });
 
@@ -100,7 +100,7 @@ export async function getProductByIdSupabase(productId: string) {
   if (isUuidLike(productId)) {
     let query = client
       .from("products")
-      .select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, categories(name), product_images(image_url, position)")
+      .select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, categories(name), product_images(id, image_url, position)")
       .eq("id", productId);
 
     if (!actor || actor.role === "customer") {

@@ -25,6 +25,12 @@ export type NotificationType =
   | "low_stock"
   | "restock_request";
 
+export interface ProductImageRecord {
+  id: string;
+  url: string;
+  position: number;
+}
+
 export interface Product {
   id: string;
   title: string;
@@ -40,6 +46,7 @@ export interface Product {
   quantity: number;
   status: ProductStatus;
   images: string[];
+  imageRecords?: ProductImageRecord[];
 }
 
 export interface CategoryOption {
