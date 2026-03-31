@@ -7,17 +7,52 @@ import { InventorySaleForm } from "../../../components/forms/inventory-sale-form
 import { ensureAdminAccess } from "../../../lib/auth/guards";
 import { listProducts } from "../../../lib/data/local-db";
 
+const sortOptions = {
+  newest: "Newest first",
+  oldest: "Oldest first",
+  title_asc: "Title: A to Z",
+  stock_low: "Stock: low to high",
+  stock_high: "Stock: high to low",
+} as const;
+
+type InventorySortKey = keyof typeof sortOptions;
+
 function getCardImage(images: string[]) {
   return images[0] ?? "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80";
 }
 
-export default async function AdminInventoryPage() {
+function sortProducts(products: Awaited<ReturnType<typeof listProducts>>, sort: InventorySortKey) {
+  const sorted = [...products];
+
+  switch (sort) {
+    case "oldest":
+      return sorted.reverse();
+    case "title_asc":
+      return sorted.sort((a, b) => a.title.localeCompare(b.title));
+    case "stock_low":
+      return sorted.sort((a, b) => a.quantity - b.quantity || a.title.localeCompare(b.title));
+    case "stock_high":
+      return sorted.sort((a, b) => b.quantity - a.quantity || a.title.localeCompare(b.title));
+    default:
+      return sorted;
+  }
+}
+
+export default async function AdminInventoryPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await ensureAdminAccess();
 
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const sortParam = typeof resolvedSearchParams.sort === "string" ? resolvedSearchParams.sort : "newest";
+  const sort = sortParam in sortOptions ? (sortParam as InventorySortKey) : "newest";
   const [activeProducts, archivedProducts] = await Promise.all([
     listProducts(),
     listProducts({ includeArchived: true }),
   ]);
+  const sortedProducts = sortProducts(activeProducts, sort);
   const archivedCount = archivedProducts.length;
   const lowStockCount = activeProducts.filter((product) => product.quantity <= 1).length;
 
@@ -59,8 +94,33 @@ export default async function AdminInventoryPage() {
         </div>
       </Panel>
 
+      <section
+        style={{
+          background: "rgba(255, 251, 244, 0.88)",
+          border: "1px solid var(--line)",
+          borderRadius: 24,
+          padding: 20,
+          marginBottom: 20,
+          boxShadow: "var(--shadow-soft)",
+        }}
+      >
+        <form style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(220px, 320px) auto", alignItems: "end" }}>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: "var(--muted)", fontSize: 14 }}>Sort inventory</span>
+            <select name="sort" defaultValue={sort} style={{ padding: 12, borderRadius: 14, border: "1px solid #d9c7b2" }}>
+              {Object.entries(sortOptions).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <button style={{ minHeight: 46, background: "#1d1d1d", color: "#fff", border: 0, borderRadius: 999, padding: "12px 18px", fontWeight: 700 }}>
+            Apply Sort
+          </button>
+        </form>
+      </section>
+
       <div style={{ display: "grid", gap: 16 }}>
-        {activeProducts.map((product) => (
+        {sortedProducts.map((product) => (
           <Panel key={product.id}>
             <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
               <div style={{ display: "grid", gap: 16 }}>
