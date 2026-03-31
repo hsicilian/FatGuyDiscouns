@@ -70,7 +70,13 @@ export async function loginWithLocalAccountAction(
 
   const [{ data: userResult }, { data: roleRow }] = await Promise.all([
     supabase.auth.getUser(),
-    supabase.from("user_roles").select("role").single(),
+    supabase.auth.getUser().then(async ({ data }) => {
+      const userId = data.user?.id;
+      if (!userId) {
+        return { data: null };
+      }
+      return supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle();
+    }),
   ]);
 
   const nextLocation = roleRow?.role === "master_admin"

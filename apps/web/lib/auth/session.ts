@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import type { SessionUser } from "@fatguydiscounts/core";
-import { assertProductionSupabaseReady, createServerSupabaseClient, hasSupabaseEnv } from "../supabase";
+import { assertProductionSupabaseReady, createServerSupabaseClient, createSupabaseAdminClient, hasSupabaseEnv } from "../supabase";
 import { listStoredAccounts } from "./local-auth-store";
 
 export interface SessionAccount {
@@ -77,9 +77,10 @@ async function getSupabaseSessionAccount(): Promise<SessionAccount | null> {
     return null;
   }
 
+  const admin = createSupabaseAdminClient();
   const [{ data: roleRow }, { data: profileRow }] = await Promise.all([
-    supabase.from("user_roles").select("role, account_state").eq("user_id", user.id).maybeSingle(),
-    supabase.from("customer_profiles").select("display_name").eq("user_id", user.id).maybeSingle(),
+    admin.from("user_roles").select("role, account_state").eq("user_id", user.id).maybeSingle(),
+    admin.from("customer_profiles").select("display_name").eq("user_id", user.id).maybeSingle(),
   ]);
 
   const displayName = profileRow?.display_name
