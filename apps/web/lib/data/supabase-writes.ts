@@ -207,7 +207,6 @@ export async function createInventoryItemInDatabaseSupabase(input: {
   if (!categoryName) return { ok: false, message: "Category is required." };
   if (!Number.isFinite(price) || price < 0) return { ok: false, message: "Price must be zero or higher." };
   if (!Number.isInteger(quantity) || quantity < 0) return { ok: false, message: "Starting quantity must be zero or higher." };
-  if (images.length < 4) return { ok: false, message: "Please upload at least 4 photos for each item." };
   if (images.length > MAX_IMAGE_COUNT) return { ok: false, message: "Each item can have up to 6 photos." };
   if (images.some((file) => !file.type.startsWith("image/"))) return { ok: false, message: "Only image uploads are allowed." };
   if (images.some((file) => file.size > MAX_IMAGE_BYTES)) return { ok: false, message: "Each image must be 10MB or smaller." };

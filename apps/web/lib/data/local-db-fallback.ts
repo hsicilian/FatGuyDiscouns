@@ -841,10 +841,6 @@ export async function createInventoryItemInDatabase(input: {
     return { ok: false, message: "Starting quantity must be zero or higher." };
   }
 
-  if (images.length < 4) {
-    return { ok: false, message: "Please upload at least 4 photos for each item." };
-  }
-
   db.products.unshift({
     id: `prod-${Date.now()}`,
     title,
