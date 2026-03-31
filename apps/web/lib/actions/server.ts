@@ -10,10 +10,12 @@ import {
   addCustomerNoteToDatabase,
   addManualBalanceItemToDatabase,
   adjustInventoryInDatabase,
+  archiveProductInDatabase,
   applyBalanceAdjustmentsToDatabase,
   applyPaymentToDatabase,
   clearProductSaleInDatabase,
   createInventoryItemInDatabase,
+  deleteArchivedProductInDatabase,
   markNotificationReadInDatabase,
   removeClaimedItemFromDatabase,
   submitClaimToDatabase,
@@ -258,6 +260,43 @@ export async function clearProductSale(productId: string): Promise<FormActionSta
   revalidatePath("/claims");
   revalidatePath("/admin");
   revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function archiveProduct(productId: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await archiveProductInDatabase(productId);
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin/inventory/archived");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function deleteArchivedProduct(productId: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await deleteArchivedProductInDatabase(productId);
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin/inventory/archived");
 
   return {
     ...result,

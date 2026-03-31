@@ -1,5 +1,6 @@
 import { PRODUCT_STATUS_LABELS } from "@fatguydiscounts/core";
 import { Panel } from "@fatguydiscounts/ui";
+import { ArchiveProductForm } from "../../../components/forms/archive-product-form";
 import { InventoryAdjustForm } from "../../../components/forms/inventory-adjust-form";
 import { InventoryCreateForm } from "../../../components/forms/inventory-create-form";
 import { InventorySaleForm } from "../../../components/forms/inventory-sale-form";
@@ -10,7 +11,9 @@ export default async function AdminInventoryPage() {
   await ensureAdminAccess();
 
   const products = await listProducts();
-  const lowStockCount = products.filter((product) => product.quantity <= 1).length;
+  const activeProducts = products.filter((product) => product.status !== "archived");
+  const archivedCount = products.filter((product) => product.status === "archived").length;
+  const lowStockCount = activeProducts.filter((product) => product.quantity <= 1).length;
 
   return (
     <main style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 24px 72px" }}>
@@ -26,6 +29,11 @@ export default async function AdminInventoryPage() {
           <div style={{ background: "rgba(255,255,255,0.52)", border: "1px solid rgba(232,214,195,0.9)", borderRadius: 18, padding: 16, minWidth: 220 }}>
             <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em" }}>Low stock items</p>
             <strong style={{ fontSize: "1.9rem" }}>{lowStockCount}</strong>
+            <p style={{ margin: "8px 0 0" }}>
+              <a href="/admin/inventory/archived" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>
+                View archived items ({archivedCount})
+              </a>
+            </p>
           </div>
         </div>
       </section>
@@ -46,7 +54,7 @@ export default async function AdminInventoryPage() {
       </Panel>
 
       <div style={{ display: "grid", gap: 16 }}>
-        {products.map((product) => (
+        {activeProducts.map((product) => (
           <Panel key={product.id}>
             <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
               <div>
@@ -92,6 +100,15 @@ export default async function AdminInventoryPage() {
                     currentSalePercentage={product.salePercentage}
                     currentSaleEndsAt={product.saleEndsAt}
                   />
+                </div>
+                <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                  <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+                    <strong>Archive item</strong>
+                    <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
+                      Archive removes this item from the live shop first. Permanent deletion happens later from the archived items page.
+                    </p>
+                  </div>
+                  <ArchiveProductForm productId={product.id} />
                 </div>
               </div>
             </div>

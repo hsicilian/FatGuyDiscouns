@@ -75,6 +75,7 @@ export function toProduct(row: Record<string, any>): Product {
     salePercentage,
     saleEndsAt,
     isOnSale: isSaleActive(salePercentage, saleEndsAt),
+    archivedAt: row.archived_at ?? null,
     category: row.categories?.name ?? "Uncategorized",
     quantity: Number(row.inventory_quantity ?? 0),
     status: row.status,

@@ -1,6 +1,6 @@
 ﻿import "server-only";
 
-import { applyPaymentToBalance, canRequestShipment, deriveProductStatus, nextShipmentStatus, shouldArchiveBalance, validateClaimAttempt } from "@fatguydiscounts/core";
+import { applyPaymentToBalance, canDeleteArchivedProduct, canRequestShipment, deriveProductStatus, nextShipmentStatus, shouldArchiveBalance, validateClaimAttempt } from "@fatguydiscounts/core";
 import type { AccountState, ShipmentStatus } from "@fatguydiscounts/types";
 import {
   ensureActiveCycle,
@@ -108,6 +108,53 @@ export async function clearProductSaleInDatabaseSupabase(productId: string) {
 
   if (updateResult.error) return { ok: false, message: updateResult.error.message };
   return { ok: true, message: `${product.title} sale pricing was cleared.` };
+}
+
+export async function archiveProductInDatabaseSupabase(productId: string) {
+  const admin = await getAdminClient();
+  const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
+  if (error || !product) return { ok: false, message: "Product not found." };
+
+  const updateResult = await admin
+    .from("products")
+    .update({
+      status: "archived",
+      archived_at: new Date().toISOString(),
+      sale_percentage: null,
+      sale_ends_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", productId);
+
+  if (updateResult.error) return { ok: false, message: updateResult.error.message };
+  return { ok: true, message: `${product.title} was moved to archived items.` };
+}
+
+export async function deleteArchivedProductInDatabaseSupabase(productId: string) {
+  const admin = await getAdminClient();
+  const { data: product, error } = await admin
+    .from("products")
+    .select("id, title, status, archived_at")
+    .eq("id", productId)
+    .single();
+  if (error || !product) return { ok: false, message: "Product not found." };
+  if (product.status !== "archived") return { ok: false, message: "Only archived items can be deleted." };
+  if (!canDeleteArchivedProduct(product.archived_at)) {
+    return { ok: false, message: "Archived items must stay archived for 30 days before deletion." };
+  }
+
+  const lineItemRefs = await admin
+    .from("balance_line_items")
+    .select("id", { count: "exact", head: true })
+    .eq("product_id", productId);
+  if (lineItemRefs.error) return { ok: false, message: lineItemRefs.error.message };
+  if ((lineItemRefs.count ?? 0) > 0) {
+    return { ok: false, message: "This item has claim history and cannot be permanently deleted." };
+  }
+
+  const deleteResult = await admin.from("products").delete().eq("id", productId);
+  if (deleteResult.error) return { ok: false, message: deleteResult.error.message };
+  return { ok: true, message: `${product.title} was permanently deleted.` };
 }
 
 export async function markNotificationReadInDatabaseSupabase(notificationId: string) {

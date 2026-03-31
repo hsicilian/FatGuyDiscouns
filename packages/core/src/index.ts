@@ -57,6 +57,7 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
 
 export const PAYMENT_SCHEDULE_ANCHOR = "2026-04-05";
 export const PAYMENT_SCHEDULE_INTERVAL_DAYS = 14;
+export const PRODUCT_ARCHIVE_RETENTION_DAYS = 30;
 
 function parseDateOnly(value: string) {
   const [year, month, day] = value.slice(0, 10).split("-").map(Number);
@@ -112,6 +113,17 @@ export function getSalePrice(originalPrice: number, salePercentage: number | nul
   const discount = Math.min(Math.max(Number(salePercentage ?? 0), 0), 100);
   const discounted = originalPrice * (1 - discount / 100);
   return Math.round(discounted * 100) / 100;
+}
+
+export function canDeleteArchivedProduct(archivedAt: string | null | undefined, nowIso = new Date().toISOString()) {
+  if (!archivedAt) {
+    return false;
+  }
+
+  const archivedDate = new Date(archivedAt);
+  const now = new Date(nowIso);
+  const diffDays = (now.getTime() - archivedDate.getTime()) / (24 * 60 * 60 * 1000);
+  return diffDays >= PRODUCT_ARCHIVE_RETENTION_DAYS;
 }
 
 export function isBalanceOverdue(cycle: BalanceCycleSummary, todayIso: string) {

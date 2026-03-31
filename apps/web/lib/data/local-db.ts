@@ -25,10 +25,12 @@ import {
   addCustomerNoteToDatabaseSupabase,
   addManualBalanceItemToDatabaseSupabase,
   adjustInventoryInDatabaseSupabase,
+  archiveProductInDatabaseSupabase,
   applyBalanceAdjustmentsToDatabaseSupabase,
   applyPaymentToDatabaseSupabase,
   clearProductSaleInDatabaseSupabase,
   createInventoryItemInDatabaseSupabase,
+  deleteArchivedProductInDatabaseSupabase,
   markNotificationReadInDatabaseSupabase,
   removeClaimedItemFromDatabaseSupabase,
   submitClaimToDatabaseSupabase,
@@ -150,6 +152,18 @@ export async function adjustInventoryInDatabase(productId: string, quantityChang
   return shouldUseSupabase()
     ? adjustInventoryInDatabaseSupabase(productId, quantityChange)
     : fallback.adjustInventoryInDatabase(productId, quantityChange);
+}
+
+export async function archiveProductInDatabase(productId: string) {
+  return shouldUseSupabase()
+    ? archiveProductInDatabaseSupabase(productId)
+    : fallback.archiveProductInDatabase(productId);
+}
+
+export async function deleteArchivedProductInDatabase(productId: string) {
+  return shouldUseSupabase()
+    ? deleteArchivedProductInDatabaseSupabase(productId)
+    : fallback.deleteArchivedProductInDatabase(productId);
 }
 
 export async function createInventoryItemInDatabase(input: {

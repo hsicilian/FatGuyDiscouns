@@ -5,6 +5,7 @@ import { dirname, join } from "node:path";
 import {
   applyPaymentToBalance,
   calculateBalanceDue,
+  canDeleteArchivedProduct,
   canRequestShipment,
   deriveProductStatus,
   getScheduledDueDateForDate,
@@ -67,6 +68,7 @@ function createInitialDatabase(): LocalDatabase {
         salePercentage: null,
         saleEndsAt: null,
         isOnSale: false,
+        archivedAt: null,
         category: "Outerwear",
         quantity: 2,
         status: "active",
@@ -81,6 +83,7 @@ function createInitialDatabase(): LocalDatabase {
         salePercentage: null,
         saleEndsAt: null,
         isOnSale: false,
+        archivedAt: null,
         category: "Tees",
         quantity: 1,
         status: "low_stock",
@@ -95,6 +98,7 @@ function createInitialDatabase(): LocalDatabase {
         salePercentage: null,
         saleEndsAt: null,
         isOnSale: false,
+        archivedAt: null,
         category: "Flannels",
         quantity: 0,
         status: "out_of_stock",
@@ -298,6 +302,7 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
         salePercentage: typeof product.salePercentage === "number" ? product.salePercentage : null,
         saleEndsAt: product.saleEndsAt ?? null,
         isOnSale,
+        archivedAt: product.archivedAt ?? null,
         price: isOnSale && salePrice != null ? salePrice : originalPrice,
       };
     }),
@@ -742,6 +747,44 @@ export async function clearProductSaleInDatabase(productId: string) {
   };
 }
 
+export async function archiveProductInDatabase(productId: string) {
+  const db = await readDatabase();
+  const product = db.products.find((entry) => entry.id === productId);
+  if (!product) return { ok: false, message: "Product not found." };
+
+  product.status = "archived";
+  product.archivedAt = new Date().toISOString();
+  product.salePercentage = null;
+  product.saleEndsAt = null;
+  product.salePrice = null;
+  product.isOnSale = false;
+  product.price = product.originalPrice;
+  await writeDatabase(db);
+
+  return { ok: true, message: `${product.title} was moved to archived items.` };
+}
+
+export async function deleteArchivedProductInDatabase(productId: string) {
+  const db = await readDatabase();
+  const productIndex = db.products.findIndex((entry) => entry.id === productId);
+  if (productIndex === -1) return { ok: false, message: "Product not found." };
+
+  const product = db.products[productIndex];
+  if (product.status !== "archived") return { ok: false, message: "Only archived items can be deleted." };
+  if (!canDeleteArchivedProduct(product.archivedAt)) {
+    return { ok: false, message: "Archived items must stay archived for 30 days before deletion." };
+  }
+
+  const hasClaims = db.claimedItems.some((entry) => entry.productTitle === product.title);
+  if (hasClaims) {
+    return { ok: false, message: "This item has claim history and cannot be permanently deleted." };
+  }
+
+  db.products.splice(productIndex, 1);
+  await writeDatabase(db);
+  return { ok: true, message: `${product.title} was permanently deleted.` };
+}
+
 export async function createInventoryItemInDatabase(input: {
   title: string;
   description: string;
@@ -790,6 +833,7 @@ export async function createInventoryItemInDatabase(input: {
     salePercentage: null,
     saleEndsAt: null,
     isOnSale: false,
+    archivedAt: null,
     category,
     quantity,
     status: deriveProductStatus(quantity, "active"),

@@ -35,6 +35,7 @@ export interface Product {
   salePercentage: number | null;
   saleEndsAt: string | null;
   isOnSale: boolean;
+  archivedAt: string | null;
   category: string;
   quantity: number;
   status: ProductStatus;
