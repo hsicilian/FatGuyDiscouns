@@ -27,10 +27,7 @@ export default async function AdminPage() {
         <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0 }}>Admin shell</p>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 20, alignItems: "end", flexWrap: "wrap" }}>
           <div>
-            <h1 style={{ margin: "0 0 12px" }}>Operations control center</h1>
-            <p style={{ color: "var(--muted)", maxWidth: 760, lineHeight: 1.7, margin: 0 }}>
-              The business side of Fatguydiscounts is organized around the real workflows from your prompt: approvals, inventory, customer balances, shipments, CRM, and notifications.
-            </p>
+            <h1 style={{ margin: 0 }}>Operations control center</h1>
           </div>
           <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", width: "min(100%, 320px)" }}>
             {!usingSupabase ? (
