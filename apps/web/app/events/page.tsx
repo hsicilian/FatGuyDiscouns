@@ -1,20 +1,39 @@
 import { getCurrentSessionAccount } from "../../lib/auth/session";
 import { getCurrentCustomer, listEvents } from "../../lib/data/local-db";
-import { buildCalendarCells, formatEventLabel, labelTimezone } from "../../lib/events";
+import { buildCalendarCells, filterEventsForCalendarMonth, formatEventLabel, labelTimezone } from "../../lib/events";
 
 const weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export default async function EventsPage() {
+function getMonthOffset(value: string | string[] | undefined) {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const parsed = Number(raw ?? "0");
+  if (!Number.isInteger(parsed)) {
+    return 0;
+  }
+
+  return Math.min(2, Math.max(0, parsed));
+}
+
+export default async function EventsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const [events, currentSession] = await Promise.all([
     listEvents(),
     getCurrentSessionAccount(),
   ]);
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const monthOffset = getMonthOffset(resolvedSearchParams.month);
 
   const isCustomerLocal = currentSession?.role === "customer";
   const currentCustomer = isCustomerLocal ? await getCurrentCustomer() : null;
   const displayTimeZone = currentCustomer?.timezone ?? "America/New_York";
   const displayZoneLabel = labelTimezone(displayTimeZone, isCustomerLocal);
-  const calendar = buildCalendarCells(events, displayTimeZone);
+  const calendar = buildCalendarCells(events, displayTimeZone, monthOffset);
+  const monthEvents = filterEventsForCalendarMonth(events, displayTimeZone, monthOffset);
+  const previousMonthHref = monthOffset > 0 ? `/events?month=${monthOffset - 1}` : null;
+  const nextMonthHref = monthOffset < 2 ? `/events?month=${monthOffset + 1}` : null;
 
   return (
     <main style={{ maxWidth: 1200, margin: "0 auto", padding: "36px 24px 72px", display: "grid", gap: 24 }}>
@@ -32,12 +51,36 @@ export default async function EventsPage() {
           <div style={{ background: "rgba(255,255,255,0.52)", border: "1px solid rgba(232,214,195,0.9)", borderRadius: 18, padding: 16, width: "min(100%, 260px)" }}>
             <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em" }}>Showing</p>
             <strong style={{ fontSize: "1.15rem" }}>{calendar.monthLabel}</strong>
-            <p style={{ margin: "6px 0 0", color: "var(--muted)" }}>{events.length} event{events.length === 1 ? "" : "s"} in the schedule</p>
+            <p style={{ margin: "6px 0 0", color: "var(--muted)" }}>{monthEvents.length} event{monthEvents.length === 1 ? "" : "s"} this month</p>
           </div>
         </div>
       </section>
 
       <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 20, boxShadow: "var(--shadow)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 18 }}>
+          <h2 style={{ margin: 0 }}>{calendar.monthLabel}</h2>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            {previousMonthHref ? (
+              <a href={previousMonthHref} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, padding: "10px 14px", borderRadius: 999, background: "rgba(255,255,255,0.78)", border: "1px solid var(--line)", fontWeight: 700 }}>
+                ←
+              </a>
+            ) : (
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, padding: "10px 14px", borderRadius: 999, background: "rgba(247,238,228,0.6)", border: "1px solid rgba(232,214,195,0.6)", color: "var(--muted)" }}>
+                ←
+              </span>
+            )}
+            <span style={{ color: "var(--muted)", fontSize: 14 }}>Month {monthOffset + 1} of 3</span>
+            {nextMonthHref ? (
+              <a href={nextMonthHref} style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, padding: "10px 14px", borderRadius: 999, background: "var(--accent)", color: "#fff", fontWeight: 700 }}>
+                →
+              </a>
+            ) : (
+              <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minWidth: 44, minHeight: 44, padding: "10px 14px", borderRadius: 999, background: "rgba(247,238,228,0.6)", border: "1px solid rgba(232,214,195,0.6)", color: "var(--muted)" }}>
+                →
+              </span>
+            )}
+          </div>
+        </div>
         <div style={{ overflowX: "auto" }}>
           <div style={{ minWidth: 760 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 10, marginBottom: 10 }}>
@@ -95,7 +138,7 @@ export default async function EventsPage() {
       </section>
 
       <section style={{ display: "grid", gap: 16 }}>
-        {events.map((event, index) => (
+        {monthEvents.map((event, index) => (
           <article key={event.id} style={{ background: index === 0 ? "linear-gradient(145deg, rgba(187,77,0,0.94) 0%, rgba(142,50,0,0.98) 100%)" : "var(--panel)", color: index === 0 ? "#fff" : "var(--ink)", border: index === 0 ? "none" : "1px solid var(--line)", borderRadius: 26, padding: 24, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "start" }}>
               <div>
@@ -114,6 +157,12 @@ export default async function EventsPage() {
             <p style={{ color: index === 0 ? "rgba(255,244,230,0.92)" : "var(--muted)", lineHeight: 1.7, marginBottom: 0 }}>{event.description}</p>
           </article>
         ))}
+        {monthEvents.length === 0 ? (
+          <article style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 24, boxShadow: "var(--shadow)" }}>
+            <h2 style={{ marginTop: 0 }}>No events this month</h2>
+            <p style={{ marginBottom: 0, color: "var(--muted)" }}>Try the month arrows above to check the next scheduled window.</p>
+          </article>
+        ) : null}
       </section>
     </main>
   );

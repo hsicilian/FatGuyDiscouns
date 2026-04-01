@@ -109,8 +109,17 @@ export function getCalendarMonth(events: ShowEvent[], timeZone: string) {
   return { year: eventParts.year, month: eventParts.month };
 }
 
-export function buildCalendarCells(events: ShowEvent[], timeZone: string) {
-  const { year, month } = getCalendarMonth(events, timeZone);
+function addMonths(year: number, month: number, offset: number) {
+  const base = new Date(Date.UTC(year, month - 1 + offset, 1, 12));
+  return {
+    year: base.getUTCFullYear(),
+    month: base.getUTCMonth() + 1,
+  };
+}
+
+export function buildCalendarCells(events: ShowEvent[], timeZone: string, monthOffset = 0) {
+  const startMonth = getCalendarMonth(events, timeZone);
+  const { year, month } = addMonths(startMonth.year, startMonth.month, monthOffset);
   const daysInMonth = new Date(year, month, 0).getDate();
   const firstWeekday = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -144,6 +153,8 @@ export function buildCalendarCells(events: ShowEvent[], timeZone: string) {
   }
 
   return {
+    year,
+    month,
     monthLabel: new Intl.DateTimeFormat("en-US", {
       month: "long",
       year: "numeric",
@@ -151,4 +162,16 @@ export function buildCalendarCells(events: ShowEvent[], timeZone: string) {
     }).format(new Date(Date.UTC(year, month - 1, 1, 12))),
     cells,
   };
+}
+
+export function filterEventsForCalendarMonth(
+  events: ShowEvent[],
+  timeZone: string,
+  monthOffset = 0,
+) {
+  const calendar = buildCalendarCells(events, timeZone, monthOffset);
+  return events.filter((event) => {
+    const parts = getZonedParts(new Date(event.startsAt), timeZone);
+    return parts.year === calendar.year && parts.month === calendar.month;
+  });
 }
