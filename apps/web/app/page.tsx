@@ -1,5 +1,6 @@
 import { PRODUCT_STATUS_LABELS } from "@fatguydiscounts/core";
 import { Panel } from "@fatguydiscounts/ui";
+import { HomeIntroSplash } from "../components/home/home-intro-splash";
 import { listProducts } from "../lib/data/local-db";
 import { getProductPath } from "../lib/products";
 
@@ -17,6 +18,7 @@ export default async function HomePage() {
 
   return (
     <main style={{ maxWidth: 1240, margin: "0 auto", padding: "36px 24px 72px" }}>
+      <HomeIntroSplash />
       <section
         className="home-welcome-panel"
         style={{
