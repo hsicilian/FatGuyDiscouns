@@ -299,7 +299,7 @@ export async function listCustomerMessagesForCustomerSupabase(
   const admin = await getAdminClient();
   let query = admin
     .from("customer_messages")
-    .select("id, customer_id, body, created_at")
+    .select("id, customer_id, body, sender_role, created_at")
     .eq("customer_id", customerId)
     .order("created_at", { ascending: false });
 

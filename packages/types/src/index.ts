@@ -108,6 +108,7 @@ export interface CustomerMessageRecord {
   id: string;
   customerId: string;
   customerName?: string;
+  senderRole: "customer" | "admin";
   message: string;
   createdAt: string;
 }

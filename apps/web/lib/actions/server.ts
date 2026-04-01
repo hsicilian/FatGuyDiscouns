@@ -21,6 +21,7 @@ import {
   deleteArchivedProductInDatabase,
   deleteCategoryInDatabase,
   markNotificationReadInDatabase,
+  replyToCustomerMessage,
   removeClaimedItemFromDatabase,
   submitClaimToDatabase,
   submitCustomerMessageToDatabase,
@@ -484,6 +485,25 @@ export async function sendCustomerMessage(message: string): Promise<FormActionSt
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/notifications");
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/customers/[customerId]", "page");
+  revalidatePath("/admin/customers/[customerId]/messages", "page");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function sendAdminCustomerReply(customerId: string, message: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await replyToCustomerMessage(customerId, message);
+  revalidatePath("/account");
+  revalidatePath("/admin");
   revalidatePath("/admin/customers");
   revalidatePath("/admin/customers/[customerId]", "page");
   revalidatePath("/admin/customers/[customerId]/messages", "page");

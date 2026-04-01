@@ -530,6 +530,7 @@ export async function submitCustomerMessageToDatabaseSupabase(message: string) {
     customer_id: actor.id,
     body: trimmedMessage,
     created_by: actor.id,
+    sender_role: "customer",
   });
 
   if (messageInsert.error) {
@@ -552,6 +553,34 @@ export async function submitCustomerMessageToDatabaseSupabase(message: string) {
   return {
     ok: true,
     message: "Your message was sent to the admin team.",
+  };
+}
+
+export async function replyToCustomerMessageSupabase(customerId: string, message: string) {
+  const actor = await getCurrentActor();
+  const adminClient = await getAdminClient();
+  const trimmedMessage = message.trim();
+
+  if (!trimmedMessage) {
+    return { ok: false, message: "Enter a reply before sending it." };
+  }
+
+  const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
+
+  const insertResult = await adminClient.from("customer_messages").insert({
+    customer_id: customerId,
+    body: trimmedMessage,
+    created_by: actor.id,
+    sender_role: "admin",
+  });
+
+  if (insertResult.error) {
+    return { ok: false, message: insertResult.error.message };
+  }
+
+  return {
+    ok: true,
+    message: `Reply saved for ${customer.displayName}.`,
   };
 }
 

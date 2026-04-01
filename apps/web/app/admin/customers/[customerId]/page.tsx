@@ -2,6 +2,7 @@ import { accountStateLabel, calculateBalanceDue, shipmentStatusLabel } from "@fa
 import { ApprovalActionForm } from "../../../../components/forms/approval-action-form";
 import { BalanceAdjustmentForm } from "../../../../components/forms/balance-adjustment-form";
 import { BalanceLineItemForm } from "../../../../components/forms/balance-line-item-form";
+import { CustomerMessageReplyForm } from "../../../../components/forms/customer-message-reply-form";
 import { CustomerNoteForm } from "../../../../components/forms/customer-note-form";
 import { ManualBalanceItemForm } from "../../../../components/forms/manual-balance-item-form";
 import { PaymentPreviewForm } from "../../../../components/forms/payment-preview-form";
@@ -146,11 +147,15 @@ export default async function AdminCustomerDetailPage({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
+              minWidth: 120,
               padding: "10px 16px",
               borderRadius: 999,
               background: "var(--ink)",
-              color: "var(--paper)",
+              color: "#fff",
               fontWeight: 700,
+              fontSize: 14,
+              lineHeight: 1.2,
+              whiteSpace: "nowrap",
               textDecoration: "none",
             }}
           >
@@ -160,10 +165,16 @@ export default async function AdminCustomerDetailPage({
         <div style={{ display: "grid", gap: 12 }}>
           {customerMessages.length > 0 ? customerMessages.map((message) => (
             <div key={message.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+              <p style={{ margin: 0, color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                {message.senderRole === "admin" ? "Admin" : customer.displayName}
+              </p>
               <p style={{ margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.7 }}>{message.message}</p>
               <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>{message.createdAt}</p>
             </div>
           )) : <p style={{ margin: 0, color: "var(--muted)" }}>No customer messages yet.</p>}
+        </div>
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(232,214,195,0.88)" }}>
+          <CustomerMessageReplyForm customerId={customer.id} />
         </div>
       </section>
 

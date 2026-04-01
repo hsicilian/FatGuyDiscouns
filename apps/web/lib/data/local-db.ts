@@ -42,6 +42,7 @@ import {
   deleteArchivedProductInDatabaseSupabase,
   deleteCategoryInDatabaseSupabase,
   markNotificationReadInDatabaseSupabase,
+  replyToCustomerMessageSupabase,
   removeClaimedItemFromDatabaseSupabase,
   submitClaimToDatabaseSupabase,
   submitCustomerMessageToDatabaseSupabase,
@@ -266,6 +267,12 @@ export async function submitCustomerMessageToDatabase(message: string) {
   return shouldUseSupabase()
     ? submitCustomerMessageToDatabaseSupabase(message)
     : fallback.submitCustomerMessageToDatabase(message);
+}
+
+export async function replyToCustomerMessage(customerId: string, message: string) {
+  return shouldUseSupabase()
+    ? replyToCustomerMessageSupabase(customerId, message)
+    : fallback.replyToCustomerMessage(customerId, message);
 }
 
 export async function submitShipmentRequestToDatabase() {

@@ -11,7 +11,7 @@ import { ProfileForm } from "../../components/forms/profile-form";
 import { ShipmentRequestForm } from "../../components/forms/shipment-request-form";
 import { previewShipmentRequest } from "../../lib/actions/shipments";
 import { ensureCustomerAccess } from "../../lib/auth/guards";
-import { getBalanceCycle, getCurrentCustomer, listClaimedItems } from "../../lib/data/local-db";
+import { getBalanceCycle, getCurrentCustomer, listClaimedItems, listCustomerMessagesForCustomer } from "../../lib/data/local-db";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -36,6 +36,7 @@ export default async function AccountPage() {
     listClaimedItems(),
     previewShipmentRequest(),
   ]);
+  const recentMessages = await listCustomerMessagesForCustomer(currentCustomer.id, { limit: 5 });
   const amountDue = calculateBalanceDue(balanceCycle);
   const today = new Date().toISOString().slice(0, 10);
   const overdue = isBalanceOverdue(balanceCycle, today);
@@ -146,8 +147,19 @@ export default async function AccountPage() {
             <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 700 }}>Message admin</p>
             <h3 style={{ marginTop: 0 }}>Need help with your account?</h3>
             <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
-              Send a note to the admin team here and it will show up in the admin notification center.
+              Send a note to the admin team here. Replies from admin will show in this thread on your account page.
             </p>
+            <div style={{ display: "grid", gap: 10, marginBottom: 16 }}>
+              {recentMessages.length > 0 ? recentMessages.map((message) => (
+                <div key={message.id} style={{ padding: 12, borderRadius: 16, background: message.senderRole === "admin" ? "rgba(31,29,26,0.08)" : "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
+                  <p style={{ margin: 0, color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    {message.senderRole === "admin" ? "Admin reply" : "You"}
+                  </p>
+                  <p style={{ margin: "6px 0 0", whiteSpace: "pre-wrap", lineHeight: 1.7 }}>{message.message}</p>
+                  <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>{message.createdAt}</p>
+                </div>
+              )) : <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)", color: "var(--muted)" }}>No messages yet.</div>}
+            </div>
             <CustomerMessageForm />
           </section>
         </aside>

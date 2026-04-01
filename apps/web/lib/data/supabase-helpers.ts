@@ -151,6 +151,7 @@ export function toCustomerMessageRecord(row: Record<string, any>): CustomerMessa
     id: row.id,
     customerId: row.customer_id ?? "",
     customerName: row.customer_profiles?.display_name ?? undefined,
+    senderRole: row.sender_role === "admin" ? "admin" : "customer",
     message: row.body ?? "",
     createdAt: row.created_at ?? new Date().toISOString(),
   };

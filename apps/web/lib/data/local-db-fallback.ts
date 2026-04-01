@@ -289,6 +289,7 @@ function createInitialDatabase(): LocalDatabase {
         id: "msg-001",
         customerId: "cust-001",
         customerName: "Jordan Rivers",
+        senderRole: "customer",
         message: "Can you hold my next shipment until after Sunday's live?",
         createdAt: "2026-03-27T11:20:00-04:00",
       },
@@ -296,6 +297,15 @@ function createInitialDatabase(): LocalDatabase {
         id: "msg-002",
         customerId: "cust-001",
         customerName: "Jordan Rivers",
+        senderRole: "admin",
+        message: "Yes, I can hold that shipment and will wait for your confirmation after the show.",
+        createdAt: "2026-03-27T11:42:00-04:00",
+      },
+      {
+        id: "msg-003",
+        customerId: "cust-001",
+        customerName: "Jordan Rivers",
+        senderRole: "customer",
         message: "I updated my address and wanted to make sure it saved.",
         createdAt: "2026-03-29T18:45:00-04:00",
       },
@@ -1164,6 +1174,7 @@ export async function submitCustomerMessageToDatabase(message: string) {
     id: `msg-${Date.now()}`,
     customerId: customer.id,
     customerName: customer.displayName,
+    senderRole: "customer",
     message: trimmedMessage,
     createdAt: new Date().toISOString(),
   });
@@ -1175,6 +1186,35 @@ export async function submitCustomerMessageToDatabase(message: string) {
   return {
     ok: true,
     message: "Your message was sent to the admin team.",
+  };
+}
+
+export async function replyToCustomerMessage(customerId: string, message: string) {
+  const db = await readDatabase();
+  const customer = db.customers.find((entry) => entry.id === customerId);
+  const trimmedMessage = message.trim();
+
+  if (!customer) {
+    return { ok: false, message: "Customer not found." };
+  }
+
+  if (!trimmedMessage) {
+    return { ok: false, message: "Enter a reply before sending it." };
+  }
+
+  db.customerMessages.unshift({
+    id: `msg-${Date.now()}`,
+    customerId,
+    customerName: customer.displayName,
+    senderRole: "admin",
+    message: trimmedMessage,
+    createdAt: new Date().toISOString(),
+  });
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: `Reply saved for ${customer.displayName}.`,
   };
 }
 
