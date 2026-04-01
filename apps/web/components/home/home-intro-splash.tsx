@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 
-const FADE_DELAY_MS = 1400;
-const FADE_DURATION_MS = 700;
+const FADE_DELAY_MS = 2300;
+const FADE_DURATION_MS = 1400;
 
 export function HomeIntroSplash() {
   const [phase, setPhase] = useState<"visible" | "fading" | "hidden">("visible");
