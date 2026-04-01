@@ -26,6 +26,7 @@ import {
   listProductsSupabase,
   listRestockRequestsSupabase,
   listShipmentRecordsSupabase,
+  listShipmentRecordsForCustomerSupabase,
 } from "./supabase-reads";
 import {
   addCustomerNoteToDatabaseSupabase,
@@ -136,6 +137,10 @@ export async function listArchivedInvoicesForCustomer(customerId: string) {
 
 export async function listShipmentRecords() {
   return shouldUseSupabase() ? listShipmentRecordsSupabase() : fallback.listShipmentRecords();
+}
+
+export async function listShipmentRecordsForCustomer(customerId: string) {
+  return shouldUseSupabase() ? listShipmentRecordsForCustomerSupabase(customerId) : fallback.listShipmentRecordsForCustomer(customerId);
 }
 
 export async function listPaymentHistoryForCustomer(customerId: string) {

@@ -11,7 +11,7 @@ import { ProfileForm } from "../../components/forms/profile-form";
 import { ShipmentRequestForm } from "../../components/forms/shipment-request-form";
 import { previewShipmentRequest } from "../../lib/actions/shipments";
 import { ensureCustomerAccess } from "../../lib/auth/guards";
-import { getBalanceCycle, getCurrentCustomer, listClaimedItems, listCustomerMessagesForCustomer } from "../../lib/data/local-db";
+import { getBalanceCycle, getCurrentCustomer, listClaimedItems, listCustomerMessagesForCustomer, listShipmentRecordsForCustomer } from "../../lib/data/local-db";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -36,8 +36,10 @@ export default async function AccountPage() {
     listClaimedItems(),
     previewShipmentRequest(),
   ]);
+  const shipmentHistory = await listShipmentRecordsForCustomer(currentCustomer.id);
   const recentMessages = await listCustomerMessagesForCustomer(currentCustomer.id, { limit: 5 });
   const recentMessagesForDisplay = [...recentMessages].reverse();
+  const latestShipment = shipmentHistory[0] ?? null;
   const amountDue = calculateBalanceDue(balanceCycle);
   const today = new Date().toISOString().slice(0, 10);
   const overdue = isBalanceOverdue(balanceCycle, today);
@@ -112,11 +114,28 @@ export default async function AccountPage() {
                 <p style={{ margin: 0, color: "var(--muted)" }}>Last shipment</p>
                 <strong>{currentCustomer.lastShipmentDate ?? "No shipment on record yet"}</strong>
               </div>
+              <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
+                <p style={{ margin: 0, color: "var(--muted)" }}>Tracking number</p>
+                <strong>{latestShipment?.trackingNumber ?? "No tracking number yet"}</strong>
+              </div>
             </div>
             <ShipmentRequestForm
               disabled={!shipmentPreview.allowed}
               canCancel={currentCustomer.shipmentStatus !== "none" && currentCustomer.shipmentStatus !== "completed"}
             />
+            <div style={{ display: "grid", gap: 12, marginTop: 18 }}>
+              <h3 style={{ margin: 0 }}>Shipment history</h3>
+              {shipmentHistory.length > 0 ? shipmentHistory.map((shipment) => (
+                <div key={shipment.id} style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
+                  <p style={{ margin: 0, color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                    {shipmentStatusLabel(shipment.status)}
+                  </p>
+                  <p style={{ margin: "6px 0 0", color: "var(--muted)" }}>Requested {shipment.requestedAt}</p>
+                  <p style={{ margin: "6px 0 0" }}><strong>Tracking:</strong> {shipment.trackingNumber ?? "Not added yet"}</p>
+                  <p style={{ margin: "6px 0 0" }}><strong>Shipment date:</strong> {shipment.shipmentDate ?? "Pending"}</p>
+                </div>
+              )) : <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)", color: "var(--muted)" }}>No shipment history yet.</div>}
+            </div>
           </div>
 
           <section style={{ paddingTop: 4, borderTop: "1px solid rgba(232,214,195,0.88)" }}>

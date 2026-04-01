@@ -7,7 +7,7 @@ export default async function AdminShipmentsPage() {
   await ensureAdminAccess();
 
   const shipments = await listShipmentRecords();
-  const openShipments = shipments.filter((shipment) => shipment.status !== "completed").length;
+  const openShipments = shipments.filter((shipment) => shipment.status !== "completed");
 
   return (
     <main style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 24px 72px" }}>
@@ -22,13 +22,13 @@ export default async function AdminShipmentsPage() {
           </div>
           <div style={{ background: "rgba(255,255,255,0.52)", border: "1px solid rgba(232,214,195,0.9)", borderRadius: 18, padding: 16, minWidth: 220 }}>
             <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em" }}>Open shipments</p>
-            <strong style={{ fontSize: "1.9rem" }}>{openShipments}</strong>
+            <strong style={{ fontSize: "1.9rem" }}>{openShipments.length}</strong>
           </div>
         </div>
       </section>
 
       <div style={{ display: "grid", gap: 16 }}>
-        {shipments.map((shipment) => (
+        {openShipments.length > 0 ? openShipments.map((shipment) => (
           <section key={shipment.id} style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 24, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
             <div style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
               <div>
@@ -55,7 +55,11 @@ export default async function AdminShipmentsPage() {
               </div>
             </div>
           </section>
-        ))}
+        )) : (
+          <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 24, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)", color: "var(--muted)" }}>
+            No active shipment requests are in the queue right now.
+          </section>
+        )}
       </div>
     </main>
   );

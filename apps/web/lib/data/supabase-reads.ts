@@ -269,12 +269,18 @@ export async function listShipmentRecordsSupabase() {
 
   return (data ?? []).map((row) => ({
     id: row.id,
+    customerId: row.customer_id,
     customerName: customerMap.get(row.customer_id)?.displayName ?? "Customer",
     status: row.status,
     requestedAt: row.requested_at,
     trackingNumber: row.tracking_number,
     shipmentDate: row.shipment_date,
   } satisfies ShipmentRecord));
+}
+
+export async function listShipmentRecordsForCustomerSupabase(customerId: string) {
+  const shipments = await listShipmentRecordsSupabase();
+  return shipments.filter((shipment) => shipment.customerId === customerId);
 }
 
 export async function listCustomerNotesSupabase(customerId?: string) {

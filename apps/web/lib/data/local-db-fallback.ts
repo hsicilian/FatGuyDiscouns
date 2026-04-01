@@ -255,6 +255,7 @@ function createInitialDatabase(): LocalDatabase {
     shipmentRecords: [
       {
         id: "ship-001",
+        customerId: "cust-001",
         customerName: "Jordan Rivers",
         status: "requested",
         requestedAt: "2026-03-29T09:05:00-04:00",
@@ -263,6 +264,7 @@ function createInitialDatabase(): LocalDatabase {
       },
       {
         id: "ship-002",
+        customerId: "cust-003",
         customerName: "Taylor West",
         status: "completed",
         requestedAt: "2026-03-18T12:00:00-04:00",
@@ -653,6 +655,11 @@ export async function listClaimHistoryForCustomer(_customerId: string): Promise<
 export async function listShipmentRecords() {
   const db = await readDatabase();
   return db.shipmentRecords;
+}
+
+export async function listShipmentRecordsForCustomer(customerId: string) {
+  const db = await readDatabase();
+  return db.shipmentRecords.filter((entry) => entry.customerId === customerId);
 }
 
 export async function listCustomerNotes(customerId?: string) {
@@ -1234,6 +1241,7 @@ export async function submitShipmentRequestToDatabase() {
   customer.shipmentStatus = nextStatus;
   db.shipmentRecords.unshift({
     id: `ship-${Date.now()}`,
+    customerId: customer.id,
     customerName: customer.displayName,
     status: nextStatus,
     requestedAt: new Date().toISOString(),
@@ -1258,7 +1266,7 @@ export async function cancelShipmentRequestInDatabase(shipmentId?: string) {
 
   const shipmentIndex = shipmentId
     ? db.shipmentRecords.findIndex((entry) => entry.id === shipmentId)
-    : db.shipmentRecords.findIndex((entry) => entry.customerName === customer.displayName && entry.status !== "completed");
+    : db.shipmentRecords.findIndex((entry) => entry.customerId === customer.id && entry.status !== "completed");
 
   if (shipmentIndex === -1) {
     return { ok: false, message: "Open shipment request not found." };
@@ -1301,7 +1309,9 @@ export async function updateShipmentInDatabase(
   shipment.trackingNumber = trackingNumber.trim() || null;
   shipment.shipmentDate = nextStatus === "completed" ? new Date().toISOString().slice(0, 10) : shipment.shipmentDate;
 
-  const customer = findCustomerByName(db, shipment.customerName);
+  const customer = shipment.customerId
+    ? db.customers.find((entry) => entry.id === shipment.customerId)
+    : findCustomerByName(db, shipment.customerName);
   if (customer) {
     customer.shipmentStatus = nextStatus;
     if (nextStatus === "completed") {

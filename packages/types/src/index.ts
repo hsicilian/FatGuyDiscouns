@@ -115,6 +115,7 @@ export interface CustomerMessageRecord {
 
 export interface ShipmentRecord {
   id: string;
+  customerId?: string;
   customerName: string;
   status: ShipmentStatus;
   requestedAt: string;

@@ -20,6 +20,7 @@ import {
   listCustomers,
   listPaymentHistoryForCustomer,
   listRestockRequests,
+  listShipmentRecordsForCustomer,
 } from "../../../../lib/data/local-db";
 
 const currency = new Intl.NumberFormat("en-US", {
@@ -46,6 +47,7 @@ export default async function AdminCustomerDetailPage({
     paymentHistory,
     invoiceHistory,
     restockRequests,
+    shipmentHistory,
     currentSession,
   ] = await Promise.all([
     listCustomers(),
@@ -58,6 +60,7 @@ export default async function AdminCustomerDetailPage({
     listPaymentHistoryForCustomer(customerId),
     listArchivedInvoicesForCustomer(customerId),
     listRestockRequests(customerId),
+    listShipmentRecordsForCustomer(customerId),
     getCurrentSessionAccount(),
   ]);
 
@@ -306,6 +309,22 @@ export default async function AdminCustomerDetailPage({
               </div>
             )) : <p style={{ margin: 0, color: "var(--muted)" }}>No invoices archived yet.</p>}
           </div>
+        </div>
+      </section>
+
+      <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
+        <h2 style={{ marginTop: 0 }}>Shipment history</h2>
+        <div style={{ display: "grid", gap: 12 }}>
+          {shipmentHistory.length > 0 ? shipmentHistory.map((shipment) => (
+            <div key={shipment.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12, display: "grid", gap: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <strong>{shipmentStatusLabel(shipment.status)}</strong>
+                <span style={{ color: "var(--muted)" }}>{shipment.shipmentDate ?? "Pending shipment date"}</span>
+              </div>
+              <p style={{ margin: 0, color: "var(--muted)" }}>Requested {shipment.requestedAt}</p>
+              <p style={{ margin: 0 }}><strong>Tracking:</strong> {shipment.trackingNumber ?? "Not added yet"}</p>
+            </div>
+          )) : <p style={{ margin: 0, color: "var(--muted)" }}>No shipment history yet.</p>}
         </div>
       </section>
     </main>
