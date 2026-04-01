@@ -32,8 +32,8 @@ export default async function RootLayout({
               top: 0,
               zIndex: 20,
               backdropFilter: "blur(16px)",
-              background: "rgba(255, 249, 242, 0.92)",
-              borderBottom: "1px solid rgba(219, 198, 174, 0.8)",
+              background: "rgba(255, 248, 241, 0.9)",
+              borderBottom: "1px solid var(--line)",
             }}
           >
             <div style={{ maxWidth: 1240, margin: "0 auto", padding: "16px 24px", display: "grid", gap: 14 }}>
@@ -57,7 +57,7 @@ export default async function RootLayout({
                     <a href="/login" style={{ padding: "10px 16px", borderRadius: 999, border: "1px solid var(--line)", background: "rgba(255,255,255,0.76)", fontWeight: 700 }}>
                       Sign In
                     </a>
-                    <a href="/signup" style={{ padding: "10px 16px", borderRadius: 999, border: "1px solid var(--line)", background: "#bb4d00", color: "#fff", fontWeight: 700, boxShadow: "0 12px 24px rgba(187, 77, 0, 0.18)" }}>
+                    <a href="/signup" style={{ padding: "10px 16px", borderRadius: 999, border: "1px solid var(--line)", background: "linear-gradient(135deg, var(--accent) 0%, #ff8a5c 100%)", color: "#fff", fontWeight: 700, boxShadow: "0 12px 24px rgba(240, 95, 87, 0.24)" }}>
                       Create Account
                     </a>
                   </div>
@@ -65,7 +65,7 @@ export default async function RootLayout({
               </div>
               <nav className="site-nav site-nav-desktop" style={{ display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
                 {navLinks.map((link) => (
-                  <a key={link.href} href={link.href} style={{ color: "#5c5247", fontWeight: 700 }}>
+                  <a key={link.href} href={link.href} style={{ color: "var(--ink)", fontWeight: 700 }}>
                     {link.label}
                   </a>
                 ))}

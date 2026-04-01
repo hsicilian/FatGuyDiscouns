@@ -1,16 +1,16 @@
 :root {
   color-scheme: light;
-  --bg: #fff1df;
+  --bg: #fff3df;
   --bg-soft: #fffaf4;
   --panel: rgba(255, 252, 247, 0.92);
   --panel-strong: #fffdf9;
   --ink: #2d2230;
   --muted: #786a72;
-  --accent: #ef6a45;
-  --accent-strong: #cb4b36;
-  --line: #efd3c4;
-  --shadow: 0 24px 60px rgba(176, 104, 69, 0.16);
-  --shadow-soft: 0 14px 34px rgba(176, 104, 69, 0.12);
+  --accent: #f05f57;
+  --accent-strong: #d94841;
+  --line: #f0cfc4;
+  --shadow: 0 24px 60px rgba(192, 103, 88, 0.16);
+  --shadow-soft: 0 14px 34px rgba(192, 103, 88, 0.12);
 }
 
 * {
@@ -23,10 +23,10 @@ body {
   padding: 0;
   min-height: 100%;
   background:
-    radial-gradient(circle at top left, rgba(255, 213, 138, 0.45) 0%, rgba(255, 213, 138, 0) 32%),
-    radial-gradient(circle at top right, rgba(255, 159, 122, 0.2) 0%, rgba(255, 159, 122, 0) 28%),
-    radial-gradient(circle at 50% 14%, rgba(142, 226, 214, 0.16) 0%, rgba(142, 226, 214, 0) 24%),
-    linear-gradient(180deg, #fff8ef 0%, var(--bg) 50%, #ffe6d1 100%);
+    radial-gradient(circle at top left, rgba(255, 199, 102, 0.5) 0%, rgba(255, 199, 102, 0) 32%),
+    radial-gradient(circle at top right, rgba(255, 126, 95, 0.22) 0%, rgba(255, 126, 95, 0) 30%),
+    radial-gradient(circle at 50% 14%, rgba(122, 217, 204, 0.2) 0%, rgba(122, 217, 204, 0) 24%),
+    linear-gradient(180deg, #fff9f1 0%, var(--bg) 50%, #ffe4cf 100%);
   color: var(--ink);
   font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   line-height: 1.5;
@@ -111,8 +111,11 @@ main {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at center, rgba(255, 255, 255, 0.97) 0%, rgba(255, 246, 236, 0.93) 34%, rgba(255, 225, 202, 0.9) 100%);
-  backdrop-filter: blur(22px) saturate(1.08);
+    radial-gradient(circle at top left, rgba(255, 211, 138, 0.34) 0%, rgba(255, 211, 138, 0) 34%),
+    radial-gradient(circle at top right, rgba(255, 120, 91, 0.16) 0%, rgba(255, 120, 91, 0) 30%),
+    radial-gradient(circle at 50% 14%, rgba(122, 217, 204, 0.18) 0%, rgba(122, 217, 204, 0) 28%),
+    linear-gradient(180deg, rgba(255, 250, 243, 0.74) 0%, rgba(255, 237, 219, 0.64) 100%);
+  backdrop-filter: blur(16px) saturate(1.08);
 }
 
 .home-intro-splash__frame {
@@ -123,7 +126,7 @@ main {
   width: min(92vw, 980px);
   padding: 30px;
   border-radius: 40px;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.78) 0%, rgba(255, 245, 234, 0.4) 58%, rgba(255, 245, 234, 0) 100%);
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.56) 0%, rgba(255, 245, 234, 0.22) 58%, rgba(255, 245, 234, 0) 100%);
 }
 
 .home-intro-splash__image {

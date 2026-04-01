@@ -22,8 +22,8 @@ export default async function HomePage() {
       <section
         className="home-welcome-panel"
         style={{
-          background: "linear-gradient(145deg, rgba(255, 249, 239, 0.96) 0%, rgba(255, 239, 218, 0.93) 100%)",
-          border: "1px solid rgba(222, 197, 174, 0.95)",
+          background: "linear-gradient(145deg, rgba(255, 251, 244, 0.96) 0%, rgba(255, 233, 215, 0.96) 52%, rgba(255, 244, 224, 0.94) 100%)",
+          border: "1px solid rgba(240, 207, 196, 0.95)",
           borderRadius: 34,
           padding: "38px clamp(24px, 4vw, 42px)",
           boxShadow: "var(--shadow)",
@@ -96,7 +96,7 @@ export default async function HomePage() {
                       justifyContent: "center",
                       padding: "8px 12px",
                       borderRadius: 999,
-                      background: "rgba(255,255,255,0.82)",
+                      background: "rgba(255,255,255,0.88)",
                       fontSize: 12,
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
