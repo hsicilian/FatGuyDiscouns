@@ -9,6 +9,7 @@ import {
   listCategoriesSupabase,
   listClaimHistoryForCustomerSupabase,
   getFinancialSummarySupabase,
+  listCustomerItemRequestsSupabase,
   listCustomerMessagesForCustomerSupabase,
   getEventByIdSupabase,
   getProductByIdSupabase,
@@ -46,6 +47,7 @@ import {
   replyToCustomerMessageSupabase,
   removeClaimedItemFromDatabaseSupabase,
   submitClaimToDatabaseSupabase,
+  submitCustomerItemRequestToDatabaseSupabase,
   submitCustomerMessageToDatabaseSupabase,
   submitRestockRequestToDatabaseSupabase,
   submitShipmentRequestToDatabaseSupabase,
@@ -171,6 +173,12 @@ export async function listCustomerMessagesForCustomer(customerId: string, option
     : fallback.listCustomerMessagesForCustomer(customerId, options);
 }
 
+export async function listCustomerItemRequests(customerId?: string, options?: { limit?: number }) {
+  return shouldUseSupabase()
+    ? listCustomerItemRequestsSupabase(customerId, options)
+    : fallback.listCustomerItemRequests(customerId, options);
+}
+
 export async function listRestockRequests(customerId?: string) {
   return shouldUseSupabase() ? listRestockRequestsSupabase(customerId) : fallback.listRestockRequests(customerId);
 }
@@ -282,6 +290,12 @@ export async function submitCustomerMessageToDatabase(message: string) {
   return shouldUseSupabase()
     ? submitCustomerMessageToDatabaseSupabase(message)
     : fallback.submitCustomerMessageToDatabase(message);
+}
+
+export async function submitCustomerItemRequestToDatabase(request: string) {
+  return shouldUseSupabase()
+    ? submitCustomerItemRequestToDatabaseSupabase(request)
+    : fallback.submitCustomerItemRequestToDatabase(request);
 }
 
 export async function replyToCustomerMessage(customerId: string, message: string) {

@@ -24,7 +24,8 @@ export type NotificationType =
   | "pending_approval"
   | "low_stock"
   | "restock_request"
-  | "customer_message";
+  | "customer_message"
+  | "customer_item_request";
 
 export interface ProductImageRecord {
   id: string;
@@ -113,6 +114,15 @@ export interface CustomerMessageRecord {
   createdAt: string;
 }
 
+export interface CustomerItemRequestRecord {
+  id: string;
+  customerId: string;
+  customerName?: string;
+  request: string;
+  status: string;
+  createdAt: string;
+}
+
 export interface ShipmentRecord {
   id: string;
   customerId?: string;
@@ -150,6 +160,7 @@ export interface CustomerNote {
 export interface RestockRequestRecord {
   id: string;
   customerId: string | null;
+  customerName?: string;
   productTitle: string;
   status: string;
   createdAt: string;

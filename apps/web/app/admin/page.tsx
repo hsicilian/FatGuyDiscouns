@@ -7,6 +7,7 @@ import { hasSupabaseEnv } from "../../lib/supabase";
 const cards = [
   { href: "/admin/approvals", title: "Approvals queue", body: "Review pending accounts, approve customers, disable claiming, and ban users when needed." },
   { href: "/admin/inventory", title: "Inventory management", body: "Track quantity, out-of-stock visibility, low-stock alerts, and restock requests." },
+  { href: "/admin/requests", title: "Requests", body: "Review customer sourcing requests and restock requests together in one place." },
   { href: "/admin/customers", title: "Customer CRM", body: "Search customer records, review notes, shipment history, overdue status, and balances." },
   { href: "/admin/claims", title: "Claims and adjustments", body: "Manage claim line items, manual additions, shipping charges, and payment adjustments." },
   { href: "/admin/shipments", title: "Shipment queue", body: "Process requests, add tracking, complete shipments, and update last shipment dates." },

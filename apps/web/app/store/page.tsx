@@ -81,6 +81,18 @@ function renderClaimCta(
   return <a href="/account" style={{ ...ctaStyle, background: "rgba(255,255,255,0.82)", border: "1px solid var(--line)" }}>Account Unavailable</a>;
 }
 
+function getItemRequestHref(session: Awaited<ReturnType<typeof getCurrentSessionAccount>>) {
+  if (!session) {
+    return "/login";
+  }
+
+  if (session.role === "customer") {
+    return "/account#item-request";
+  }
+
+  return "/admin/requests";
+}
+
 function money(value: number) {
   return `$${value.toFixed(2)}`;
 }
@@ -153,6 +165,13 @@ export default async function StorePage({
               Upcoming Shows
             </a>
           </div>
+          <p style={{ margin: "16px 0 0", color: "var(--muted)", lineHeight: 1.7 }}>
+            Need something specific?{" "}
+            <a href={getItemRequestHref(currentSession)} style={{ color: "var(--accent-strong)", fontWeight: 700 }}>
+              Request it from your account
+            </a>
+            .
+          </p>
         </div>
 
         <div className="store-hero-stats" style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>

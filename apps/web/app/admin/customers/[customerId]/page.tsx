@@ -17,6 +17,7 @@ import {
   listArchivedInvoicesForCustomer,
   listClaimHistoryForCustomer,
   listClaimedItemsForCustomer,
+  listCustomerItemRequests,
   listCustomerMessagesForCustomer,
   listCustomerNotes,
   listCustomers,
@@ -44,6 +45,7 @@ export default async function AdminCustomerDetailPage({
     paymentDefaults,
     notes,
     customerMessages,
+    customerItemRequests,
     claimedItems,
     claimHistory,
     paymentHistory,
@@ -57,6 +59,7 @@ export default async function AdminCustomerDetailPage({
     getPaymentDefaults(customerId),
     listCustomerNotes(customerId),
     listCustomerMessagesForCustomer(customerId, { limit: 5 }),
+    listCustomerItemRequests(customerId, { limit: 5 }),
     listClaimedItemsForCustomer(customerId),
     listClaimHistoryForCustomer(customerId),
     listPaymentHistoryForCustomer(customerId),
@@ -275,14 +278,26 @@ export default async function AdminCustomerDetailPage({
         </div>
 
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
-          <h2 style={{ marginTop: 0 }}>Restock requests</h2>
-          <div style={{ display: "grid", gap: 12 }}>
-            {restockRequests.length > 0 ? restockRequests.map((request) => (
-              <div key={request.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12 }}>
-                <strong>{request.productTitle}</strong>
-                <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>{request.status} | {request.createdAt}</p>
-              </div>
-            )) : <p style={{ margin: 0, color: "var(--muted)" }}>No restock requests on file.</p>}
+          <h2 style={{ marginTop: 0 }}>Requests</h2>
+          <div style={{ display: "grid", gap: 18 }}>
+            <div style={{ display: "grid", gap: 12 }}>
+              <h3 style={{ margin: 0 }}>Item requests</h3>
+              {customerItemRequests.length > 0 ? customerItemRequests.map((request) => (
+                <div key={request.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <p style={{ margin: 0 }}>{request.request}</p>
+                  <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>{request.status} | {request.createdAt}</p>
+                </div>
+              )) : <p style={{ margin: 0, color: "var(--muted)" }}>No item requests on file.</p>}
+            </div>
+            <div style={{ display: "grid", gap: 12, paddingTop: 12, borderTop: "1px solid rgba(232,214,195,0.88)" }}>
+              <h3 style={{ margin: 0 }}>Restock requests</h3>
+              {restockRequests.length > 0 ? restockRequests.map((request) => (
+                <div key={request.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <strong>{request.productTitle}</strong>
+                  <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>{request.status} | {request.createdAt}</p>
+                </div>
+              )) : <p style={{ margin: 0, color: "var(--muted)" }}>No restock requests on file.</p>}
+            </div>
           </div>
         </div>
       </section>

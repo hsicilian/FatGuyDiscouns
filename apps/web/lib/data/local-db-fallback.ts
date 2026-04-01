@@ -24,6 +24,7 @@ import type {
   CategoryOption,
   ClaimedItem,
   ClaimHistoryRecord,
+  CustomerItemRequestRecord,
   CustomerMessageRecord,
   CustomerNote,
   CustomerSummary,
@@ -47,6 +48,7 @@ export interface LocalDatabase {
   shipmentRecords: ShipmentRecord[];
   customerNotes: CustomerNote[];
   customerMessages: CustomerMessageRecord[];
+  customerItemRequests: CustomerItemRequestRecord[];
   notifications: AdminNotification[];
   events: ShowEvent[];
   paymentDefaults: {
@@ -313,6 +315,7 @@ function createInitialDatabase(): LocalDatabase {
         createdAt: "2026-03-29T18:45:00-04:00",
       },
     ],
+    customerItemRequests: [],
     notifications: [
       {
         id: "notif-001",
@@ -400,6 +403,7 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
     shipmentRecords: db.shipmentRecords ?? fallback.shipmentRecords,
     customerNotes: db.customerNotes ?? fallback.customerNotes,
     customerMessages: db.customerMessages ?? fallback.customerMessages,
+    customerItemRequests: db.customerItemRequests ?? fallback.customerItemRequests,
     notifications: db.notifications ?? fallback.notifications,
     events: db.events ?? fallback.events,
     paymentDefaults: db.paymentDefaults ?? fallback.paymentDefaults,
@@ -721,18 +725,37 @@ export async function listCustomerMessagesForCustomer(customerId: string, option
   return typeof options?.limit === "number" ? messages.slice(0, options.limit) : messages;
 }
 
+export async function listCustomerItemRequests(customerId?: string, options?: { limit?: number }) {
+  const db = await readDatabase();
+  const requests = db.customerItemRequests
+    .filter((entry) => !customerId || entry.customerId === customerId)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+
+  return typeof options?.limit === "number" ? requests.slice(0, options.limit) : requests;
+}
+
 export async function listRestockRequests(customerId?: string) {
   const db = await readDatabase();
   const requests: RestockRequestRecord[] = db.notifications
     .filter((notification) => notification.type === "restock_request")
-    .map((notification) => ({
-      id: notification.id,
-      customerId: customerId ?? null,
-      productTitle: notification.label.replace("Restock request received for ", "").replace(".", ""),
-      status: "open",
-      createdAt: notification.createdAt,
-      email: null,
-    }));
+    .map((notification) => {
+      const matchedCustomer = db.customers.find((entry) =>
+        notification.label.startsWith(`${entry.displayName} requested a restock check for `),
+      );
+      const productTitle = matchedCustomer
+        ? notification.label.replace(`${matchedCustomer.displayName} requested a restock check for `, "").replace(".", "")
+        : notification.label.replace("Restock request received for ", "").replace(".", "");
+
+      return {
+        id: notification.id,
+        customerId: matchedCustomer?.id ?? null,
+        customerName: matchedCustomer?.displayName,
+        productTitle,
+        status: "open",
+        createdAt: notification.createdAt,
+        email: matchedCustomer?.email ?? null,
+      };
+    });
 
   return customerId ? requests.filter((request) => request.customerId === customerId) : requests;
 }
@@ -1219,12 +1242,13 @@ export async function deleteCategoryInDatabase(categoryId: string) {
 export async function submitRestockRequestToDatabase(productId: string) {
   const db = await readDatabase();
   const product = db.products.find((entry) => entry.id === productId);
+  const customer = findCurrentCustomer(db);
 
   if (!product) {
     return { ok: false, message: "Product not found." };
   }
 
-  const label = `Restock request received for ${product.title}.`;
+  const label = `${customer.displayName} requested a restock check for ${product.title}.`;
   const alreadyRequested = db.notifications.some((entry) => entry.type === "restock_request" && entry.label === label);
 
   if (alreadyRequested) {
@@ -1240,6 +1264,36 @@ export async function submitRestockRequestToDatabase(productId: string) {
   return {
     ok: true,
     message: "The admin team has been asked about getting more of this item.",
+  };
+}
+
+export async function submitCustomerItemRequestToDatabase(request: string) {
+  const db = await readDatabase();
+  const customer = findCurrentCustomer(db);
+  const trimmedRequest = request.trim();
+
+  if (!trimmedRequest) {
+    return { ok: false, message: "Add a request before sending it." };
+  }
+
+  const preview = trimmedRequest.length > 90 ? `${trimmedRequest.slice(0, 87)}...` : trimmedRequest;
+
+  db.customerItemRequests.unshift({
+    id: `item-request-${Date.now()}`,
+    customerId: customer.id,
+    customerName: customer.displayName,
+    request: trimmedRequest,
+    status: "open",
+    createdAt: new Date().toISOString(),
+  });
+  db.notifications.unshift(
+    createNotification("customer_item_request", `${customer.displayName} requested help finding an item: ${preview}`),
+  );
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: "Your item request was sent to the admin team.",
   };
 }
 

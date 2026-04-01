@@ -7,12 +7,13 @@ import {
   shipmentStatusLabel,
 } from "@fatguydiscounts/core";
 import { CustomerMessageForm } from "../../components/forms/customer-message-form";
+import { CustomerItemRequestForm } from "../../components/forms/customer-item-request-form";
 import { MessageContent } from "../../components/messages/message-content";
 import { ProfileForm } from "../../components/forms/profile-form";
 import { ShipmentRequestForm } from "../../components/forms/shipment-request-form";
 import { previewShipmentRequest } from "../../lib/actions/shipments";
 import { ensureCustomerAccess } from "../../lib/auth/guards";
-import { getBalanceCycle, getCurrentCustomer, listClaimedItems, listCustomerMessagesForCustomer, listShipmentRecordsForCustomer } from "../../lib/data/local-db";
+import { getBalanceCycle, getCurrentCustomer, listClaimedItems, listCustomerItemRequests, listCustomerMessagesForCustomer, listShipmentRecordsForCustomer } from "../../lib/data/local-db";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -39,6 +40,7 @@ export default async function AccountPage() {
   ]);
   const shipmentHistory = await listShipmentRecordsForCustomer(currentCustomer.id);
   const recentMessages = await listCustomerMessagesForCustomer(currentCustomer.id, { limit: 5 });
+  const recentItemRequests = await listCustomerItemRequests(currentCustomer.id, { limit: 3 });
   const recentMessagesForDisplay = [...recentMessages].reverse();
   const latestShipment = shipmentHistory[0] ?? null;
   const amountDue = calculateBalanceDue(balanceCycle);
@@ -162,6 +164,29 @@ export default async function AccountPage() {
               defaultPostalCode={currentCustomer.postalCode}
               defaultTimezone={currentCustomer.timezone}
             />
+          </section>
+
+          <section style={{ paddingTop: 4, borderTop: "1px solid rgba(232,214,195,0.88)" }}>
+            <div id="item-request" style={{ scrollMarginTop: 120 }}>
+              <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 700 }}>Request an item</p>
+              <h3 style={{ marginTop: 0 }}>Looking for something specific?</h3>
+              <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
+                Tell us what you want us to look for and add as many specifics as possible so we know what to hunt down for you.
+              </p>
+              {recentItemRequests.length > 0 ? (
+                <div style={{ display: "grid", gap: 10, marginBottom: 16 }}>
+                  {recentItemRequests.map((request) => (
+                    <div key={request.id} style={{ padding: 12, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
+                      <p style={{ margin: 0 }}>{request.request}</p>
+                      <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>
+                        {request.status} • {request.createdAt}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+              <CustomerItemRequestForm />
+            </div>
           </section>
 
           <section style={{ paddingTop: 4, borderTop: "1px solid rgba(232,214,195,0.88)" }}>

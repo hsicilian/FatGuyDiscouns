@@ -693,6 +693,48 @@ export async function submitCustomerMessageToDatabaseSupabase(message: string) {
   };
 }
 
+export async function submitCustomerItemRequestToDatabaseSupabase(request: string) {
+  const actor = await getCurrentActor();
+  const customer = await getCurrentCustomerSupabase();
+  const admin = await getAdminClient();
+  const trimmedRequest = request.trim();
+
+  if (!trimmedRequest) {
+    return { ok: false, message: "Add a request before sending it." };
+  }
+
+  const preview = trimmedRequest.length > 90 ? `${trimmedRequest.slice(0, 87)}...` : trimmedRequest;
+
+  const requestInsert = await admin.from("customer_item_requests").insert({
+    customer_id: actor.id,
+    body: trimmedRequest,
+    created_by: actor.id,
+    status: "open",
+  });
+
+  if (requestInsert.error) {
+    return { ok: false, message: requestInsert.error.message };
+  }
+
+  const { error } = await admin.from("notifications").insert({
+    type: "customer_item_request",
+    customer_id: actor.id,
+    payload: {
+      label: `${customer.displayName} requested help finding an item: ${preview}`,
+      request: trimmedRequest,
+    },
+  });
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  return {
+    ok: true,
+    message: "Your item request was sent to the admin team.",
+  };
+}
+
 export async function replyToCustomerMessageSupabase(customerId: string, message: string) {
   const actor = await getCurrentActor();
   const adminClient = await getAdminClient();

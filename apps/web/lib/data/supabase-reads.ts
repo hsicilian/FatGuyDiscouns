@@ -7,6 +7,7 @@ import type {
   CategoryOption,
   ClaimedItem,
   ClaimHistoryRecord,
+  CustomerItemRequestRecord,
   CustomerMessageRecord,
   CustomerNote,
   FinancialSummary,
@@ -319,6 +320,43 @@ export async function listCustomerMessagesForCustomerSupabase(
   return (data ?? []).map((row) => toCustomerMessageRecord(row as Record<string, any>));
 }
 
+export async function listCustomerItemRequestsSupabase(
+  customerId?: string,
+  options?: { limit?: number },
+): Promise<CustomerItemRequestRecord[]> {
+  const admin = await getAdminClient();
+  let query = admin
+    .from("customer_item_requests")
+    .select("id, customer_id, body, status, created_at")
+    .order("created_at", { ascending: false });
+
+  if (customerId) {
+    query = query.eq("customer_id", customerId);
+  }
+
+  if (options?.limit) {
+    query = query.limit(options.limit);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const customerIds = [...new Set((data ?? []).map((row) => row.customer_id).filter(Boolean))];
+  const customerMap = new Map<string, Awaited<ReturnType<typeof getCustomerSummaryByUserId>>>();
+  await Promise.all(customerIds.map(async (id) => {
+    customerMap.set(id, await getCustomerSummaryByUserId(id, { admin: true }));
+  }));
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    customerId: row.customer_id,
+    customerName: customerMap.get(row.customer_id)?.displayName,
+    request: row.body ?? "",
+    status: row.status ?? "open",
+    createdAt: row.created_at ?? new Date().toISOString(),
+  } satisfies CustomerItemRequestRecord));
+}
+
 export async function listRestockRequestsSupabase(customerId?: string) {
   const admin = await getAdminClient();
   let query = admin
@@ -333,11 +371,18 @@ export async function listRestockRequestsSupabase(customerId?: string) {
   const { data, error } = await query;
   if (error) throw error;
 
+  const customerIds = [...new Set((data ?? []).map((row) => row.customer_id).filter(Boolean))];
+  const customerMap = new Map<string, Awaited<ReturnType<typeof getCustomerSummaryByUserId>>>();
+  await Promise.all(customerIds.map(async (id) => {
+    customerMap.set(id, await getCustomerSummaryByUserId(id, { admin: true }));
+  }));
+
   return (data ?? []).map((row) => {
     const productRelation = (row as any).products;
     return ({
       id: row.id,
       customerId: row.customer_id,
+      customerName: row.customer_id ? customerMap.get(row.customer_id)?.displayName : undefined,
       productTitle: Array.isArray(productRelation) ? productRelation[0]?.title ?? "Product" : productRelation?.title ?? "Product",
       status: row.status,
       createdAt: row.created_at,

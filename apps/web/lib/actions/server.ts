@@ -24,6 +24,7 @@ import {
   replyToCustomerMessage,
   removeClaimedItemFromDatabase,
   submitClaimToDatabase,
+  submitCustomerItemRequestToDatabase,
   submitCustomerMessageToDatabase,
   submitRestockRequestToDatabase,
   submitShipmentRequestToDatabase,
@@ -517,6 +518,27 @@ export async function sendCustomerMessage(message: string): Promise<FormActionSt
   revalidatePath("/admin/customers");
   revalidatePath("/admin/customers/[customerId]", "page");
   revalidatePath("/admin/customers/[customerId]/messages", "page");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function submitCustomerItemRequest(request: string): Promise<FormActionState> {
+  const access = await requireCustomerMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await submitCustomerItemRequestToDatabase(request);
+  revalidatePath("/account");
+  revalidatePath("/store");
+  revalidatePath("/admin");
+  revalidatePath("/admin/notifications");
+  revalidatePath("/admin/requests");
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/customers/[customerId]", "page");
 
   return {
     ...result,
