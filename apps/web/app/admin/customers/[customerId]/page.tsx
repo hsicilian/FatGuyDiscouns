@@ -3,6 +3,7 @@ import { ApprovalActionForm } from "../../../../components/forms/approval-action
 import { BalanceAdjustmentForm } from "../../../../components/forms/balance-adjustment-form";
 import { BalanceLineItemForm } from "../../../../components/forms/balance-line-item-form";
 import { CustomerMessageReplyForm } from "../../../../components/forms/customer-message-reply-form";
+import { MessageContent } from "../../../../components/messages/message-content";
 import { CustomerNoteForm } from "../../../../components/forms/customer-note-form";
 import { ManualBalanceItemForm } from "../../../../components/forms/manual-balance-item-form";
 import { PaymentPreviewForm } from "../../../../components/forms/payment-preview-form";
@@ -172,7 +173,7 @@ export default async function AdminCustomerDetailPage({
               <p style={{ margin: 0, color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 {message.senderRole === "admin" ? "Admin" : customer.displayName}
               </p>
-              <p style={{ margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.7 }}>{message.message}</p>
+              <MessageContent message={message.message} />
               <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>{message.createdAt}</p>
             </div>
           )) : <p style={{ margin: 0, color: "var(--muted)" }}>No customer messages yet.</p>}

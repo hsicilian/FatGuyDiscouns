@@ -1,4 +1,5 @@
 import { CustomerMessageForm } from "../../../components/forms/customer-message-form";
+import { MessageContent } from "../../../components/messages/message-content";
 import { ensureCustomerAccess } from "../../../lib/auth/guards";
 import { getCurrentCustomer, listCustomerMessagesForCustomer } from "../../../lib/data/local-db";
 
@@ -32,7 +33,7 @@ export default async function AccountMessagesPage() {
             <p style={{ margin: 0, color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {message.senderRole === "admin" ? "Admin" : "You"}
             </p>
-            <p style={{ margin: "6px 0 0", whiteSpace: "pre-wrap", lineHeight: 1.75 }}>{message.message}</p>
+            <MessageContent message={message.message} />
             <p style={{ margin: "8px 0 0", color: "var(--muted)", fontSize: 13 }}>{message.createdAt}</p>
           </article>
         )) : <p style={{ margin: 0, color: "var(--muted)" }}>No messages yet.</p>}

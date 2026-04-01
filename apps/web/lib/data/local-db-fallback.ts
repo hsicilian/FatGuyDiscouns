@@ -13,6 +13,7 @@ import {
   shouldArchiveBalance,
   validateClaimAttempt,
 } from "@fatguydiscounts/core";
+import { getProductPath } from "../products";
 import { productMatchesLookup } from "../products";
 import { platformSummary } from "@fatguydiscounts/db";
 import type {
@@ -441,6 +442,10 @@ function createNotification(type: AdminNotification["type"], label: string): Adm
   };
 }
 
+function getRestockMessageLink(product: Product) {
+  return `http://localhost:3000${getProductPath(product)}`;
+}
+
 function findCurrentCustomer(db: LocalDatabase) {
   const customer = db.customers.find((entry) => entry.id === db.activeCustomerId);
 
@@ -851,6 +856,7 @@ export async function adjustInventoryInDatabase(productId: string, quantityChang
     return { ok: false, message: "Product not found." };
   }
 
+  const previousQuantity = product.quantity;
   const nextQuantity = product.quantity + quantityChange;
   if (nextQuantity < 0) {
     return { ok: false, message: "Inventory cannot go below zero." };
@@ -861,6 +867,35 @@ export async function adjustInventoryInDatabase(productId: string, quantityChang
 
   if (product.quantity === 1) {
     db.notifications.unshift(createNotification("low_stock", `${product.title} reached low stock.`));
+  }
+
+  if (previousQuantity === 0 && nextQuantity > 0) {
+    const restockMessageLink = getRestockMessageLink(product);
+    const matchingRequests = db.notifications.filter((entry) => entry.type === "restock_request" && entry.label.includes(product.title));
+    const matchingCustomers = db.customerMessages
+      .filter((entry) => entry.senderRole === "customer" && entry.message.includes(product.title))
+      .map((entry) => entry.customerId);
+    const uniqueCustomerIds = [...new Set(matchingCustomers)];
+
+    for (const customerId of uniqueCustomerIds) {
+      const customer = db.customers.find((entry) => entry.id === customerId);
+      if (!customer) {
+        continue;
+      }
+
+      db.customerMessages.unshift({
+        id: `msg-${Date.now()}-${customerId}`,
+        customerId,
+        customerName: customer.displayName,
+        senderRole: "admin",
+        message: `Hi ${customer.displayName}, you asked if I could get more of ${product.title}. It's now back in stock here: ${restockMessageLink}`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+
+    if (matchingRequests.length > 0) {
+      db.notifications = db.notifications.filter((entry) => !(entry.type === "restock_request" && entry.label.includes(product.title)));
+    }
   }
 
   await writeDatabase(db);

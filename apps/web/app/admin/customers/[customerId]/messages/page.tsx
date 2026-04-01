@@ -1,6 +1,7 @@
 import { ensureAdminAccess } from "../../../../../lib/auth/guards";
 import { listCustomerMessagesForCustomer, listCustomers } from "../../../../../lib/data/local-db";
 import { CustomerMessageReplyForm } from "../../../../../components/forms/customer-message-reply-form";
+import { MessageContent } from "../../../../../components/messages/message-content";
 
 export default async function AdminCustomerMessagesPage({
   params,
@@ -43,7 +44,7 @@ export default async function AdminCustomerMessagesPage({
             <p style={{ margin: 0, color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {message.senderRole === "admin" ? "Admin" : customer.displayName}
             </p>
-            <p style={{ margin: 0, whiteSpace: "pre-wrap", lineHeight: 1.75 }}>{message.message}</p>
+            <MessageContent message={message.message} />
             <p style={{ margin: "8px 0 0", color: "var(--muted)", fontSize: 13 }}>{message.createdAt}</p>
           </article>
         )) : <p style={{ margin: 0, color: "var(--muted)" }}>No customer messages yet.</p>}

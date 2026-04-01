@@ -13,14 +13,56 @@ import {
   siteToday,
 } from "./supabase-helpers";
 import { getCurrentCustomerSupabase, listProductsSupabase } from "./supabase-reads";
-import { getProductImagesBucket } from "../supabase";
+import { getProductImagesBucket, getSiteUrl } from "../supabase";
 import { zonedLocalDateTimeToIso } from "../events";
+import { getProductPath } from "../products";
 
 const MAX_IMAGE_COUNT = 6;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 function slugifyFilename(name: string) {
   return name.replace(/[^a-zA-Z0-9.-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase();
+}
+
+async function notifyRestockRequestCustomers(
+  admin: Awaited<ReturnType<typeof getAdminClient>>,
+  product: { id: string; title: string },
+) {
+  const { data: requests, error } = await admin
+    .from("restock_requests")
+    .select("id, customer_id")
+    .eq("product_id", product.id)
+    .eq("status", "open")
+    .not("customer_id", "is", null);
+
+  if (error) {
+    throw error;
+  }
+
+  const customerIds = [...new Set((requests ?? []).map((request) => request.customer_id).filter((value): value is string => typeof value === "string" && value.length > 0))];
+  if (customerIds.length === 0) {
+    return;
+  }
+
+  const productUrl = `${getSiteUrl().replace(/\/$/, "")}${getProductPath({ id: product.id, title: product.title })}`;
+  const customerMessages = await Promise.all(customerIds.map(async (customerId) => {
+    const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
+    return {
+      customer_id: customerId,
+      body: `Hi ${customer.displayName}, you asked if I could get more of ${product.title}. It's now back in stock here: ${productUrl}`,
+      sender_role: "admin" as const,
+    };
+  }));
+
+  const messageInsert = await admin.from("customer_messages").insert(customerMessages);
+  if (messageInsert.error) {
+    throw messageInsert.error;
+  }
+
+  await admin
+    .from("restock_requests")
+    .update({ status: "fulfilled" })
+    .in("id", (requests ?? []).map((request) => request.id));
 }
 
 export async function submitClaimToDatabaseSupabase(productId: string, requestedQuantity: number) {
@@ -52,6 +94,7 @@ export async function adjustInventoryInDatabaseSupabase(productId: string, quant
   const { data: product, error } = await admin.from("products").select("id, title, inventory_quantity").eq("id", productId).single();
   if (error || !product) return { ok: false, message: "Product not found." };
 
+  const previousQuantity = Number(product.inventory_quantity ?? 0);
   const nextQuantity = Number(product.inventory_quantity ?? 0) + quantityChange;
   if (nextQuantity < 0) return { ok: false, message: "Inventory cannot go below zero." };
 
@@ -60,6 +103,10 @@ export async function adjustInventoryInDatabaseSupabase(productId: string, quant
 
   if (nextQuantity === 1) {
     await admin.from("notifications").insert({ type: "low_stock", product_id: productId, payload: { label: `${product.title} reached low stock.` } });
+  }
+
+  if (previousQuantity === 0 && nextQuantity > 0) {
+    await notifyRestockRequestCustomers(admin, { id: product.id, title: product.title });
   }
 
   return { ok: true, message: `${product.title} inventory updated to ${nextQuantity}.` };

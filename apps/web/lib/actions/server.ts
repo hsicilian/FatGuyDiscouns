@@ -189,6 +189,9 @@ export async function adjustInventory(productId: string, quantityChange: number)
   revalidatePath("/claims");
   revalidatePath("/admin");
   revalidatePath("/admin/inventory");
+  revalidatePath("/account");
+  revalidatePath("/account/messages");
+  revalidatePath("/admin/customers");
 
   return {
     ...result,

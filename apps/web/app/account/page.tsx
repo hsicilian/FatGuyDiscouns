@@ -7,6 +7,7 @@ import {
   shipmentStatusLabel,
 } from "@fatguydiscounts/core";
 import { CustomerMessageForm } from "../../components/forms/customer-message-form";
+import { MessageContent } from "../../components/messages/message-content";
 import { ProfileForm } from "../../components/forms/profile-form";
 import { ShipmentRequestForm } from "../../components/forms/shipment-request-form";
 import { previewShipmentRequest } from "../../lib/actions/shipments";
@@ -199,7 +200,7 @@ export default async function AccountPage() {
                   <p style={{ margin: 0, color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     {message.senderRole === "admin" ? "Admin reply" : "You"}
                   </p>
-                  <p style={{ margin: "6px 0 0", whiteSpace: "pre-wrap", lineHeight: 1.7 }}>{message.message}</p>
+                  <MessageContent message={message.message} />
                   <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>{message.createdAt}</p>
                 </div>
               )) : <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)", color: "var(--muted)" }}>No messages yet.</div>}
