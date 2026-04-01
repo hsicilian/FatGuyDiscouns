@@ -124,33 +124,62 @@ export default async function ProductDetailPage({
         <p style={{ margin: 0, color: "var(--muted)" }}>{product.category} | {PRODUCT_STATUS_LABELS[product.status]}</p>
       </div>
 
-      <section style={{ display: "grid", gap: 24, gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, 0.85fr)", alignItems: "start" }}>
+      <section className="product-detail-grid" style={{ display: "grid", gap: 24, gridTemplateColumns: "minmax(0, 1.15fr) minmax(320px, 0.85fr)", alignItems: "start" }}>
         <div style={{ display: "grid", gap: 14 }}>
           <div
+            className="product-detail-primary-image"
             style={{
               minHeight: 520,
               borderRadius: 28,
               border: "1px solid var(--line)",
-              background: `center / cover no-repeat url("${gallery[0]}"), linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)`,
+              background: "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
               boxShadow: "var(--shadow)",
+              overflow: "hidden",
+              position: "relative",
             }}
-          />
-          <div style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
+          >
+            <img
+              src={gallery[0]}
+              alt={product.title}
+              style={{
+                display: "block",
+                width: "100%",
+                height: "100%",
+                minHeight: 520,
+                objectFit: "cover",
+              }}
+            />
+          </div>
+          <div className="product-detail-gallery" style={{ display: "grid", gap: 12, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}>
             {gallery.slice(1, 6).map((image, index) => (
               <div
                 key={`${product.id}-image-${index + 1}`}
+                className="product-detail-gallery-item"
                 style={{
                   minHeight: 140,
                   borderRadius: 18,
                   border: "1px solid var(--line)",
-                  background: `center / cover no-repeat url("${image}"), linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)`,
+                  background: "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
+                  overflow: "hidden",
                 }}
-              />
+              >
+                <img
+                  src={image}
+                  alt={`${product.title} view ${index + 2}`}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    minHeight: 140,
+                    objectFit: "cover",
+                  }}
+                />
+              </div>
             ))}
           </div>
         </div>
 
-        <section style={{ background: "linear-gradient(145deg, rgba(255, 249, 239, 0.96) 0%, rgba(255, 239, 218, 0.93) 100%)", border: "1px solid rgba(222, 197, 174, 0.95)", borderRadius: 32, padding: "32px clamp(22px, 4vw, 36px)", boxShadow: "var(--shadow)", display: "grid", gap: 18 }}>
+        <section className="product-detail-panel" style={{ background: "linear-gradient(145deg, rgba(255, 249, 239, 0.96) 0%, rgba(255, 239, 218, 0.93) 100%)", border: "1px solid rgba(222, 197, 174, 0.95)", borderRadius: 32, padding: "32px clamp(22px, 4vw, 36px)", boxShadow: "var(--shadow)", display: "grid", gap: 18 }}>
           <div>
             <p style={{ margin: 0, fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--accent-strong)", fontWeight: 700 }}>
               Claim-ready listing

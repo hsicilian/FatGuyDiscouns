@@ -18,32 +18,15 @@ export default async function AdminPage() {
   await ensureAdminAccess();
   const currentUser = await getCurrentSessionUser();
   const isMasterAdmin = currentUser?.role === "master_admin";
-  const usingSupabase = hasSupabaseEnv();
   const visibleCards = cards.filter((card) => (card.href === "/admin/reports" ? isMasterAdmin : true));
 
   return (
     <main style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px 72px", display: "grid", gap: 24 }}>
       <section style={{ background: "linear-gradient(145deg, rgba(255, 249, 241, 0.95) 0%, rgba(246, 229, 209, 0.92) 100%)", border: "1px solid var(--line)", borderRadius: 30, padding: 30, boxShadow: "var(--shadow)" }}>
         <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0 }}>Admin shell</p>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 20, alignItems: "end", flexWrap: "wrap" }}>
-          <div>
-            <h1 style={{ margin: 0 }}>Operations control center</h1>
-          </div>
-          <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", width: "min(100%, 320px)" }}>
-            {!usingSupabase ? (
-              <div style={{ gridColumn: "1 / -1", display: "flex", justifyContent: "flex-end" }}>
-                <ResetLocalDbForm />
-              </div>
-            ) : null}
-            <div style={{ background: "rgba(255,255,255,0.52)", border: "1px solid rgba(232,214,195,0.9)", borderRadius: 18, padding: 16 }}>
-              <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em" }}>Modules</p>
-              <strong style={{ fontSize: "1.8rem" }}>{visibleCards.length}</strong>
-            </div>
-            <div style={{ background: "rgba(255,255,255,0.52)", border: "1px solid rgba(232,214,195,0.9)", borderRadius: 18, padding: 16 }}>
-              <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em" }}>Launch mode</p>
-              <strong style={{ fontSize: "1.05rem" }}>{usingSupabase ? "Supabase live" : "Local fallback"}</strong>
-            </div>
-          </div>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
+          <h1 style={{ margin: 0 }}>Operations control center</h1>
+          {!hasSupabaseEnv() ? <ResetLocalDbForm /> : null}
         </div>
       </section>
 
