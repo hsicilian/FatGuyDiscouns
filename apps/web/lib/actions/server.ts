@@ -32,6 +32,7 @@ import {
   updateCustomerAccountState,
   updateCustomerRoleInDatabase,
   updateCurrentCustomerProfile,
+  updateCustomerProfileByAdmin,
   updateShipmentInDatabase,
   createEventInDatabase,
 } from "../data/local-db";
@@ -471,6 +472,31 @@ export async function updateCurrentCustomerProfileDetails(
   const result = await updateCurrentCustomerProfile({ street, city, region, postalCode, timezone });
   revalidatePath("/account");
   revalidatePath("/claims");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateCustomerProfileDetailsByAdmin(
+  customerId: string,
+  street: string,
+  city: string,
+  region: string,
+  postalCode: string,
+  timezone: string,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateCustomerProfileByAdmin(customerId, { street, city, region, postalCode, timezone });
+  revalidatePath("/account");
+  revalidatePath("/claims");
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/customers/[customerId]", "page");
 
   return {
     ...result,

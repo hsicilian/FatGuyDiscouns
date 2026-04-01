@@ -599,6 +599,46 @@ export async function updateCurrentCustomerProfile(input: { street: string; city
   };
 }
 
+export async function updateCustomerProfileByAdmin(
+  customerId: string,
+  input: { street: string; city: string; region: string; postalCode: string; timezone: string },
+) {
+  const db = await readDatabase();
+  const customer = db.customers.find((entry) => entry.id === customerId);
+
+  if (!customer) {
+    return { ok: false as const, message: "Customer not found." };
+  }
+
+  const street = input.street.trim();
+  const city = input.city.trim();
+  const region = input.region.trim();
+  const postalCode = input.postalCode.trim();
+  const timezone = input.timezone.trim();
+
+  if (!street || !city || !region || !postalCode) {
+    return { ok: false as const, message: "Street, city, state, and zip code are all required." };
+  }
+
+  if (!timezone) {
+    return { ok: false as const, message: "Timezone is required." };
+  }
+
+  customer.street = street;
+  customer.city = city;
+  customer.region = region;
+  customer.postalCode = postalCode;
+  customer.timezone = timezone;
+  customer.address = `${street}, ${city}, ${region} ${postalCode}`;
+
+  await writeDatabase(db);
+
+  return {
+    ok: true as const,
+    message: `${customer.displayName} profile details updated.`,
+  };
+}
+
 export async function getBalanceCycle() {
   const db = await readDatabase();
   return db.balanceCycle;

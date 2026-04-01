@@ -2,6 +2,7 @@ import { accountStateLabel, calculateBalanceDue, shipmentStatusLabel } from "@fa
 import { ApprovalActionForm } from "../../../../components/forms/approval-action-form";
 import { BalanceAdjustmentForm } from "../../../../components/forms/balance-adjustment-form";
 import { BalanceLineItemForm } from "../../../../components/forms/balance-line-item-form";
+import { CustomerProfileAdminForm } from "../../../../components/forms/customer-profile-admin-form";
 import { CustomerMessageReplyForm } from "../../../../components/forms/customer-message-reply-form";
 import { MessageContent } from "../../../../components/messages/message-content";
 import { CustomerNoteForm } from "../../../../components/forms/customer-note-form";
@@ -124,6 +125,28 @@ export default async function AdminCustomerDetailPage({
           <h2 style={{ margin: 0 }}>Account controls</h2>
           {canManageAccountState ? <ApprovalActionForm customerId={customer.id} /> : null}
           {canPromote ? <PromoteAdminForm customerId={customer.id} /> : null}
+        </div>
+
+        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
+          <h2 style={{ marginTop: 0 }}>Customer profile</h2>
+          <div style={{ display: "grid", gap: 10, marginBottom: 14 }}>
+            <div style={{ borderTop: "1px solid #eedfce", paddingTop: 10 }}>
+              <p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>Address on file</p>
+              <p style={{ margin: "4px 0 0" }}><strong>{customer.address}</strong></p>
+            </div>
+            <div style={{ borderTop: "1px solid #eedfce", paddingTop: 10 }}>
+              <p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>Timezone on file</p>
+              <p style={{ margin: "4px 0 0" }}><strong>{customer.timezone}</strong></p>
+            </div>
+          </div>
+          <CustomerProfileAdminForm
+            customerId={customer.id}
+            defaultStreet={customer.street}
+            defaultCity={customer.city}
+            defaultRegion={customer.region}
+            defaultPostalCode={customer.postalCode}
+            defaultTimezone={customer.timezone}
+          />
         </div>
 
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>

@@ -24,6 +24,96 @@ function slugifyFilename(name: string) {
   return name.replace(/[^a-zA-Z0-9.-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase();
 }
 
+async function saveCustomerProfileAddressSupabase(userId: string, input: {
+  street: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  timezone: string;
+}) {
+  const street = input.street.trim();
+  const city = input.city.trim();
+  const region = input.region.trim();
+  const postalCode = input.postalCode.trim();
+  const timezone = input.timezone.trim();
+  if (!street || !city || !region || !postalCode) return { ok: false as const, message: "Street, city, state, and zip code are all required." };
+  if (!timezone) return { ok: false as const, message: "Timezone is required." };
+
+  const admin = await getAdminClient();
+  const existingAddresses = await admin
+    .from("addresses")
+    .select("id")
+    .eq("user_id", userId)
+    .order("updated_at", { ascending: false });
+
+  if (existingAddresses.error) {
+    return { ok: false as const, message: existingAddresses.error.message };
+  }
+
+  const addressIds = (existingAddresses.data ?? []).map((row) => row.id);
+  let addressId = addressIds[0] ?? null;
+
+  const profileUpsert = await admin
+    .from("customer_profiles")
+    .upsert({
+      user_id: userId,
+      timezone,
+      default_address_id: addressId,
+    }, { onConflict: "user_id" });
+
+  if (profileUpsert.error) return { ok: false as const, message: profileUpsert.error.message };
+
+  if (addressId) {
+    if (addressIds.length > 1) {
+      const clearDefaults = await admin
+        .from("addresses")
+        .update({ is_default: false, updated_at: new Date().toISOString() })
+        .in("id", addressIds.slice(1));
+
+      if (clearDefaults.error) return { ok: false as const, message: clearDefaults.error.message };
+    }
+
+    const updateAddress = await admin
+      .from("addresses")
+      .update({
+        line1: street,
+        city,
+        region,
+        postal_code: postalCode,
+        country: "US",
+        is_default: true,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", addressId)
+      .eq("user_id", userId);
+
+    if (updateAddress.error) return { ok: false as const, message: updateAddress.error.message };
+  } else {
+    const insertAddress = await admin
+      .from("addresses")
+      .insert({ user_id: userId, line1: street, city, region, postal_code: postalCode, country: "US", is_default: true })
+      .select("id")
+      .single();
+
+    if (insertAddress.error || !insertAddress.data) {
+      return { ok: false as const, message: insertAddress.error?.message ?? "Could not save address." };
+    }
+
+    addressId = insertAddress.data.id;
+  }
+
+  const profileUpdate = await admin
+    .from("customer_profiles")
+    .upsert({
+      user_id: userId,
+      timezone,
+      default_address_id: addressId,
+    }, { onConflict: "user_id" });
+  if (profileUpdate.error) return { ok: false as const, message: profileUpdate.error.message };
+
+  return { ok: true as const, message: "Profile details updated." };
+}
+
 async function notifyRestockRequestCustomers(
   admin: Awaited<ReturnType<typeof getAdminClient>>,
   product: { id: string; title: string },
@@ -884,87 +974,20 @@ export async function applyPaymentToDatabaseSupabase(paymentAmount: number, cred
 
 export async function updateCurrentCustomerProfileSupabase(input: { street: string; city: string; region: string; postalCode: string; timezone: string }) {
   const actor = await getCurrentActor();
-  const street = input.street.trim();
-  const city = input.city.trim();
-  const region = input.region.trim();
-  const postalCode = input.postalCode.trim();
-  const timezone = input.timezone.trim();
-  if (!street || !city || !region || !postalCode) return { ok: false, message: "Street, city, state, and zip code are all required." };
-  if (!timezone) return { ok: false, message: "Timezone is required." };
+  return saveCustomerProfileAddressSupabase(actor.id, input);
+}
 
-  const admin = await getAdminClient();
-  const existingAddresses = await admin
-    .from("addresses")
-    .select("id")
-    .eq("user_id", actor.id)
-    .order("updated_at", { ascending: false });
-
-  if (existingAddresses.error) {
-    return { ok: false, message: existingAddresses.error.message };
+export async function updateCustomerProfileByAdminSupabase(customerId: string, input: { street: string; city: string; region: string; postalCode: string; timezone: string }) {
+  const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
+  const result = await saveCustomerProfileAddressSupabase(customerId, input);
+  if (!result.ok) {
+    return result;
   }
 
-  const addressIds = (existingAddresses.data ?? []).map((row) => row.id);
-  let addressId = addressIds[0] ?? null;
-
-  const profileUpsert = await admin
-    .from("customer_profiles")
-    .upsert({
-      user_id: actor.id,
-      timezone,
-      default_address_id: addressId,
-    }, { onConflict: "user_id" });
-
-  if (profileUpsert.error) return { ok: false, message: profileUpsert.error.message };
-
-  if (addressId) {
-    if (addressIds.length > 1) {
-      const clearDefaults = await admin
-        .from("addresses")
-        .update({ is_default: false, updated_at: new Date().toISOString() })
-        .in("id", addressIds.slice(1));
-
-      if (clearDefaults.error) return { ok: false, message: clearDefaults.error.message };
-    }
-
-    const updateAddress = await admin
-      .from("addresses")
-      .update({
-        line1: street,
-        city,
-        region,
-        postal_code: postalCode,
-        country: "US",
-        is_default: true,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", addressId)
-      .eq("user_id", actor.id);
-
-    if (updateAddress.error) return { ok: false, message: updateAddress.error.message };
-  } else {
-    const insertAddress = await admin
-      .from("addresses")
-      .insert({ user_id: actor.id, line1: street, city, region, postal_code: postalCode, country: "US", is_default: true })
-      .select("id")
-      .single();
-
-    if (insertAddress.error || !insertAddress.data) {
-      return { ok: false, message: insertAddress.error?.message ?? "Could not save address." };
-    }
-
-    addressId = insertAddress.data.id;
-  }
-
-  const profileUpdate = await admin
-    .from("customer_profiles")
-    .upsert({
-      user_id: actor.id,
-      timezone,
-      default_address_id: addressId,
-    }, { onConflict: "user_id" });
-  if (profileUpdate.error) return { ok: false, message: profileUpdate.error.message };
-
-  return { ok: true, message: "Profile details updated." };
+  return {
+    ok: true as const,
+    message: `${customer.displayName} profile details updated.`,
+  };
 }
 
 export async function createEventInDatabaseSupabase(input: {

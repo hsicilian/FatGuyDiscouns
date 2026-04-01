@@ -49,6 +49,7 @@ import {
   submitCustomerMessageToDatabaseSupabase,
   submitRestockRequestToDatabaseSupabase,
   submitShipmentRequestToDatabaseSupabase,
+  updateCustomerProfileByAdminSupabase,
   updateProductSaleInDatabaseSupabase,
   updateClaimedItemInDatabaseSupabase,
   updateCurrentCustomerProfileSupabase,
@@ -113,6 +114,15 @@ export async function updateCurrentCustomerProfile(input: { street: string; city
   return shouldUseSupabase()
     ? updateCurrentCustomerProfileSupabase(input)
     : fallback.updateCurrentCustomerProfile(input);
+}
+
+export async function updateCustomerProfileByAdmin(
+  customerId: string,
+  input: { street: string; city: string; region: string; postalCode: string; timezone: string },
+) {
+  return shouldUseSupabase()
+    ? updateCustomerProfileByAdminSupabase(customerId, input)
+    : fallback.updateCustomerProfileByAdmin(customerId, input);
 }
 
 export async function getBalanceCycle(customerId?: string) {
