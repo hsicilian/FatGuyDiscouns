@@ -1,6 +1,6 @@
 const palette = {
-  panel: "#fffaf3",
-  line: "#e8d6c3",
+  panel: "linear-gradient(145deg, rgba(255, 248, 240, 0.98) 0%, rgba(255, 231, 214, 0.94) 56%, rgba(229, 250, 242, 0.92) 100%)",
+  line: "#f0c4b5",
 };
 
 const spacing = {
@@ -15,6 +15,7 @@ export function Panel({ children }: { children: React.ReactNode }) {
         border: `1px solid ${palette.line}`,
         borderRadius: 20,
         padding: spacing.lg,
+        boxShadow: "0 14px 34px rgba(226, 118, 92, 0.12)",
       }}
     >
       {children}

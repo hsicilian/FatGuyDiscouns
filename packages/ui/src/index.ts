@@ -2,13 +2,13 @@ export * from "./components/panel";
 export * from "./components/pill-button";
 
 export const palette = {
-  background: "#f7f1e8",
-  panel: "#fffaf3",
-  ink: "#1f1d1a",
-  muted: "#6d655d",
-  accent: "#bb4d00",
-  accentStrong: "#8e3200",
-  line: "#e8d6c3",
+  background: "#fff1dd",
+  panel: "linear-gradient(145deg, rgba(255, 248, 240, 0.98) 0%, rgba(255, 231, 214, 0.94) 56%, rgba(229, 250, 242, 0.92) 100%)",
+  ink: "#342444",
+  muted: "#7c6777",
+  accent: "#ff6f6f",
+  accentStrong: "#ff8552",
+  line: "#f0c4b5",
 };
 
 export const spacing = {

@@ -22,18 +22,41 @@ export default async function HomePage() {
       <section
         className="home-welcome-panel"
         style={{
-          background: "linear-gradient(145deg, rgba(255, 251, 244, 0.96) 0%, rgba(255, 233, 215, 0.96) 52%, rgba(255, 244, 224, 0.94) 100%)",
-          border: "1px solid rgba(240, 207, 196, 0.95)",
+          background:
+            "linear-gradient(135deg, rgba(255, 249, 243, 0.98) 0%, rgba(255, 228, 205, 0.96) 42%, rgba(255, 214, 198, 0.96) 72%, rgba(225, 249, 241, 0.96) 100%)",
+          border: "1px solid rgba(240, 194, 170, 0.92)",
           borderRadius: 34,
           padding: "38px clamp(24px, 4vw, 42px)",
           boxShadow: "var(--shadow)",
           marginBottom: 28,
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        <h1 className="home-welcome-title" style={{ margin: "0 0 14px", fontSize: "clamp(2.7rem, 6vw, 4.4rem)", lineHeight: 0.95 }}>
+        <div
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "radial-gradient(circle at top right, rgba(255, 220, 94, 0.28) 0%, rgba(255, 220, 94, 0) 28%), radial-gradient(circle at 18% 24%, rgba(255, 120, 120, 0.18) 0%, rgba(255, 120, 120, 0) 26%), radial-gradient(circle at 78% 72%, rgba(111, 221, 204, 0.2) 0%, rgba(111, 221, 204, 0) 26%)",
+          }}
+        />
+        <h1 className="home-welcome-title" style={{ margin: "0 0 14px", fontSize: "clamp(2.7rem, 6vw, 4.4rem)", lineHeight: 0.95, position: "relative", zIndex: 1, color: "var(--berry)" }}>
           Welcome To Fat Guy Discounts!
         </h1>
-        <p className="home-welcome-copy" style={{ margin: 0, color: "var(--muted)", fontSize: "1.08rem", lineHeight: 1.8, maxWidth: 760 }}>
+        <p
+          className="home-welcome-copy"
+          style={{
+            margin: 0,
+            color: "var(--berry)",
+            fontSize: "1.08rem",
+            lineHeight: 1.8,
+            maxWidth: 760,
+            position: "relative",
+            zIndex: 1,
+          }}
+        >
           Shop, check your balance &amp; request shipments all in one place!
         </p>
       </section>
@@ -44,9 +67,19 @@ export default async function HomePage() {
             <p style={{ margin: 0, fontSize: 12, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--accent-strong)", fontWeight: 700 }}>
               Fresh inventory
             </p>
-            <h2 style={{ margin: "8px 0 0", fontSize: "clamp(2rem, 4vw, 3rem)" }}>Newly Added Inventory</h2>
+            <h2 style={{ margin: "8px 0 0", fontSize: "clamp(2rem, 4vw, 3rem)", color: "var(--berry)" }}>Newly Added Inventory</h2>
           </div>
-          <a href="/store" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>
+          <a
+            href="/store"
+            style={{
+              color: "#fff",
+              fontWeight: 800,
+              padding: "12px 18px",
+              borderRadius: 999,
+              background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 58%, #ffb253 100%)",
+              boxShadow: "0 16px 28px rgba(240, 95, 87, 0.22)",
+            }}
+          >
             See More
           </a>
         </div>
