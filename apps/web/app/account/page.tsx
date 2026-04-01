@@ -37,6 +37,7 @@ export default async function AccountPage() {
     previewShipmentRequest(),
   ]);
   const recentMessages = await listCustomerMessagesForCustomer(currentCustomer.id, { limit: 5 });
+  const recentMessagesForDisplay = [...recentMessages].reverse();
   const amountDue = calculateBalanceDue(balanceCycle);
   const today = new Date().toISOString().slice(0, 10);
   const overdue = isBalanceOverdue(balanceCycle, today);
@@ -144,13 +145,37 @@ export default async function AccountPage() {
           </section>
 
           <section style={{ paddingTop: 4, borderTop: "1px solid rgba(232,214,195,0.88)" }}>
-            <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 700 }}>Message admin</p>
-            <h3 style={{ marginTop: 0 }}>Need help with your account?</h3>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+              <div>
+                <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 700 }}>Message admin</p>
+                <h3 style={{ marginTop: 0 }}>Need help with your account?</h3>
+              </div>
+              <a
+                href="/account/messages"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: 120,
+                  padding: "10px 16px",
+                  borderRadius: 999,
+                  background: "var(--ink)",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: 14,
+                  lineHeight: 1.2,
+                  whiteSpace: "nowrap",
+                  textDecoration: "none",
+                }}
+              >
+                View more
+              </a>
+            </div>
             <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
               Send a note to the admin team here. Replies from admin will show in this thread on your account page.
             </p>
             <div style={{ display: "grid", gap: 10, marginBottom: 16 }}>
-              {recentMessages.length > 0 ? recentMessages.map((message) => (
+              {recentMessagesForDisplay.length > 0 ? recentMessagesForDisplay.map((message) => (
                 <div key={message.id} style={{ padding: 12, borderRadius: 16, background: message.senderRole === "admin" ? "rgba(31,29,26,0.08)" : "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
                   <p style={{ margin: 0, color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     {message.senderRole === "admin" ? "Admin reply" : "You"}
