@@ -76,6 +76,7 @@ export default async function AdminCustomerDetailPage({
   const canPromote = isMasterAdmin && customer.role === "customer";
   const canManageAccountState = customer.role === "customer";
   const currentBalance = calculateBalanceDue(balanceCycle);
+  const customerMessagesForDisplay = [...customerMessages].reverse();
 
   return (
     <main style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 24px 72px", display: "grid", gap: 24 }}>
@@ -163,7 +164,7 @@ export default async function AdminCustomerDetailPage({
           </a>
         </div>
         <div style={{ display: "grid", gap: 12 }}>
-          {customerMessages.length > 0 ? customerMessages.map((message) => (
+          {customerMessagesForDisplay.length > 0 ? customerMessagesForDisplay.map((message) => (
             <div key={message.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12 }}>
               <p style={{ margin: 0, color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 {message.senderRole === "admin" ? "Admin" : customer.displayName}

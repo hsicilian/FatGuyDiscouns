@@ -26,6 +26,8 @@ export default async function AdminCustomerMessagesPage({
     );
   }
 
+  const thread = [...messages].reverse();
+
   return (
     <main style={{ maxWidth: 960, margin: "0 auto", padding: "48px 24px 72px", display: "grid", gap: 24 }}>
       <section style={{ background: "linear-gradient(145deg, rgba(255, 249, 241, 0.95) 0%, rgba(246, 229, 209, 0.92) 100%)", border: "1px solid var(--line)", borderRadius: 30, padding: 28, boxShadow: "var(--shadow)" }}>
@@ -36,7 +38,7 @@ export default async function AdminCustomerMessagesPage({
       </section>
 
       <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 24, boxShadow: "var(--shadow)", display: "grid", gap: 14 }}>
-        {messages.length > 0 ? messages.map((message) => (
+        {thread.length > 0 ? thread.map((message) => (
           <article key={message.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 14 }}>
             <p style={{ margin: 0, color: "var(--muted)", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {message.senderRole === "admin" ? "Admin" : customer.displayName}
