@@ -19,8 +19,57 @@ const initialState: FormActionState = {
 };
 
 export function CrossListedInventoryForm() {
-  const [state, formAction, isPending] = useActionState(saveCrossListedInventoryAction, initialState);
-  const [useOtherPlatform, setUseOtherPlatform] = useState(false);
+  return (
+    <CrossListedInventoryFormInner
+      sku=""
+      itemName=""
+      platforms={[]}
+      submitLabel="Save Cross Listed Item"
+      message={initialState.message}
+    />
+  );
+}
+
+export function CrossListedInventoryEditForm({
+  sku,
+  itemName,
+  platforms,
+}: {
+  sku: string;
+  itemName: string;
+  platforms: string[];
+}) {
+  return (
+    <CrossListedInventoryFormInner
+      sku={sku}
+      itemName={itemName}
+      platforms={platforms}
+      submitLabel="Update Platforms"
+      message="Update the saved platforms for this SKU, then save the changes."
+    />
+  );
+}
+
+function CrossListedInventoryFormInner({
+  sku,
+  itemName,
+  platforms,
+  submitLabel,
+  message,
+}: {
+  sku: string;
+  itemName: string;
+  platforms: string[];
+  submitLabel: string;
+  message: string;
+}) {
+  const [state, formAction, isPending] = useActionState(saveCrossListedInventoryAction, {
+    ...initialState,
+    message,
+  });
+  const standardPlatforms = platforms.filter((platform) => PLATFORM_OPTIONS.includes(platform));
+  const customPlatforms = platforms.filter((platform) => !PLATFORM_OPTIONS.includes(platform));
+  const [useOtherPlatform, setUseOtherPlatform] = useState(customPlatforms.length > 0);
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 14 }}>
@@ -30,6 +79,7 @@ export function CrossListedInventoryForm() {
           <input
             name="sku"
             type="text"
+            defaultValue={sku}
             placeholder="0004"
             style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2" }}
           />
@@ -39,6 +89,7 @@ export function CrossListedInventoryForm() {
           <input
             name="itemName"
             type="text"
+            defaultValue={itemName}
             placeholder="Vintage denim jacket"
             style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2" }}
           />
@@ -61,7 +112,7 @@ export function CrossListedInventoryForm() {
                 background: "rgba(255,255,255,0.56)",
               }}
             >
-              <input type="checkbox" name="platforms" value={platform} />
+              <input type="checkbox" name="platforms" value={platform} defaultChecked={standardPlatforms.includes(platform)} />
               <span>{platform}</span>
             </label>
           ))}
@@ -92,6 +143,7 @@ export function CrossListedInventoryForm() {
           <input
             name="otherPlatform"
             type="text"
+            defaultValue={customPlatforms[0] ?? ""}
             placeholder="Michelle's account"
             style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2" }}
           />
@@ -99,7 +151,7 @@ export function CrossListedInventoryForm() {
       ) : null}
 
       <button disabled={isPending} style={{ width: "100%", background: "#1f1d1a", color: "#fff", border: 0, borderRadius: 999, padding: "12px 16px", fontWeight: 700 }}>
-        {isPending ? "Saving..." : "Save Cross Listed Item"}
+        {isPending ? "Saving..." : submitLabel}
       </button>
       <p style={{ color: state.ok ? "#2f5d32" : "#8e3200", margin: 0 }}>{state.message}</p>
     </form>

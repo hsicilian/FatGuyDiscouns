@@ -935,6 +935,19 @@ export async function saveCrossListedInventoryToDatabase(input: {
   return { ok: true, message: `Cross-listed inventory saved for SKU ${sku}.` };
 }
 
+export async function deleteCrossListedInventoryFromDatabase(recordId: string) {
+  const db = await readDatabase();
+  const existing = db.crossListedInventory.find((entry) => entry.id === recordId);
+
+  if (!existing) {
+    return { ok: false, message: "Cross-listed item not found." };
+  }
+
+  db.crossListedInventory = db.crossListedInventory.filter((entry) => entry.id !== recordId);
+  await writeDatabase(db);
+  return { ok: true, message: `Removed SKU ${existing.sku} from cross-listed inventory.` };
+}
+
 export async function submitClaimToDatabase(productId: string, requestedQuantity: number) {
   const db = await readDatabase();
   const customer = findCurrentCustomer(db);

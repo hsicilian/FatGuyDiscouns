@@ -43,6 +43,7 @@ import {
   createInventoryItemInDatabaseSupabase,
   createInventoryItemsBulkInDatabaseSupabase,
   deleteArchivedProductInDatabaseSupabase,
+  deleteCrossListedInventoryFromDatabaseSupabase,
   deleteCategoryInDatabaseSupabase,
   markNotificationReadInDatabaseSupabase,
   replyToCustomerMessageSupabase,
@@ -410,6 +411,12 @@ export async function saveCrossListedInventoryToDatabase(input: {
   return shouldUseSupabase()
     ? saveCrossListedInventoryToDatabaseSupabase(input)
     : fallback.saveCrossListedInventoryToDatabase(input);
+}
+
+export async function deleteCrossListedInventoryFromDatabase(recordId: string) {
+  return shouldUseSupabase()
+    ? deleteCrossListedInventoryFromDatabaseSupabase(recordId)
+    : fallback.deleteCrossListedInventoryFromDatabase(recordId);
 }
 
 export { platformSummary };

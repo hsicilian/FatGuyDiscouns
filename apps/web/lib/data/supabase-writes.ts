@@ -370,6 +370,30 @@ export async function saveCrossListedInventoryToDatabaseSupabase(input: {
   return { ok: true, message: `Cross-listed inventory saved for SKU ${sku}.` };
 }
 
+export async function deleteCrossListedInventoryFromDatabaseSupabase(recordId: string) {
+  const admin = await getAdminClient();
+  const { data: existing, error: existingError } = await admin
+    .from("cross_listed_inventory")
+    .select("id, sku")
+    .eq("id", recordId)
+    .maybeSingle();
+
+  if (existingError) {
+    return { ok: false, message: existingError.message };
+  }
+
+  if (!existing) {
+    return { ok: false, message: "Cross-listed item not found." };
+  }
+
+  const { error } = await admin.from("cross_listed_inventory").delete().eq("id", recordId);
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  return { ok: true, message: `Removed SKU ${existing.sku} from cross-listed inventory.` };
+}
+
 function slugifyCategoryName(value: string) {
   return value
     .toLowerCase()

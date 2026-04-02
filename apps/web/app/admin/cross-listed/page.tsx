@@ -1,5 +1,6 @@
 import type { CrossListedPlatform } from "@fatguydiscounts/types";
-import { CrossListedInventoryForm } from "../../../components/forms/cross-listed-inventory-form";
+import { CrossListedInventoryEditForm, CrossListedInventoryForm } from "../../../components/forms/cross-listed-inventory-form";
+import { DeleteCrossListedInventoryForm } from "../../../components/forms/delete-cross-listed-inventory-form";
 import { ensureMasterAdminAccess } from "../../../lib/auth/guards";
 import { listCrossListedInventory } from "../../../lib/data/local-db";
 
@@ -65,7 +66,7 @@ export default async function AdminCrossListedPage({
 
           <div style={{ display: "grid", gap: 12 }}>
             {records.length > 0 ? records.map((record) => (
-              <article key={record.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12, display: "grid", gap: 8 }}>
+              <article key={record.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12, display: "grid", gap: 14 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                   <div>
                     <strong>{record.itemName}</strong>
@@ -76,6 +77,18 @@ export default async function AdminCrossListedPage({
                 <p style={{ margin: 0 }}>
                   <strong>Platforms:</strong> {formatPlatforms(record.platforms)}
                 </p>
+                <div style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 1fr) auto" }}>
+                  <div style={{ padding: 14, borderRadius: 18, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                    <CrossListedInventoryEditForm
+                      sku={record.sku}
+                      itemName={record.itemName}
+                      platforms={record.platforms}
+                    />
+                  </div>
+                  <div style={{ display: "flex", alignItems: "start" }}>
+                    <DeleteCrossListedInventoryForm recordId={record.id} />
+                  </div>
+                </div>
               </article>
             )) : (
               <p style={{ margin: 0, color: "var(--muted)" }}>

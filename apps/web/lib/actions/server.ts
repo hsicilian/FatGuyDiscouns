@@ -20,6 +20,7 @@ import {
   createInventoryItemsBulkInDatabase,
   deleteArchivedProductInDatabase,
   deleteCategoryInDatabase,
+  deleteCrossListedInventoryFromDatabase,
   markNotificationReadInDatabase,
   replyToCustomerMessage,
   removeClaimedItemFromDatabase,
@@ -722,6 +723,22 @@ export async function saveCrossListedInventory(
   }
 
   const result = await saveCrossListedInventoryToDatabase({ sku, itemName, platforms });
+  revalidatePath("/admin");
+  revalidatePath("/admin/cross-listed");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function deleteCrossListedInventory(recordId: string): Promise<FormActionState> {
+  const access = await requireMasterAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await deleteCrossListedInventoryFromDatabase(recordId);
   revalidatePath("/admin");
   revalidatePath("/admin/cross-listed");
 
