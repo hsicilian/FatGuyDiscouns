@@ -4,6 +4,7 @@ import { assertProductionSupabaseReady, hasSupabaseEnv } from "../supabase";
 import { platformSummary } from "@fatguydiscounts/db";
 import * as fallback from "./local-db-fallback";
 import {
+  listCrossListedInventorySupabase,
   getBalanceCycleSupabase,
   getCurrentCustomerSupabase,
   listCategoriesSupabase,
@@ -46,6 +47,7 @@ import {
   markNotificationReadInDatabaseSupabase,
   replyToCustomerMessageSupabase,
   removeClaimedItemFromDatabaseSupabase,
+  saveCrossListedInventoryToDatabaseSupabase,
   submitClaimToDatabaseSupabase,
   submitCustomerItemRequestToDatabaseSupabase,
   submitCustomerMessageToDatabaseSupabase,
@@ -185,6 +187,10 @@ export async function listRestockRequests(customerId?: string) {
 
 export async function listNotifications(options?: { includeRead?: boolean }) {
   return shouldUseSupabase() ? listNotificationsSupabase(options) : fallback.listNotifications(options);
+}
+
+export async function listCrossListedInventory(search?: string) {
+  return shouldUseSupabase() ? listCrossListedInventorySupabase(search) : fallback.listCrossListedInventory(search);
 }
 
 export async function listEvents() {
@@ -394,6 +400,16 @@ export async function markNotificationReadInDatabase(notificationId: string) {
   return shouldUseSupabase()
     ? markNotificationReadInDatabaseSupabase(notificationId)
     : fallback.markNotificationReadInDatabase(notificationId);
+}
+
+export async function saveCrossListedInventoryToDatabase(input: {
+  sku: string;
+  itemName: string;
+  platforms: string[];
+}) {
+  return shouldUseSupabase()
+    ? saveCrossListedInventoryToDatabaseSupabase(input)
+    : fallback.saveCrossListedInventoryToDatabase(input);
 }
 
 export { platformSummary };

@@ -23,6 +23,7 @@ import {
   markNotificationReadInDatabase,
   replyToCustomerMessage,
   removeClaimedItemFromDatabase,
+  saveCrossListedInventoryToDatabase,
   submitClaimToDatabase,
   submitCustomerItemRequestToDatabase,
   submitCustomerMessageToDatabase,
@@ -703,6 +704,26 @@ export async function dismissNotification(notificationId: string): Promise<FormA
   const result = await markNotificationReadInDatabase(notificationId);
   revalidatePath("/admin");
   revalidatePath("/admin/notifications");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function saveCrossListedInventory(
+  sku: string,
+  itemName: string,
+  platforms: string[],
+): Promise<FormActionState> {
+  const access = await requireMasterAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await saveCrossListedInventoryToDatabase({ sku, itemName, platforms });
+  revalidatePath("/admin");
+  revalidatePath("/admin/cross-listed");
 
   return {
     ...result,

@@ -295,6 +295,19 @@
     }
   ],
   "customerItemRequests": [],
+  "crossListedInventory": [
+    {
+      "id": "cross-001",
+      "sku": "0004",
+      "itemName": "Vintage denim jacket",
+      "platforms": [
+        "Poshmark",
+        "Facebook Marketplace",
+        "WN Shop"
+      ],
+      "updatedAt": "2026-04-02T09:00:00.000Z"
+    }
+  ],
   "notifications": [
     {
       "id": "notif-001",

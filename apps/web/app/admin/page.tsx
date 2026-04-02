@@ -12,6 +12,7 @@ const cards = [
   { href: "/admin/claims", title: "Claims and adjustments", body: "Manage claim line items, manual additions, shipping charges, and payment adjustments." },
   { href: "/admin/shipments", title: "Shipment queue", body: "Process requests, add tracking, complete shipments, and update last shipment dates." },
   { href: "/admin/events", title: "Events calendar", body: "Add upcoming live sales, keep the calendar current, and drive shoppers to internal event pages." },
+  { href: "/admin/cross-listed", title: "Cross listed inventory", body: "Master-admin-only tracker for the outside platforms each SKU is currently listed on." },
   { href: "/admin/reports", title: "Financial reports", body: "Master-admin-only summaries for unpaid totals and customer balances." },
 ];
 
@@ -19,7 +20,11 @@ export default async function AdminPage() {
   await ensureAdminAccess();
   const currentUser = await getCurrentSessionUser();
   const isMasterAdmin = currentUser?.role === "master_admin";
-  const visibleCards = cards.filter((card) => (card.href === "/admin/reports" ? isMasterAdmin : true));
+  const visibleCards = cards.filter((card) => (
+    card.href === "/admin/reports" || card.href === "/admin/cross-listed"
+      ? isMasterAdmin
+      : true
+  ));
 
   return (
     <main style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px 72px", display: "grid", gap: 24 }}>

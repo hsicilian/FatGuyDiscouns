@@ -210,3 +210,19 @@ export interface FinancialSummary {
     customerId?: string;
   }>;
 }
+
+export type CrossListedPlatform =
+  | "Ebay"
+  | "Poshmark"
+  | "Mercari"
+  | "Facebook Marketplace"
+  | "Website"
+  | "WN Shop";
+
+export interface CrossListedInventoryRecord {
+  id: string;
+  sku: string;
+  itemName: string;
+  platforms: CrossListedPlatform[];
+  updatedAt: string;
+}

@@ -329,6 +329,47 @@ export async function markNotificationReadInDatabaseSupabase(notificationId: str
   return { ok: true, message: "Notification dismissed." };
 }
 
+export async function saveCrossListedInventoryToDatabaseSupabase(input: {
+  sku: string;
+  itemName: string;
+  platforms: string[];
+}) {
+  const admin = await getAdminClient();
+  const sku = input.sku.trim();
+  const itemName = input.itemName.trim();
+  const platforms = input.platforms.filter((entry) => typeof entry === "string" && entry.length > 0);
+
+  if (!sku) {
+    return { ok: false, message: "SKU is required." };
+  }
+
+  if (!itemName) {
+    return { ok: false, message: "Item name is required." };
+  }
+
+  if (platforms.length === 0) {
+    return { ok: false, message: "Select at least one platform." };
+  }
+
+  const { error } = await admin
+    .from("cross_listed_inventory")
+    .upsert(
+      {
+        sku,
+        item_name: itemName,
+        platforms,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "sku" },
+    );
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  return { ok: true, message: `Cross-listed inventory saved for SKU ${sku}.` };
+}
+
 function slugifyCategoryName(value: string) {
   return value
     .toLowerCase()

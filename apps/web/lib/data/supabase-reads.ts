@@ -7,6 +7,7 @@ import type {
   CategoryOption,
   ClaimedItem,
   ClaimHistoryRecord,
+  CrossListedInventoryRecord,
   CustomerItemRequestRecord,
   CustomerMessageRecord,
   CustomerNote,
@@ -423,6 +424,30 @@ export async function listNotificationsSupabase(options?: { includeRead?: boolea
     createdAt: row.created_at,
     readAt: row.read_at ?? null,
   } satisfies AdminNotification));
+}
+
+export async function listCrossListedInventorySupabase(search?: string): Promise<CrossListedInventoryRecord[]> {
+  const admin = await getAdminClient();
+  let query = admin
+    .from("cross_listed_inventory")
+    .select("id, sku, item_name, platforms, updated_at")
+    .order("updated_at", { ascending: false });
+
+  const trimmedSearch = search?.trim();
+  if (trimmedSearch) {
+    query = query.or(`sku.ilike.%${trimmedSearch}%,item_name.ilike.%${trimmedSearch}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    sku: row.sku ?? "",
+    itemName: row.item_name ?? "",
+    platforms: Array.isArray(row.platforms) ? row.platforms : [],
+    updatedAt: row.updated_at ?? new Date().toISOString(),
+  } satisfies CrossListedInventoryRecord));
 }
 
 export async function listEventsSupabase() {

@@ -24,6 +24,7 @@ import type {
   CategoryOption,
   ClaimedItem,
   ClaimHistoryRecord,
+  CrossListedInventoryRecord,
   CustomerItemRequestRecord,
   CustomerMessageRecord,
   CustomerNote,
@@ -49,6 +50,7 @@ export interface LocalDatabase {
   customerNotes: CustomerNote[];
   customerMessages: CustomerMessageRecord[];
   customerItemRequests: CustomerItemRequestRecord[];
+  crossListedInventory: CrossListedInventoryRecord[];
   notifications: AdminNotification[];
   events: ShowEvent[];
   paymentDefaults: {
@@ -316,6 +318,15 @@ function createInitialDatabase(): LocalDatabase {
       },
     ],
     customerItemRequests: [],
+    crossListedInventory: [
+      {
+        id: "cross-001",
+        sku: "0004",
+        itemName: "Vintage denim jacket",
+        platforms: ["Poshmark", "Facebook Marketplace", "WN Shop"],
+        updatedAt: "2026-04-02T09:00:00.000Z",
+      },
+    ],
     notifications: [
       {
         id: "notif-001",
@@ -404,6 +415,7 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
     customerNotes: db.customerNotes ?? fallback.customerNotes,
     customerMessages: db.customerMessages ?? fallback.customerMessages,
     customerItemRequests: db.customerItemRequests ?? fallback.customerItemRequests,
+    crossListedInventory: db.crossListedInventory ?? fallback.crossListedInventory,
     notifications: db.notifications ?? fallback.notifications,
     events: db.events ?? fallback.events,
     paymentDefaults: db.paymentDefaults ?? fallback.paymentDefaults,
@@ -765,6 +777,21 @@ export async function listNotifications(options?: { includeRead?: boolean }) {
   return options?.includeRead ? db.notifications : db.notifications.filter((entry) => !entry.readAt);
 }
 
+export async function listCrossListedInventory(search?: string) {
+  const db = await readDatabase();
+  const trimmedSearch = search?.trim().toLowerCase() ?? "";
+  const records = [...db.crossListedInventory].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+
+  if (!trimmedSearch) {
+    return records;
+  }
+
+  return records.filter((entry) =>
+    entry.sku.toLowerCase().includes(trimmedSearch)
+    || entry.itemName.toLowerCase().includes(trimmedSearch),
+  );
+}
+
 export async function listEvents() {
   const db = await readDatabase();
   return db.events;
@@ -863,6 +890,49 @@ export async function createEventInDatabase(input: {
 
   await writeDatabase(db);
   return { ok: true, message: `${title} was added to the events calendar.` };
+}
+
+export async function saveCrossListedInventoryToDatabase(input: {
+  sku: string;
+  itemName: string;
+  platforms: string[];
+}) {
+  const db = await readDatabase();
+  const sku = input.sku.trim();
+  const itemName = input.itemName.trim();
+  const platforms = input.platforms.filter((entry): entry is CrossListedInventoryRecord["platforms"][number] => typeof entry === "string" && entry.length > 0);
+
+  if (!sku) {
+    return { ok: false, message: "SKU is required." };
+  }
+
+  if (!itemName) {
+    return { ok: false, message: "Item name is required." };
+  }
+
+  if (platforms.length === 0) {
+    return { ok: false, message: "Select at least one platform." };
+  }
+
+  const now = new Date().toISOString();
+  const existing = db.crossListedInventory.find((entry) => entry.sku.toLowerCase() === sku.toLowerCase());
+
+  if (existing) {
+    existing.itemName = itemName;
+    existing.platforms = platforms;
+    existing.updatedAt = now;
+  } else {
+    db.crossListedInventory.unshift({
+      id: `cross-${Date.now()}`,
+      sku,
+      itemName,
+      platforms,
+      updatedAt: now,
+    });
+  }
+
+  await writeDatabase(db);
+  return { ok: true, message: `Cross-listed inventory saved for SKU ${sku}.` };
 }
 
 export async function submitClaimToDatabase(productId: string, requestedQuantity: number) {
