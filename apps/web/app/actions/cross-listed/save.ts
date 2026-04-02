@@ -10,5 +10,7 @@ export async function saveCrossListedInventoryAction(
   const sku = String(formData.get("sku") ?? "");
   const itemName = String(formData.get("itemName") ?? "");
   const platforms = formData.getAll("platforms").map((entry) => String(entry));
-  return saveCrossListedInventory(sku, itemName, platforms);
+  const otherPlatform = String(formData.get("otherPlatform") ?? "").trim();
+  const finalPlatforms = otherPlatform ? [...platforms, otherPlatform] : platforms;
+  return saveCrossListedInventory(sku, itemName, finalPlatforms);
 }

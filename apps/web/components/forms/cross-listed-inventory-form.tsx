@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { CrossListedPlatform, FormActionState } from "@fatguydiscounts/types";
 import { saveCrossListedInventoryAction } from "../../app/actions/cross-listed/save";
 
@@ -20,6 +20,7 @@ const initialState: FormActionState = {
 
 export function CrossListedInventoryForm() {
   const [state, formAction, isPending] = useActionState(saveCrossListedInventoryAction, initialState);
+  const [useOtherPlatform, setUseOtherPlatform] = useState(false);
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 14 }}>
@@ -64,8 +65,38 @@ export function CrossListedInventoryForm() {
               <span>{platform}</span>
             </label>
           ))}
+          <label
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "12px 14px",
+              borderRadius: 14,
+              border: "1px solid rgba(232,214,195,0.88)",
+              background: "rgba(255,255,255,0.56)",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={useOtherPlatform}
+              onChange={(event) => setUseOtherPlatform(event.target.checked)}
+            />
+            <span>Other</span>
+          </label>
         </div>
       </fieldset>
+
+      {useOtherPlatform ? (
+        <label style={{ display: "grid", gap: 6 }}>
+          <span style={{ color: "var(--muted)", fontSize: 14 }}>Other platform name</span>
+          <input
+            name="otherPlatform"
+            type="text"
+            placeholder="Michelle's account"
+            style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2" }}
+          />
+        </label>
+      ) : null}
 
       <button disabled={isPending} style={{ width: "100%", background: "#1f1d1a", color: "#fff", border: 0, borderRadius: 999, padding: "12px 16px", fontWeight: 700 }}>
         {isPending ? "Saving..." : "Save Cross Listed Item"}
