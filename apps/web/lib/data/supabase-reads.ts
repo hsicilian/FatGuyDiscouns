@@ -428,26 +428,33 @@ export async function listNotificationsSupabase(options?: { includeRead?: boolea
 
 export async function listCrossListedInventorySupabase(search?: string): Promise<CrossListedInventoryRecord[]> {
   const admin = await getAdminClient();
-  let query = admin
+  const baseQuery = admin
     .from("cross_listed_inventory")
     .select("id, sku, item_name, platforms, updated_at")
     .order("updated_at", { ascending: false });
 
   const trimmedSearch = search?.trim();
-  if (trimmedSearch) {
-    query = query.or(`sku.ilike.%${trimmedSearch}%,item_name.ilike.%${trimmedSearch}%`);
-  }
-
-  const { data, error } = await query;
+  const { data, error } = await baseQuery;
   if (error) throw error;
 
-  return (data ?? []).map((row) => ({
+  const records = (data ?? []).map((row) => ({
     id: row.id,
     sku: row.sku ?? "",
     itemName: row.item_name ?? "",
     platforms: Array.isArray(row.platforms) ? row.platforms : [],
     updatedAt: row.updated_at ?? new Date().toISOString(),
   } satisfies CrossListedInventoryRecord));
+
+  if (!trimmedSearch) {
+    return records;
+  }
+
+  const loweredSearch = trimmedSearch.toLowerCase();
+  return records.filter((record) =>
+    record.sku.toLowerCase().includes(loweredSearch)
+    || record.itemName.toLowerCase().includes(loweredSearch)
+    || record.platforms.some((platform) => platform.toLowerCase().includes(loweredSearch))
+  );
 }
 
 export async function listEventsSupabase() {

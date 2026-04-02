@@ -788,7 +788,8 @@ export async function listCrossListedInventory(search?: string) {
 
   return records.filter((entry) =>
     entry.sku.toLowerCase().includes(trimmedSearch)
-    || entry.itemName.toLowerCase().includes(trimmedSearch),
+    || entry.itemName.toLowerCase().includes(trimmedSearch)
+    || entry.platforms.some((platform) => platform.toLowerCase().includes(trimmedSearch))
   );
 }
 
