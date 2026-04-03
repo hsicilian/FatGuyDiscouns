@@ -84,17 +84,23 @@ export default async function HomePage() {
           </a>
         </div>
 
-        <div className="home-listings-grid" style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))" }}>
+        <div className="home-listings-grid" style={{ display: "grid", gap: 18, gridTemplateColumns: "repeat(4, minmax(0, 1fr))" }}>
           {latestProducts.map((product) => {
             const cardImage = getCardImage(product.images);
             const productPath = getProductPath(product);
 
             return (
             <Panel key={product.id}>
-              <article style={{ display: "grid", gap: 16 }}>
+              <article
+                style={{
+                  display: "grid",
+                  gap: 16,
+                  gridTemplateRows: "200px auto minmax(72px, auto) 1fr",
+                  height: "100%",
+                }}
+              >
                 <div
                   style={{
-                    minHeight: 200,
                     padding: 20,
                     display: "flex",
                     alignItems: "end",
@@ -152,7 +158,16 @@ export default async function HomePage() {
 
                 <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.7, minHeight: 72 }}>{product.description}</p>
 
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12, flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "end",
+                    gap: 12,
+                    flexWrap: "wrap",
+                    alignSelf: "end",
+                  }}
+                >
                   <div>
                     {product.isOnSale && product.salePrice != null ? (
                       <div style={{ display: "grid", gap: 4 }}>
