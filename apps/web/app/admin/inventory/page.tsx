@@ -52,13 +52,19 @@ export default async function AdminInventoryPage({
 
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const sortParam = typeof resolvedSearchParams.sort === "string" ? resolvedSearchParams.sort : "newest";
+  const categoryParam = typeof resolvedSearchParams.category === "string" ? resolvedSearchParams.category : "all";
   const sort = sortParam in sortOptions ? (sortParam as InventorySortKey) : "newest";
   const [activeProducts, archivedProducts] = await Promise.all([
     listProducts(),
     listProducts({ includeArchived: true }),
   ]);
   const categories = await listCategories();
-  const sortedProducts = sortProducts(activeProducts, sort);
+  const categoryOptions = ["all", ...categories.map((category) => category.name)];
+  const selectedCategory = categoryOptions.includes(categoryParam) ? categoryParam : "all";
+  const filteredProducts = selectedCategory === "all"
+    ? activeProducts
+    : activeProducts.filter((product) => product.category === selectedCategory);
+  const sortedProducts = sortProducts(filteredProducts, sort);
   const archivedCount = archivedProducts.length;
   const lowStockCount = activeProducts.filter((product) => product.quantity <= 1).length;
 
@@ -160,7 +166,15 @@ export default async function AdminInventoryPage({
           boxShadow: "var(--shadow-soft)",
         }}
       >
-        <form style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(220px, 320px) auto", alignItems: "end" }}>
+        <form style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 320px)) auto", alignItems: "end" }}>
+          <label style={{ display: "grid", gap: 6 }}>
+            <span style={{ color: "var(--muted)", fontSize: 14 }}>Filter by category</span>
+            <select name="category" defaultValue={selectedCategory} style={{ padding: 12, borderRadius: 14, border: "1px solid #d9c7b2" }}>
+              {categoryOptions.map((entry) => (
+                <option key={entry} value={entry}>{entry === "all" ? "All categories" : entry}</option>
+              ))}
+            </select>
+          </label>
           <label style={{ display: "grid", gap: 6 }}>
             <span style={{ color: "var(--muted)", fontSize: 14 }}>Sort inventory</span>
             <select name="sort" defaultValue={sort} style={{ padding: 12, borderRadius: 14, border: "1px solid #d9c7b2" }}>
@@ -174,6 +188,17 @@ export default async function AdminInventoryPage({
           </button>
         </form>
       </section>
+
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
+        <p style={{ margin: 0, color: "var(--muted)" }}>
+          {selectedCategory === "all"
+            ? `Showing ${sortedProducts.length} inventory item${sortedProducts.length === 1 ? "" : "s"}`
+            : `Showing ${sortedProducts.length} item${sortedProducts.length === 1 ? "" : "s"} in ${selectedCategory}`}
+        </p>
+        {selectedCategory !== "all" ? (
+          <a href="/admin/inventory" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Clear category filter</a>
+        ) : null}
+      </div>
 
       <div style={{ display: "grid", gap: 16 }}>
         {sortedProducts.map((product) => (
@@ -293,6 +318,13 @@ export default async function AdminInventoryPage({
             </div>
           </Panel>
         ))}
+        {sortedProducts.length === 0 ? (
+          <Panel>
+            <p style={{ margin: 0, color: "var(--muted)" }}>
+              No inventory items were found for {selectedCategory === "all" ? "the current filter." : `${selectedCategory}.`}
+            </p>
+          </Panel>
+        ) : null}
       </div>
     </main>
   );
