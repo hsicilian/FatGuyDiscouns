@@ -119,11 +119,17 @@ function ProductCard({
 
   return (
     <Panel>
-      <article style={{ display: "grid", gap: 16 }}>
+      <article
+        style={{
+          display: "grid",
+          gap: 16,
+          gridTemplateRows: "220px auto minmax(72px, auto) 1fr",
+          height: "100%",
+        }}
+      >
         <a
           href={productPath}
           style={{
-            minHeight: 220,
             borderRadius: 20,
             background: "linear-gradient(145deg, #ecd0af 0%, #fff0d6 100%)",
             padding: 18,
@@ -183,7 +189,16 @@ function ProductCard({
 
         <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.7, minHeight: 72 }}>{product.description}</p>
 
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "end", flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 12,
+            alignItems: "end",
+            flexWrap: "wrap",
+            alignSelf: "end",
+          }}
+        >
           <div>
             {product.isOnSale && product.salePrice != null ? (
               <div style={{ display: "grid", gap: 4 }}>
@@ -400,9 +415,10 @@ export default async function StorePage({
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                  gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
                   gap: 18,
                 }}
+                className="store-category-grid"
               >
                 {section.products.map((product) => (
                   <ProductCard

@@ -293,6 +293,10 @@ main {
   .store-hero-actions a {
     width: 100%;
   }
+
+  .store-category-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }
 
 @media (max-width: 640px) {
@@ -327,6 +331,10 @@ main {
 
   .store-hero-stats {
     grid-template-columns: 1fr 1fr !important;
+  }
+
+  .store-category-grid {
+    grid-template-columns: 1fr !important;
   }
 
   .product-detail-grid {
