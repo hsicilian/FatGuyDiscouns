@@ -732,6 +732,40 @@ export async function saveCrossListedInventory(
   };
 }
 
+export async function bulkImportCrossListedInventory(
+  items: Array<{
+    sku: string;
+    itemName: string;
+    platforms: string[];
+  }>,
+): Promise<FormActionState> {
+  const access = await requireMasterAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  let importedCount = 0;
+  for (const item of items) {
+    const result = await saveCrossListedInventoryToDatabase(item);
+    if (!result.ok) {
+      return {
+        ...result,
+        message: `${result.message} Import stopped on SKU ${item.sku}.`,
+      };
+    }
+    importedCount += 1;
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/cross-listed");
+
+  return {
+    ok: true,
+    message: `Imported ${importedCount} cross-listed ${importedCount === 1 ? "item" : "items"}.`,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
 export async function deleteCrossListedInventory(recordId: string): Promise<FormActionState> {
   const access = await requireMasterAdminMutationAccess();
   if (!access.ok) {

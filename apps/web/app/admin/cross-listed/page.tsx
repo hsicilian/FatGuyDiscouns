@@ -1,4 +1,5 @@
 import { CrossListedInventoryEditForm, CrossListedInventoryForm } from "../../../components/forms/cross-listed-inventory-form";
+import { CrossListedBulkImportForm } from "../../../components/forms/cross-listed-bulk-import-form";
 import { DeleteCrossListedInventoryForm } from "../../../components/forms/delete-cross-listed-inventory-form";
 import { ensureMasterAdminAccess } from "../../../lib/auth/guards";
 import { listCrossListedInventory } from "../../../lib/data/local-db";
@@ -51,9 +52,16 @@ export default async function AdminCrossListedPage({
       </section>
 
       <section style={{ display: "grid", gap: 24, gridTemplateColumns: "minmax(0, 380px) minmax(0, 1fr)" }}>
-        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
-          <h2 style={{ marginTop: 0 }}>Add or update item</h2>
-          <CrossListedInventoryForm />
+        <div style={{ display: "grid", gap: 24 }}>
+          <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
+            <h2 style={{ marginTop: 0 }}>Add or update item</h2>
+            <CrossListedInventoryForm />
+          </div>
+
+          <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
+            <h2 style={{ marginTop: 0 }}>Bulk import CSV</h2>
+            <CrossListedBulkImportForm />
+          </div>
         </div>
 
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)", display: "grid", gap: 16 }}>
