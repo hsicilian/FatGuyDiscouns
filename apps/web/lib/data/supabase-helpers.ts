@@ -98,6 +98,7 @@ export function toProduct(row: Record<string, any>): Product {
     category: row.categories?.name ?? "Uncategorized",
     quantity: Number(row.inventory_quantity ?? 0),
     status: row.status,
+    homepageFeatured: Boolean(row.homepage_featured),
     images: normalizedImageRows.map((image) => image.url),
     imageRecords: normalizedImageRows,
   };

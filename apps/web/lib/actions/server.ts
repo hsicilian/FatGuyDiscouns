@@ -31,6 +31,7 @@ import {
   submitRestockRequestToDatabase,
   submitShipmentRequestToDatabase,
   updateProductSaleInDatabase,
+  updateHomepageFeaturedInDatabase,
   updateClaimedItemInDatabase,
   updateCustomerAccountState,
   updateCustomerRoleInDatabase,
@@ -334,6 +335,23 @@ export async function clearProductSale(productId: string): Promise<FormActionSta
   revalidatePath("/");
   revalidatePath("/store");
   revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateHomepageFeatured(productId: string, featured: boolean): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateHomepageFeaturedInDatabase(productId, featured);
+  revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/inventory");
 

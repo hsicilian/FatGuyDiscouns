@@ -247,6 +247,28 @@ export async function clearProductSaleInDatabaseSupabase(productId: string) {
   return { ok: true, message: `${product.title} sale pricing was cleared.` };
 }
 
+export async function updateHomepageFeaturedInDatabaseSupabase(productId: string, featured: boolean) {
+  const admin = await getAdminClient();
+  const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
+  if (error || !product) return { ok: false, message: "Product not found." };
+
+  const updateResult = await admin
+    .from("products")
+    .update({
+      homepage_featured: featured,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", productId);
+
+  if (updateResult.error) return { ok: false, message: updateResult.error.message };
+  return {
+    ok: true,
+    message: featured
+      ? `${product.title} will appear as a homepage top pick.`
+      : `${product.title} was removed from homepage top picks.`,
+  };
+}
+
 export async function archiveProductInDatabaseSupabase(productId: string) {
   const admin = await getAdminClient();
   const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
@@ -257,6 +279,7 @@ export async function archiveProductInDatabaseSupabase(productId: string) {
     .update({
       status: "archived",
       archived_at: new Date().toISOString(),
+      homepage_featured: false,
       sale_percentage: null,
       sale_ends_at: null,
       updated_at: new Date().toISOString(),
@@ -489,6 +512,7 @@ export async function createInventoryItemInDatabaseSupabase(input: {
     location: location || null,
     inventory_quantity: quantity,
     status,
+    homepage_featured: false,
   }).select("id").single();
 
   if (insertResult.error || !insertResult.data) {

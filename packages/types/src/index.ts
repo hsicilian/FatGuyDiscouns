@@ -47,6 +47,7 @@ export interface Product {
   category: string;
   quantity: number;
   status: ProductStatus;
+  homepageFeatured: boolean;
   images: string[];
   imageRecords?: ProductImageRecord[];
 }

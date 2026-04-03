@@ -55,6 +55,7 @@ import {
   submitRestockRequestToDatabaseSupabase,
   submitShipmentRequestToDatabaseSupabase,
   updateCustomerProfileByAdminSupabase,
+  updateHomepageFeaturedInDatabaseSupabase,
   updateProductSaleInDatabaseSupabase,
   updateClaimedItemInDatabaseSupabase,
   updateCurrentCustomerProfileSupabase,
@@ -285,6 +286,12 @@ export async function clearProductSaleInDatabase(productId: string) {
   return shouldUseSupabase()
     ? clearProductSaleInDatabaseSupabase(productId)
     : fallback.clearProductSaleInDatabase(productId);
+}
+
+export async function updateHomepageFeaturedInDatabase(productId: string, featured: boolean) {
+  return shouldUseSupabase()
+    ? updateHomepageFeaturedInDatabaseSupabase(productId, featured)
+    : fallback.updateHomepageFeaturedInDatabase(productId, featured);
 }
 
 export async function submitRestockRequestToDatabase(productId: string) {

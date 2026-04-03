@@ -88,6 +88,7 @@ function createInitialDatabase(): LocalDatabase {
         category: "Outerwear",
         quantity: 2,
         status: "active",
+        homepageFeatured: false,
         images: [
           "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80",
           "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80",
@@ -115,6 +116,7 @@ function createInitialDatabase(): LocalDatabase {
         category: "Tees",
         quantity: 1,
         status: "low_stock",
+        homepageFeatured: false,
         images: [
           "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=80",
           "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80",
@@ -142,6 +144,7 @@ function createInitialDatabase(): LocalDatabase {
         category: "Flannels",
         quantity: 0,
         status: "out_of_stock",
+        homepageFeatured: false,
         images: [
           "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1200&q=80",
           "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1200&q=80",
@@ -401,6 +404,7 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
         saleEndsAt: product.saleEndsAt ?? null,
         isOnSale,
         archivedAt: product.archivedAt ?? null,
+        homepageFeatured: Boolean(product.homepageFeatured),
         images: Array.isArray(product.images) ? product.images.filter((image): image is string => typeof image === "string" && image.length > 0) : [],
         imageRecords: Array.isArray(product.imageRecords) && product.imageRecords.length > 0
           ? product.imageRecords
@@ -1099,6 +1103,25 @@ export async function updateProductSaleInDatabase(productId: string, salePercent
   };
 }
 
+export async function updateHomepageFeaturedInDatabase(productId: string, featured: boolean) {
+  const db = await readDatabase();
+  const product = db.products.find((entry) => entry.id === productId);
+
+  if (!product) {
+    return { ok: false, message: "Product not found." };
+  }
+
+  product.homepageFeatured = featured;
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: featured
+      ? `${product.title} will appear as a homepage top pick.`
+      : `${product.title} was removed from homepage top picks.`,
+  };
+}
+
 export async function clearProductSaleInDatabase(productId: string) {
   const db = await readDatabase();
   const product = db.products.find((entry) => entry.id === productId);
@@ -1195,6 +1218,7 @@ export async function createInventoryItemInDatabase(input: {
     saleEndsAt: null,
     isOnSale: false,
     archivedAt: null,
+    homepageFeatured: false,
     category,
     quantity,
       status: deriveProductStatus(quantity, "active"),
@@ -1271,6 +1295,7 @@ export async function createInventoryItemsBulkInDatabase(input: Array<{
       saleEndsAt: null,
       isOnSale: false,
       archivedAt: null,
+      homepageFeatured: false,
       category,
       quantity,
       status: deriveProductStatus(quantity, "active"),

@@ -6,6 +6,7 @@ import { CategoryDeleteForm } from "../../../components/forms/category-delete-fo
 import { InventoryAdjustForm } from "../../../components/forms/inventory-adjust-form";
 import { InventoryBulkImportForm } from "../../../components/forms/inventory-bulk-import-form";
 import { InventoryCreateForm } from "../../../components/forms/inventory-create-form";
+import { HomepageFeatureForm } from "../../../components/forms/homepage-feature-form";
 import { InventoryImageManager } from "../../../components/forms/inventory-image-manager";
 import { InventorySaleForm } from "../../../components/forms/inventory-sale-form";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
@@ -214,6 +215,11 @@ export default async function AdminInventoryPage({
                   <div>
                     <p style={{ color: "var(--muted)", marginTop: 0, marginBottom: 8 }}>{product.category}</p>
                     <h2 style={{ marginTop: 0 }}>{product.title}</h2>
+                    {product.homepageFeatured ? (
+                      <span style={{ display: "inline-flex", marginTop: 4, padding: "6px 10px", borderRadius: 999, background: "rgba(255, 111, 111, 0.12)", color: "var(--accent-strong)", fontWeight: 700, fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        Homepage top pick
+                      </span>
+                    ) : null}
                   </div>
                   <span style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: "0.08em", color: product.quantity > 0 ? "#2f5d32" : "var(--accent-strong)" }}>
                     {PRODUCT_STATUS_LABELS[product.status]}
@@ -251,6 +257,15 @@ export default async function AdminInventoryPage({
                 </div>
                 <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
                   <InventoryAdjustForm productId={product.id} />
+                </div>
+                <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                  <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+                    <strong>Homepage placement</strong>
+                    <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
+                      Featured items show first in their category row on the homepage. If a row has open spots, newer items from that category fill the rest.
+                    </p>
+                  </div>
+                  <HomepageFeatureForm productId={product.id} featured={product.homepageFeatured} />
                 </div>
                 <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
                   <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
