@@ -218,5 +218,6 @@ export interface CrossListedInventoryRecord {
   sku: string;
   itemName: string;
   platforms: CrossListedPlatform[];
+  platformDates: Record<string, string>;
   updatedAt: string;
 }

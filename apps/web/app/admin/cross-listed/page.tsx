@@ -1,4 +1,3 @@
-import type { CrossListedPlatform } from "@fatguydiscounts/types";
 import { CrossListedInventoryEditForm, CrossListedInventoryForm } from "../../../components/forms/cross-listed-inventory-form";
 import { DeleteCrossListedInventoryForm } from "../../../components/forms/delete-cross-listed-inventory-form";
 import { ensureMasterAdminAccess } from "../../../lib/auth/guards";
@@ -8,8 +7,26 @@ function getSearchValue(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
 }
 
-function formatPlatforms(platforms: CrossListedPlatform[]) {
-  return platforms.join(", ");
+function formatPlatformDate(value?: string) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "2-digit",
+    day: "2-digit",
+    year: "2-digit",
+  }).format(date);
+}
+
+function formatPlatformLabel(platform: string, platformDates: Record<string, string>) {
+  const formattedDate = formatPlatformDate(platformDates[platform]);
+  return formattedDate ? `${platform} - ${formattedDate}` : platform;
 }
 
 export default async function AdminCrossListedPage({
@@ -43,14 +60,14 @@ export default async function AdminCrossListedPage({
           <div style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "end", flexWrap: "wrap" }}>
             <div>
               <h2 style={{ margin: "0 0 8px" }}>Saved listings</h2>
-              <p style={{ margin: 0, color: "var(--muted)" }}>Search by SKU or item name.</p>
+              <p style={{ margin: 0, color: "var(--muted)" }}>Search by SKU, item name, or platform.</p>
             </div>
             <form style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <input
                 type="search"
                 name="search"
                 defaultValue={search}
-                placeholder="Search SKU or item"
+                placeholder="Search SKU, item, or platform"
                 style={{ minWidth: 220, padding: 12, borderRadius: 12, border: "1px solid #d9c7b2" }}
               />
               <button style={{ background: "var(--accent)", color: "#fff", border: 0, borderRadius: 999, padding: "12px 18px", fontWeight: 700 }}>
@@ -74,15 +91,35 @@ export default async function AdminCrossListedPage({
                   </div>
                   <span style={{ color: "var(--muted)", fontSize: 13 }}>Updated {record.updatedAt}</span>
                 </div>
-                <p style={{ margin: 0 }}>
-                  <strong>Platforms:</strong> {formatPlatforms(record.platforms)}
-                </p>
+                <div style={{ display: "grid", gap: 8 }}>
+                  <strong>Platforms</strong>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {record.platforms.map((platform) => (
+                      <span
+                        key={`${record.id}-${platform}`}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          borderRadius: 999,
+                          padding: "8px 12px",
+                          border: "1px solid rgba(232,214,195,0.88)",
+                          background: "rgba(255,255,255,0.62)",
+                          fontSize: 14,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {formatPlatformLabel(platform, record.platformDates)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
                 <div style={{ display: "grid", gap: 14, gridTemplateColumns: "minmax(0, 1fr) auto" }}>
                   <div style={{ padding: 14, borderRadius: 18, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
                     <CrossListedInventoryEditForm
                       sku={record.sku}
                       itemName={record.itemName}
                       platforms={record.platforms}
+                      platformDates={record.platformDates}
                     />
                   </div>
                   <div style={{ display: "flex", alignItems: "start" }}>

@@ -351,6 +351,24 @@ export async function saveCrossListedInventoryToDatabaseSupabase(input: {
     return { ok: false, message: "Select at least one platform." };
   }
 
+  const existingRecord = await admin
+    .from("cross_listed_inventory")
+    .select("id, platform_dates")
+    .eq("sku", sku)
+    .maybeSingle();
+
+  if (existingRecord.error) {
+    return { ok: false, message: existingRecord.error.message };
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const previousPlatformDates = existingRecord.data?.platform_dates && typeof existingRecord.data.platform_dates === "object"
+    ? existingRecord.data.platform_dates as Record<string, string>
+    : {};
+  const nextPlatformDates = Object.fromEntries(
+    platforms.map((platform) => [platform, previousPlatformDates[platform] ?? today]),
+  );
+
   const { error } = await admin
     .from("cross_listed_inventory")
     .upsert(
@@ -358,6 +376,7 @@ export async function saveCrossListedInventoryToDatabaseSupabase(input: {
         sku,
         item_name: itemName,
         platforms,
+        platform_dates: nextPlatformDates,
         updated_at: new Date().toISOString(),
       },
       { onConflict: "sku" },

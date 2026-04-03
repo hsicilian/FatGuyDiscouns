@@ -24,6 +24,7 @@ export function CrossListedInventoryForm() {
       sku=""
       itemName=""
       platforms={[]}
+      platformDates={{}}
       submitLabel="Save Cross Listed Item"
       message={initialState.message}
     />
@@ -34,16 +35,19 @@ export function CrossListedInventoryEditForm({
   sku,
   itemName,
   platforms,
+  platformDates,
 }: {
   sku: string;
   itemName: string;
   platforms: string[];
+  platformDates: Record<string, string>;
 }) {
   return (
     <CrossListedInventoryFormInner
       sku={sku}
       itemName={itemName}
       platforms={platforms}
+      platformDates={platformDates}
       submitLabel="Update Platforms"
       message="Update the saved platforms for this SKU, then save the changes."
     />
@@ -54,12 +58,14 @@ function CrossListedInventoryFormInner({
   sku,
   itemName,
   platforms,
+  platformDates,
   submitLabel,
   message,
 }: {
   sku: string;
   itemName: string;
   platforms: string[];
+  platformDates: Record<string, string>;
   submitLabel: string;
   message: string;
 }) {
@@ -70,6 +76,29 @@ function CrossListedInventoryFormInner({
   const standardPlatforms = platforms.filter((platform) => PLATFORM_OPTIONS.includes(platform));
   const customPlatforms = platforms.filter((platform) => !PLATFORM_OPTIONS.includes(platform));
   const [useOtherPlatform, setUseOtherPlatform] = useState(customPlatforms.length > 0);
+  const customPlatform = customPlatforms[0] ?? "";
+
+  function formatPlatformDate(value?: string) {
+    if (!value) {
+      return "";
+    }
+
+    const date = new Date(`${value}T12:00:00`);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat("en-US", {
+      month: "2-digit",
+      day: "2-digit",
+      year: "2-digit",
+    }).format(date);
+  }
+
+  function getPlatformLabel(platform: string) {
+    const formattedDate = formatPlatformDate(platformDates[platform]);
+    return formattedDate ? `${platform} - ${formattedDate}` : platform;
+  }
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 14 }}>
@@ -113,7 +142,7 @@ function CrossListedInventoryFormInner({
               }}
             >
               <input type="checkbox" name="platforms" value={platform} defaultChecked={standardPlatforms.includes(platform)} />
-              <span>{platform}</span>
+              <span>{getPlatformLabel(platform)}</span>
             </label>
           ))}
           <label
@@ -132,7 +161,7 @@ function CrossListedInventoryFormInner({
               checked={useOtherPlatform}
               onChange={(event) => setUseOtherPlatform(event.target.checked)}
             />
-            <span>Other</span>
+            <span>{customPlatform ? getPlatformLabel(customPlatform) : "Other"}</span>
           </label>
         </div>
       </fieldset>
@@ -143,7 +172,7 @@ function CrossListedInventoryFormInner({
           <input
             name="otherPlatform"
             type="text"
-            defaultValue={customPlatforms[0] ?? ""}
+            defaultValue={customPlatform}
             placeholder="Michelle's account"
             style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2" }}
           />

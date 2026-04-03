@@ -324,6 +324,11 @@ function createInitialDatabase(): LocalDatabase {
         sku: "0004",
         itemName: "Vintage denim jacket",
         platforms: ["Poshmark", "Facebook Marketplace", "WN Shop"],
+        platformDates: {
+          Poshmark: "2026-04-02",
+          "Facebook Marketplace": "2026-04-02",
+          "WN Shop": "2026-04-02",
+        },
         updatedAt: "2026-04-02T09:00:00.000Z",
       },
     ],
@@ -415,7 +420,10 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
     customerNotes: db.customerNotes ?? fallback.customerNotes,
     customerMessages: db.customerMessages ?? fallback.customerMessages,
     customerItemRequests: db.customerItemRequests ?? fallback.customerItemRequests,
-    crossListedInventory: db.crossListedInventory ?? fallback.crossListedInventory,
+    crossListedInventory: (db.crossListedInventory ?? fallback.crossListedInventory).map((entry) => ({
+      ...entry,
+      platformDates: entry.platformDates ?? Object.fromEntries((entry.platforms ?? []).map((platform) => [platform, entry.updatedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10)])),
+    })),
     notifications: db.notifications ?? fallback.notifications,
     events: db.events ?? fallback.events,
     paymentDefaults: db.paymentDefaults ?? fallback.paymentDefaults,
@@ -916,11 +924,16 @@ export async function saveCrossListedInventoryToDatabase(input: {
   }
 
   const now = new Date().toISOString();
+  const today = now.slice(0, 10);
   const existing = db.crossListedInventory.find((entry) => entry.sku.toLowerCase() === sku.toLowerCase());
 
   if (existing) {
+    const nextPlatformDates = Object.fromEntries(
+      platforms.map((platform) => [platform, existing.platformDates?.[platform] ?? today]),
+    );
     existing.itemName = itemName;
     existing.platforms = platforms;
+    existing.platformDates = nextPlatformDates;
     existing.updatedAt = now;
   } else {
     db.crossListedInventory.unshift({
@@ -928,6 +941,7 @@ export async function saveCrossListedInventoryToDatabase(input: {
       sku,
       itemName,
       platforms,
+      platformDates: Object.fromEntries(platforms.map((platform) => [platform, today])),
       updatedAt: now,
     });
   }
