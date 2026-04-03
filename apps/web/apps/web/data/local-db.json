@@ -305,7 +305,12 @@
         "Facebook Marketplace",
         "WN Shop"
       ],
-      "updatedAt": "2026-04-02T09:00:00.000Z"
+      "updatedAt": "2026-04-02T09:00:00.000Z",
+      "platformDates": {
+        "Poshmark": "2026-04-02",
+        "Facebook Marketplace": "2026-04-02",
+        "WN Shop": "2026-04-02"
+      }
     }
   ],
   "notifications": [
