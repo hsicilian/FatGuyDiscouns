@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
-import { getSiteUrl, normalizeInternalRedirect } from "../../../lib/supabase";
+import { createSupabaseAdminClient, getSiteUrl, normalizeInternalRedirect } from "../../../lib/supabase";
 
 function requireEnv(name: string, value: string | undefined) {
   if (!value) {
@@ -40,10 +40,37 @@ export async function GET(request: NextRequest) {
   );
 
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, publicSiteUrl));
+    }
+
+    const user = data.user;
+    if (user?.id) {
+      const admin = createSupabaseAdminClient();
+      const { data: existingNotification } = await admin
+        .from("notifications")
+        .select("id")
+        .eq("type", "pending_approval")
+        .eq("customer_id", user.id)
+        .is("read_at", null)
+        .maybeSingle();
+
+      if (!existingNotification) {
+        const displayName = typeof user.user_metadata?.display_name === "string" && user.user_metadata.display_name.trim().length > 0
+          ? user.user_metadata.display_name.trim()
+          : (user.email?.split("@")[0] ?? "New customer");
+
+        await admin.from("notifications").insert({
+          type: "pending_approval",
+          customer_id: user.id,
+          payload: {
+            label: `${displayName} is waiting for account approval.`,
+            email: user.email ?? null,
+          },
+        });
+      }
     }
   }
 

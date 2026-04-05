@@ -6,6 +6,7 @@ import type { FormActionState } from "@fatguydiscounts/types";
 import { assertProductionSupabaseReady, createServerSupabaseClient, getSiteUrl, hasSupabaseEnv } from "../../../lib/supabase";
 import { createStoredCustomerAccount, hasStoredAccountWithEmail } from "../../../lib/auth/local-auth-store";
 import { createPendingCustomerProfile, removeCustomerProfileById, setActiveCustomer } from "../../../lib/data/local-db";
+import { createSupabaseAdminClient } from "../../../lib/supabase";
 
 const signupSchema = z.object({
   displayName: z.string().trim().min(2, "Enter your full name."),
@@ -78,7 +79,7 @@ export async function signUpLocalCustomerAction(
 
   const supabase = await createServerSupabaseClient();
   const callbackUrl = `${getSiteUrl()}/auth/callback`;
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -95,6 +96,29 @@ export async function signUpLocalCustomerAction(
       message: error.message,
       submittedAt: new Date().toISOString(),
     };
+  }
+
+  const userId = data.user?.id;
+  if (userId) {
+    const admin = createSupabaseAdminClient();
+    const existingNotification = await admin
+      .from("notifications")
+      .select("id")
+      .eq("type", "pending_approval")
+      .eq("customer_id", userId)
+      .is("read_at", null)
+      .maybeSingle();
+
+    if (!existingNotification.error && !existingNotification.data) {
+      await admin.from("notifications").insert({
+        type: "pending_approval",
+        customer_id: userId,
+        payload: {
+          label: `${displayName} is waiting for account approval.`,
+          email,
+        },
+      });
+    }
   }
 
   return {
