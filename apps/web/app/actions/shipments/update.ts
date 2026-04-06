@@ -10,5 +10,6 @@ export async function updateShipmentAction(
   const shipmentId = String(formData.get("shipmentId") ?? "");
   const nextStatus = String(formData.get("nextStatus") ?? "requested") as ShipmentStatus;
   const trackingNumber = String(formData.get("trackingNumber") ?? "");
-  return updateShipment(shipmentId, nextStatus, trackingNumber);
+  const shippingInvoice = String(formData.get("shippingInvoice") ?? "");
+  return updateShipment(shipmentId, nextStatus, trackingNumber, shippingInvoice);
 }

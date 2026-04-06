@@ -31,6 +31,7 @@ import {
   listShipmentRecordsForCustomerSupabase,
 } from "./supabase-reads";
 import {
+  addCustomerToShipmentQueueSupabase,
   addCustomerNoteToDatabaseSupabase,
   addManualBalanceItemToDatabaseSupabase,
   adjustInventoryInDatabaseSupabase,
@@ -324,6 +325,12 @@ export async function submitShipmentRequestToDatabase() {
     : fallback.submitShipmentRequestToDatabase();
 }
 
+export async function addCustomerToShipmentQueueInDatabase(customerId: string) {
+  return shouldUseSupabase()
+    ? addCustomerToShipmentQueueSupabase(customerId)
+    : fallback.addCustomerToShipmentQueue(customerId);
+}
+
 export async function cancelShipmentRequestInDatabase(shipmentId?: string) {
   return shouldUseSupabase()
     ? cancelShipmentRequestInDatabaseSupabase(shipmentId)
@@ -334,10 +341,11 @@ export async function updateShipmentInDatabase(
   shipmentId: string,
   nextStatus: Parameters<typeof fallback.updateShipmentInDatabase>[1],
   trackingNumber: string,
+  shippingInvoice: string,
 ) {
   return shouldUseSupabase()
-    ? updateShipmentInDatabaseSupabase(shipmentId, nextStatus, trackingNumber)
-    : fallback.updateShipmentInDatabase(shipmentId, nextStatus, trackingNumber);
+    ? updateShipmentInDatabaseSupabase(shipmentId, nextStatus, trackingNumber, shippingInvoice)
+    : fallback.updateShipmentInDatabase(shipmentId, nextStatus, trackingNumber, shippingInvoice);
 }
 
 export async function updateCustomerAccountState(

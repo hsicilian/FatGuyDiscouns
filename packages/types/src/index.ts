@@ -131,6 +131,7 @@ export interface ShipmentRecord {
   status: ShipmentStatus;
   requestedAt: string;
   trackingNumber: string | null;
+  shippingInvoice: string | null;
   shipmentDate: string | null;
 }
 

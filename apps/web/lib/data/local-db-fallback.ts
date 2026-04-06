@@ -268,6 +268,7 @@ function createInitialDatabase(): LocalDatabase {
         status: "requested",
         requestedAt: "2026-03-29T09:05:00-04:00",
         trackingNumber: null,
+        shippingInvoice: null,
         shipmentDate: null,
       },
       {
@@ -277,6 +278,7 @@ function createInitialDatabase(): LocalDatabase {
         status: "completed",
         requestedAt: "2026-03-18T12:00:00-04:00",
         trackingNumber: "9405511202555777000000",
+        shippingInvoice: "PS-240318-1",
         shipmentDate: "2026-03-20",
       },
     ],
@@ -1498,6 +1500,7 @@ export async function submitShipmentRequestToDatabase() {
     status: nextStatus,
     requestedAt: new Date().toISOString(),
     trackingNumber: null,
+    shippingInvoice: null,
     shipmentDate: null,
   });
   db.notifications.unshift(
@@ -1508,6 +1511,48 @@ export async function submitShipmentRequestToDatabase() {
   return {
     ok: true,
     message: "Shipment request submitted for admin review.",
+    nextStatus,
+  };
+}
+
+export async function addCustomerToShipmentQueue(customerId: string) {
+  const db = await readDatabase();
+  const customer = db.customers.find((entry) => entry.id === customerId);
+
+  if (!customer) {
+    return { ok: false, message: "Customer record not found." };
+  }
+
+  const allowed = canRequestShipment(customer.accountState, customer.shipmentStatus);
+  if (!allowed) {
+    return { ok: false, message: "Shipment request is blocked for this account." };
+  }
+
+  const existingShipment = db.shipmentRecords.find((entry) => entry.customerId === customer.id && entry.status !== "completed");
+  if (existingShipment) {
+    return { ok: true, message: `${customer.displayName} is already in the shipment queue.` };
+  }
+
+  const nextStatus = nextShipmentStatus(customer.shipmentStatus, "request");
+  customer.shipmentStatus = nextStatus;
+  db.shipmentRecords.unshift({
+    id: `ship-${Date.now()}`,
+    customerId: customer.id,
+    customerName: customer.displayName,
+    status: nextStatus,
+    requestedAt: new Date().toISOString(),
+    trackingNumber: null,
+    shippingInvoice: null,
+    shipmentDate: null,
+  });
+  db.notifications.unshift(
+    createNotification("shipment_request", `${customer.displayName} was added to the shipment queue by admin.`),
+  );
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: `${customer.displayName} was added to the shipment queue.`,
     nextStatus,
   };
 }
@@ -1549,6 +1594,7 @@ export async function updateShipmentInDatabase(
   shipmentId: string,
   nextStatus: ShipmentStatus,
   trackingNumber: string,
+  shippingInvoice: string,
 ) {
   const db = await readDatabase();
   const shipment = db.shipmentRecords.find((entry) => entry.id === shipmentId);
@@ -1559,6 +1605,7 @@ export async function updateShipmentInDatabase(
 
   shipment.status = nextStatus;
   shipment.trackingNumber = trackingNumber.trim() || null;
+  shipment.shippingInvoice = shippingInvoice.trim() || null;
   shipment.shipmentDate = nextStatus === "completed" ? new Date().toISOString().slice(0, 10) : shipment.shipmentDate;
 
   const customer = shipment.customerId

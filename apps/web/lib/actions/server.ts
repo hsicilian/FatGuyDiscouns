@@ -7,6 +7,7 @@ import { previewShipmentRequest } from "./shipments";
 import { getCurrentSessionUser } from "../auth/session";
 import { updateStoredAccountRole, updateStoredAccountState } from "../auth/local-auth-store";
 import {
+  addCustomerToShipmentQueueInDatabase,
   addCustomerNoteToDatabase,
   addManualBalanceItemToDatabase,
   adjustInventoryInDatabase,
@@ -618,6 +619,23 @@ export async function submitShipmentRequest(addressConfirmed = false): Promise<F
   };
 }
 
+export async function addCustomerToShipmentQueue(customerId: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await addCustomerToShipmentQueueInDatabase(customerId);
+  revalidatePath("/admin");
+  revalidatePath("/admin/shipments");
+  revalidatePath("/admin/customers");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
 export async function cancelShipmentRequest(shipmentId?: string): Promise<FormActionState> {
   const currentUser = await getCurrentSessionUser();
 
@@ -644,13 +662,14 @@ export async function updateShipment(
   shipmentId: string,
   nextStatus: ShipmentStatus,
   trackingNumber: string,
+  shippingInvoice: string,
 ): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
     return access;
   }
 
-  const result = await updateShipmentInDatabase(shipmentId, nextStatus, trackingNumber);
+  const result = await updateShipmentInDatabase(shipmentId, nextStatus, trackingNumber, shippingInvoice);
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/shipments");

@@ -51,6 +51,7 @@ export default async function AdminShipmentsPage() {
                   shipmentId={shipment.id}
                   defaultStatus={shipment.status}
                   defaultTrackingNumber={shipment.trackingNumber}
+                  defaultShippingInvoice={shipment.shippingInvoice}
                 />
               </div>
             </div>

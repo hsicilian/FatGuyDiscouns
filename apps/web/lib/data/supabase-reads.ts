@@ -258,7 +258,7 @@ export async function listShipmentRecordsSupabase() {
   const admin = await getAdminClient();
   const { data, error } = await admin
     .from("shipments")
-    .select("id, customer_id, status, requested_at, tracking_number, shipment_date")
+    .select("id, customer_id, status, requested_at, tracking_number, shipping_invoice, shipment_date")
     .order("requested_at", { ascending: false });
 
   if (error) throw error;
@@ -276,6 +276,7 @@ export async function listShipmentRecordsSupabase() {
     status: row.status,
     requestedAt: row.requested_at,
     trackingNumber: row.tracking_number,
+    shippingInvoice: row.shipping_invoice,
     shipmentDate: row.shipment_date,
   } satisfies ShipmentRecord));
 }

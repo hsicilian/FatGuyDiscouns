@@ -203,6 +203,7 @@ export const demoShipmentRecords: ShipmentRecord[] = [
     status: "requested",
     requestedAt: "2026-03-29T09:05:00-04:00",
     trackingNumber: null,
+    shippingInvoice: null,
     shipmentDate: null,
   },
   {
@@ -211,6 +212,7 @@ export const demoShipmentRecords: ShipmentRecord[] = [
     status: "completed",
     requestedAt: "2026-03-18T12:00:00-04:00",
     trackingNumber: "9405511202555777000000",
+    shippingInvoice: "PS-240318-1",
     shipmentDate: "2026-03-20",
   },
 ];

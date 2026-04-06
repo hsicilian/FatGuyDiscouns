@@ -1,5 +1,6 @@
 import { accountStateLabel, calculateBalanceDue, shipmentStatusLabel } from "@fatguydiscounts/core";
 import { ApprovalActionForm } from "../../../../components/forms/approval-action-form";
+import { AdminShipmentRequestForm } from "../../../../components/forms/admin-shipment-request-form";
 import { BalanceAdjustmentForm } from "../../../../components/forms/balance-adjustment-form";
 import { BalanceLineItemForm } from "../../../../components/forms/balance-line-item-form";
 import { CustomerProfileAdminForm } from "../../../../components/forms/customer-profile-admin-form";
@@ -128,6 +129,13 @@ export default async function AdminCustomerDetailPage({
           <h2 style={{ margin: 0 }}>Account controls</h2>
           {canManageAccountState ? <ApprovalActionForm customerId={customer.id} /> : null}
           {canPromote ? <PromoteAdminForm customerId={customer.id} /> : null}
+          <div style={{ paddingTop: 12, borderTop: "1px solid rgba(232,214,195,0.88)" }}>
+            <h3 style={{ margin: "0 0 10px" }}>Shipping queue</h3>
+            <AdminShipmentRequestForm
+              customerId={customer.id}
+              disabled={customer.shipmentStatus !== "none" && customer.shipmentStatus !== "completed"}
+            />
+          </div>
         </div>
 
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
@@ -362,6 +370,7 @@ export default async function AdminCustomerDetailPage({
               </div>
               <p style={{ margin: 0, color: "var(--muted)" }}>Requested {shipment.requestedAt}</p>
               <p style={{ margin: 0 }}><strong>Tracking:</strong> {shipment.trackingNumber ?? "Not added yet"}</p>
+              <p style={{ margin: 0 }}><strong>Shipping invoice:</strong> {shipment.shippingInvoice ?? "Not added yet"}</p>
             </div>
           )) : <p style={{ margin: 0, color: "var(--muted)" }}>No shipment history yet.</p>}
         </div>

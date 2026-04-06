@@ -135,6 +135,7 @@ export default async function AccountPage() {
                   </p>
                   <p style={{ margin: "6px 0 0", color: "var(--muted)" }}>Requested {shipment.requestedAt}</p>
                   <p style={{ margin: "6px 0 0" }}><strong>Tracking:</strong> {shipment.trackingNumber ?? "Not added yet"}</p>
+                  <p style={{ margin: "6px 0 0" }}><strong>Shipping invoice:</strong> {shipment.shippingInvoice ?? "Not added yet"}</p>
                   <p style={{ margin: "6px 0 0" }}><strong>Shipment date:</strong> {shipment.shipmentDate ?? "Pending"}</p>
                 </div>
               )) : <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)", color: "var(--muted)" }}>No shipment history yet.</div>}

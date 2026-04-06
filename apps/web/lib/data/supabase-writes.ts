@@ -899,6 +899,58 @@ export async function submitShipmentRequestToDatabaseSupabase() {
   return { ok: true, message: "Shipment request submitted for admin review.", nextStatus };
 }
 
+export async function addCustomerToShipmentQueueSupabase(customerId: string) {
+  const admin = await getAdminClient();
+  const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
+  const allowed = canRequestShipment(customer.accountState, customer.shipmentStatus);
+  if (!allowed) return { ok: false, message: "Shipment request is blocked for this account." };
+
+  const { data: existingShipment } = await admin
+    .from("shipments")
+    .select("id")
+    .eq("customer_id", customerId)
+    .neq("status", "completed")
+    .order("requested_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingShipment) {
+    return { ok: true, message: `${customer.displayName} is already in the shipment queue.` };
+  }
+
+  const { data: pendingLineItem } = await admin
+    .from("balance_line_items")
+    .select("cycle_id, balance_cycles!inner(customer_id)")
+    .eq("balance_cycles.customer_id", customerId)
+    .neq("status", "archived")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const cycle = pendingLineItem?.cycle_id
+    ? { id: pendingLineItem.cycle_id }
+    : await ensureActiveCycle(customerId);
+  const { data: address } = await admin.from("addresses").select("id").eq("user_id", customerId).eq("is_default", true).maybeSingle();
+  const nextStatus = nextShipmentStatus(customer.shipmentStatus, "request");
+
+  const { error } = await admin.from("shipments").insert({
+    cycle_id: cycle.id,
+    customer_id: customerId,
+    address_id: address?.id ?? null,
+    address_confirmed: true,
+    status: nextStatus,
+    requested_at: new Date().toISOString(),
+    shipping_invoice: null,
+  });
+  if (error) return { ok: false, message: error.message };
+
+  await admin.from("notifications").insert({
+    type: "shipment_request",
+    customer_id: customerId,
+    payload: { label: `${customer.displayName} was added to the shipment queue by admin.` },
+  });
+  return { ok: true, message: `${customer.displayName} was added to the shipment queue.`, nextStatus };
+}
+
 export async function cancelShipmentRequestInDatabaseSupabase(shipmentId?: string) {
   const actor = await getCurrentActor();
   const admin = await getAdminClient();
@@ -932,13 +984,25 @@ export async function cancelShipmentRequestInDatabaseSupabase(shipmentId?: strin
   };
 }
 
-export async function updateShipmentInDatabaseSupabase(shipmentId: string, nextStatus: ShipmentStatus, trackingNumber: string) {
+export async function updateShipmentInDatabaseSupabase(
+  shipmentId: string,
+  nextStatus: ShipmentStatus,
+  trackingNumber: string,
+  shippingInvoice: string,
+) {
   const admin = await getAdminClient();
   const { data: shipment, error } = await admin.from("shipments").select("id, customer_id, cycle_id").eq("id", shipmentId).single();
   if (error || !shipment) return { ok: false, message: "Shipment record not found." };
 
   const shipmentDate = nextStatus === "completed" ? siteToday() : null;
-  const updateResult = await admin.from("shipments").update({ status: nextStatus, tracking_number: trackingNumber.trim() || null, shipment_date: shipmentDate, completed_at: nextStatus === "completed" ? new Date().toISOString() : null, updated_at: new Date().toISOString() }).eq("id", shipmentId);
+  const updateResult = await admin.from("shipments").update({
+    status: nextStatus,
+    tracking_number: trackingNumber.trim() || null,
+    shipping_invoice: shippingInvoice.trim() || null,
+    shipment_date: shipmentDate,
+    completed_at: nextStatus === "completed" ? new Date().toISOString() : null,
+    updated_at: new Date().toISOString(),
+  }).eq("id", shipmentId);
   if (updateResult.error) return { ok: false, message: updateResult.error.message };
 
   if (nextStatus === "completed" && shipment.cycle_id) {

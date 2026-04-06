@@ -16,10 +16,12 @@ export function ShipmentUpdateForm({
   shipmentId,
   defaultStatus,
   defaultTrackingNumber,
+  defaultShippingInvoice,
 }: {
   shipmentId: string;
   defaultStatus: ShipmentStatus;
   defaultTrackingNumber: string | null;
+  defaultShippingInvoice: string | null;
 }) {
   const [state, formAction, isPending] = useActionState(updateShipmentAction, initialState);
   const canCancel = defaultStatus !== "completed";
@@ -39,6 +41,10 @@ export function ShipmentUpdateForm({
         <label style={{ display: "grid", gap: 4 }}>
           <span style={{ color: "#6d655d", fontSize: 14 }}>Tracking number</span>
           <input name="trackingNumber" defaultValue={defaultTrackingNumber ?? ""} style={{ padding: 10, borderRadius: 12, border: "1px solid #d9c7b2" }} />
+        </label>
+        <label style={{ display: "grid", gap: 4 }}>
+          <span style={{ color: "#6d655d", fontSize: 14 }}>Shipping invoice</span>
+          <input name="shippingInvoice" defaultValue={defaultShippingInvoice ?? ""} style={{ padding: 10, borderRadius: 12, border: "1px solid #d9c7b2" }} />
         </label>
         <button disabled={isPending} style={{ background: "#bb4d00", color: "#fff", border: 0, borderRadius: 999, padding: "10px 14px" }}>
           {isPending ? "Saving..." : "Update Shipment"}
