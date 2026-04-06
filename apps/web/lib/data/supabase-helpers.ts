@@ -36,6 +36,11 @@ export function nextDueDateFromToday() {
   return getScheduledDueDateForDate(siteToday());
 }
 
+export function dueDateForReferenceDate(referenceDate?: string) {
+  const normalized = typeof referenceDate === "string" ? referenceDate.trim().slice(0, 10) : "";
+  return getScheduledDueDateForDate(normalized || siteToday());
+}
+
 export function formatCycleLabel(date: Date) {
   return `${date.toLocaleString("en-US", { month: "long" })} ${date.getFullYear()} cycle`;
 }
@@ -219,43 +224,52 @@ export async function getCycleSubtotal(cycleId: string, options?: { admin?: bool
   return (data ?? []).reduce((sum, item) => sum + Number(item.quantity ?? 0) * Number(item.unit_price ?? 0), 0);
 }
 
-export async function getSupabaseCycleRow(customerId?: string) {
+export async function getSupabaseCycleRow(customerId?: string, options?: { dueDate?: string }) {
   const actor = await getCurrentActor();
+  const dueDate = options?.dueDate?.trim();
 
   if (customerId) {
     const admin = await getAdminClient();
-    const { data } = await admin.from("balance_cycles").select("*").eq("customer_id", customerId).eq("status", "active").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    let query = admin.from("balance_cycles").select("*").eq("customer_id", customerId).eq("status", "active");
+    if (dueDate) query = query.eq("due_date", dueDate);
+    const { data } = await query.order("updated_at", { ascending: false }).limit(1).maybeSingle();
     return data;
   }
 
   if (actor.role === "customer") {
     const admin = await getAdminClient();
-    const { data } = await admin.from("balance_cycles").select("*").eq("customer_id", actor.id).eq("status", "active").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    let query = admin.from("balance_cycles").select("*").eq("customer_id", actor.id).eq("status", "active");
+    if (dueDate) query = query.eq("due_date", dueDate);
+    const { data } = await query.order("updated_at", { ascending: false }).limit(1).maybeSingle();
     return data;
   }
 
   const admin = await getAdminClient();
-  const { data } = await admin.from("balance_cycles").select("*").eq("status", "active").order("updated_at", { ascending: false }).limit(1).maybeSingle();
+  let query = admin.from("balance_cycles").select("*").eq("status", "active");
+  if (dueDate) query = query.eq("due_date", dueDate);
+  const { data } = await query.order("updated_at", { ascending: false }).limit(1).maybeSingle();
   return data;
 }
 
-export async function ensureActiveCycle(customerId: string) {
+export async function ensureActiveCycle(customerId: string, dueDate = nextDueDateFromToday()) {
   const admin = await getAdminClient();
-  const existing = await getSupabaseCycleRow(customerId);
+  const existing = await getSupabaseCycleRow(customerId, { dueDate });
   if (existing) {
     return existing;
   }
 
-  const { data, error } = await admin.from("balance_cycles").insert({ customer_id: customerId, status: "active", due_date: nextDueDateFromToday(), shipping_total: 0, adjustments_total: 0, payments_applied: 0, credits_applied: 0 }).select("*").single();
+  const { data, error } = await admin.from("balance_cycles").insert({ customer_id: customerId, status: "active", due_date: dueDate, shipping_total: 0, adjustments_total: 0, payments_applied: 0, credits_applied: 0 }).select("*").single();
   if (error) {
     throw error;
   }
   return data;
 }
 
-export async function getTargetCycleContext(customerId?: string) {
-  const actor = await getCurrentActor();
-  const cycle = await getSupabaseCycleRow(customerId);
+export async function getTargetCycleContext(customerId?: string, options?: { dueDate?: string; ensureIfMissing?: boolean }) {
+  let cycle = await getSupabaseCycleRow(customerId, { dueDate: options?.dueDate });
+  if (!cycle && options?.ensureIfMissing && customerId) {
+    cycle = await ensureActiveCycle(customerId, options.dueDate || nextDueDateFromToday());
+  }
   if (!cycle) {
     return null;
   }

@@ -3,6 +3,7 @@
 import { applyPaymentToBalance, canRequestShipment, deriveProductStatus, nextShipmentStatus, shouldArchiveBalance, validateClaimAttempt } from "@fatguydiscounts/core";
 import type { AccountState, ShipmentStatus } from "@fatguydiscounts/types";
 import {
+  dueDateForReferenceDate,
   ensureActiveCycle,
   formatCycleLabel,
   getAdminClient,
@@ -1143,10 +1144,13 @@ export async function addManualBalanceItemToDatabaseSupabase(title: string, quan
   if (!trimmedTitle) return { ok: false, message: "Enter an item title." };
   if (quantity < 1 || unitPrice < 0) return { ok: false, message: "Quantity must be at least 1 and price cannot be negative." };
 
-  const context = await getTargetCycleContext(customerId);
-  if (!context) return { ok: false, message: "No active balance cycle is available for admin adjustments yet." };
   const normalizedRecordedAt = normalizeRecordedAt(recordedAt);
   if (recordedAt && !normalizedRecordedAt) return { ok: false, message: "Enter a valid record date." };
+  const context = await getTargetCycleContext(customerId, {
+    dueDate: dueDateForReferenceDate(normalizedRecordedAt?.date),
+    ensureIfMissing: Boolean(customerId),
+  });
+  if (!context) return { ok: false, message: "No active balance cycle is available for admin adjustments yet." };
 
   const admin = await getAdminClient();
   const { error } = await admin.from("balance_line_items").insert({
@@ -1202,7 +1206,7 @@ export async function removeClaimedItemFromDatabaseSupabase(claimId: string) {
 }
 
 export async function applyBalanceAdjustmentsToDatabaseSupabase(shippingChange: number, adjustmentChange: number, customerId?: string) {
-  const context = await getTargetCycleContext(customerId);
+  const context = await getTargetCycleContext(customerId, { ensureIfMissing: Boolean(customerId) });
   if (!context) return { ok: false, message: "No active balance cycle is available for admin adjustments yet." };
 
   const nextShipping = Number(context.cycle.shipping_total ?? 0) + shippingChange;
@@ -1216,11 +1220,14 @@ export async function applyBalanceAdjustmentsToDatabaseSupabase(shippingChange: 
 }
 
 export async function applyPaymentToDatabaseSupabase(paymentAmount: number, creditAmount: number, recordedAt?: string, customerId?: string) {
-  const context = await getTargetCycleContext(customerId);
-  if (!context) return { ok: false, message: "No active balance cycle is available for payment." };
-  if (paymentAmount < 0 || creditAmount < 0) return { ok: false, message: "Payment and credit amounts must be zero or higher." };
   const normalizedRecordedAt = normalizeRecordedAt(recordedAt);
   if (recordedAt && !normalizedRecordedAt) return { ok: false, message: "Enter a valid record date." };
+  const context = await getTargetCycleContext(customerId, {
+    dueDate: dueDateForReferenceDate(normalizedRecordedAt?.date),
+    ensureIfMissing: Boolean(customerId),
+  });
+  if (!context) return { ok: false, message: "No active balance cycle is available for payment." };
+  if (paymentAmount < 0 || creditAmount < 0) return { ok: false, message: "Payment and credit amounts must be zero or higher." };
 
   const customer = await getCustomerSummaryByUserId(context.cycle.customer_id, { admin: true });
   const due = context.summary.subtotal + context.summary.shipping + context.summary.adjustments - context.summary.paymentsApplied - context.summary.creditsApplied;
