@@ -1594,10 +1594,25 @@ export async function updateShipmentInDatabase(
     return { ok: false, message: "Shipment record not found." };
   }
 
+  const parseAmount = (value: string | null | undefined) => {
+    const trimmed = value?.trim() ?? "";
+    if (!trimmed) return 0;
+    const normalized = trimmed.replace(/[$,\s]/g, "");
+    if (!/^-?\d+(\.\d+)?$/.test(normalized)) return null;
+    return Number(normalized);
+  };
+
+  const previousShippingAmount = parseAmount(shipment.shippingInvoice);
+  const nextShippingAmount = parseAmount(shippingInvoice);
   shipment.status = nextStatus;
   shipment.trackingNumber = trackingNumber.trim() || null;
   shipment.shippingInvoice = shippingInvoice.trim() || null;
   shipment.shipmentDate = nextStatus === "completed" ? new Date().toISOString().slice(0, 10) : shipment.shipmentDate;
+
+  const shippingDelta = (nextShippingAmount ?? 0) - (previousShippingAmount ?? 0);
+  if (shippingDelta !== 0) {
+    db.balanceCycle.shipping = Math.max(0, db.balanceCycle.shipping + shippingDelta);
+  }
 
   const customer = shipment.customerId
     ? db.customers.find((entry) => entry.id === shipment.customerId)

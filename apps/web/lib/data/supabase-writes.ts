@@ -36,6 +36,20 @@ function normalizeRecordedAt(recordedAt?: string) {
   };
 }
 
+function parseShippingInvoiceAmount(value: string | null | undefined) {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed) {
+    return 0;
+  }
+
+  const normalized = trimmed.replace(/[$,\s]/g, "");
+  if (!/^-?\d+(\.\d+)?$/.test(normalized)) {
+    return null;
+  }
+
+  return Number(normalized);
+}
+
 async function saveCustomerProfileAddressSupabase(userId: string, input: {
   street: string;
   city: string;
@@ -1003,19 +1017,47 @@ export async function updateShipmentInDatabaseSupabase(
   shippingInvoice: string,
 ) {
   const admin = await getAdminClient();
-  const { data: shipment, error } = await admin.from("shipments").select("id, customer_id, cycle_id").eq("id", shipmentId).single();
+  const { data: shipment, error } = await admin.from("shipments").select("id, customer_id, cycle_id, shipping_invoice").eq("id", shipmentId).single();
   if (error || !shipment) return { ok: false, message: "Shipment record not found." };
 
+  const trimmedShippingInvoice = shippingInvoice.trim();
+  const previousShippingAmount = parseShippingInvoiceAmount(shipment.shipping_invoice);
+  const nextShippingAmount = parseShippingInvoiceAmount(trimmedShippingInvoice);
   const shipmentDate = nextStatus === "completed" ? siteToday() : null;
   const updateResult = await admin.from("shipments").update({
     status: nextStatus,
     tracking_number: trackingNumber.trim() || null,
-    shipping_invoice: shippingInvoice.trim() || null,
+    shipping_invoice: trimmedShippingInvoice || null,
     shipment_date: shipmentDate,
     completed_at: nextStatus === "completed" ? new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
   }).eq("id", shipmentId);
   if (updateResult.error) return { ok: false, message: updateResult.error.message };
+
+  if (shipment.cycle_id) {
+    const shippingDelta = (nextShippingAmount ?? 0) - (previousShippingAmount ?? 0);
+    if (shippingDelta !== 0) {
+      const { data: cycle, error: cycleError } = await admin
+        .from("balance_cycles")
+        .select("id, shipping_total")
+        .eq("id", shipment.cycle_id)
+        .single();
+
+      if (cycleError || !cycle) {
+        return { ok: false, message: cycleError?.message ?? "Balance cycle not found for shipment." };
+      }
+
+      const nextShippingTotal = Math.max(0, Number(cycle.shipping_total ?? 0) + shippingDelta);
+      const cycleUpdate = await admin
+        .from("balance_cycles")
+        .update({ shipping_total: nextShippingTotal, updated_at: new Date().toISOString() })
+        .eq("id", shipment.cycle_id);
+
+      if (cycleUpdate.error) {
+        return { ok: false, message: cycleUpdate.error.message };
+      }
+    }
+  }
 
   if (nextStatus === "completed" && shipment.cycle_id) {
     const archiveItems = await admin
