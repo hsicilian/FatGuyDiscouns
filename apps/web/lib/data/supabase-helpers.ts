@@ -325,10 +325,16 @@ export async function getFinancialSummaryFromCycles() {
     throw error;
   }
 
-  const customerBalances = await Promise.all((cycles ?? []).map(async (cycle) => {
-    const subtotal = await getCycleSubtotal(cycle.id, { admin: true });
-    const summary = mapBalanceCycle(cycle as Record<string, any>, subtotal);
-    const customer = await getCustomerSummaryByUserId(cycle.customer_id, { admin: true });
+  const activeCustomerIds = [...new Set((cycles ?? []).map((cycle) => cycle.customer_id).filter(Boolean))];
+
+  const customerBalances = (await Promise.all(activeCustomerIds.map(async (customerId) => {
+    const context = await getTargetCycleContext(customerId);
+    if (!context) {
+      return null;
+    }
+
+    const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
+    const summary = context.summary;
     const invoiceAmount = Math.max(
       summary.subtotal + summary.adjustments - summary.paymentsApplied - summary.creditsApplied,
       0,
@@ -342,7 +348,7 @@ export async function getFinancialSummaryFromCycles() {
       shippingAmount,
       overdue: isBalanceOverdue(summary, siteToday()),
     };
-  }));
+  }))).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 
   const [{ data: archivedInvoices, error: archivedError }, { data: payments, error: paymentError }] = await Promise.all([
     admin
