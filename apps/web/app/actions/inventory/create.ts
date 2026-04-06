@@ -15,6 +15,7 @@ export async function createInventoryItemAction(
     String(formData.get("title") ?? ""),
     String(formData.get("description") ?? ""),
     Number(formData.get("price") ?? 0),
+    Number(formData.get("cost") ?? 0),
     Number(formData.get("quantity") ?? 0),
     String(formData.get("category") ?? ""),
     String(formData.get("sku") ?? ""),

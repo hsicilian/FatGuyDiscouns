@@ -30,6 +30,17 @@ function formatPlatformLabel(platform: string, platformDates: Record<string, str
   return formattedDate ? `${platform} - ${formattedDate}` : platform;
 }
 
+function formatCurrency(value: number | null) {
+  if (value == null) {
+    return "Cost not set";
+  }
+
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
+}
+
 export default async function AdminCrossListedPage({
   searchParams,
 }: {
@@ -96,6 +107,7 @@ export default async function AdminCrossListedPage({
                   <div>
                     <strong>{record.itemName}</strong>
                     <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>SKU {record.sku}</p>
+                    <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>Cost {formatCurrency(record.cost ?? null)}</p>
                   </div>
                   <span style={{ color: "var(--muted)", fontSize: 13 }}>Updated {record.updatedAt}</span>
                 </div>
@@ -126,6 +138,7 @@ export default async function AdminCrossListedPage({
                     <CrossListedInventoryEditForm
                       sku={record.sku}
                       itemName={record.itemName}
+                      cost={record.cost ?? null}
                       platforms={record.platforms}
                       platformDates={record.platformDates}
                     />

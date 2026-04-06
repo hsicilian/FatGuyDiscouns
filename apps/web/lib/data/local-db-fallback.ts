@@ -337,6 +337,7 @@ function createInitialDatabase(): LocalDatabase {
         id: "cross-001",
         sku: "0004",
         itemName: "Vintage denim jacket",
+        cost: 8,
         platforms: ["Poshmark", "Facebook Marketplace", "WN Shop"],
         platformDates: {
           Poshmark: "2026-04-02",
@@ -438,6 +439,7 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
     customerItemRequests: db.customerItemRequests ?? fallback.customerItemRequests,
     crossListedInventory: (db.crossListedInventory ?? fallback.crossListedInventory).map((entry) => ({
       ...entry,
+      cost: typeof entry.cost === "number" ? entry.cost : null,
       platformDates: entry.platformDates ?? Object.fromEntries((entry.platforms ?? []).map((platform) => [platform, entry.updatedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10)])),
     })),
     notifications: db.notifications ?? fallback.notifications,
@@ -901,11 +903,14 @@ export async function createEventInDatabase(input: {
 export async function saveCrossListedInventoryToDatabase(input: {
   sku: string;
   itemName: string;
+  cost?: number | null;
   platforms: string[];
 }) {
   const db = await readDatabase();
   const sku = input.sku.trim();
   const itemName = input.itemName.trim();
+  const hasCost = input.cost != null;
+  const cost = hasCost ? Number(input.cost) : null;
   const platforms = input.platforms.filter((entry): entry is CrossListedInventoryRecord["platforms"][number] => typeof entry === "string" && entry.length > 0);
 
   if (!sku) {
@@ -914,6 +919,10 @@ export async function saveCrossListedInventoryToDatabase(input: {
 
   if (!itemName) {
     return { ok: false, message: "Item name is required." };
+  }
+
+  if (cost != null && (!Number.isFinite(cost) || cost < 0)) {
+    return { ok: false, message: "Cost must be zero or higher." };
   }
 
   if (platforms.length === 0) {
@@ -929,6 +938,7 @@ export async function saveCrossListedInventoryToDatabase(input: {
       platforms.map((platform) => [platform, existing.platformDates?.[platform] ?? today]),
     );
     existing.itemName = itemName;
+    existing.cost = cost ?? existing.cost ?? null;
     existing.platforms = platforms;
     existing.platformDates = nextPlatformDates;
     existing.updatedAt = now;
@@ -937,6 +947,7 @@ export async function saveCrossListedInventoryToDatabase(input: {
       id: `cross-${Date.now()}`,
       sku,
       itemName,
+      cost,
       platforms,
       platformDates: Object.fromEntries(platforms.map((platform) => [platform, today])),
       updatedAt: now,
@@ -1170,6 +1181,7 @@ export async function createInventoryItemInDatabase(input: {
   title: string;
   description: string;
   price: number;
+  cost: number;
   quantity: number;
   category: string;
   sku: string;
@@ -1181,7 +1193,9 @@ export async function createInventoryItemInDatabase(input: {
   const category = input.category.trim();
   const description = input.description.trim();
   const price = Number(input.price);
+  const cost = Number(input.cost);
   const quantity = Number(input.quantity);
+  const sku = input.sku.trim();
   const images = input.images.filter((file) => file instanceof File);
 
   if (!title) {
@@ -1196,8 +1210,16 @@ export async function createInventoryItemInDatabase(input: {
     return { ok: false, message: "Price must be zero or higher." };
   }
 
+  if (!Number.isFinite(cost) || cost < 0) {
+    return { ok: false, message: "Cost must be zero or higher." };
+  }
+
   if (!Number.isInteger(quantity) || quantity < 0) {
     return { ok: false, message: "Starting quantity must be zero or higher." };
+  }
+
+  if (!sku) {
+    return { ok: false, message: "SKU is required so the item can be tracked in cross-listed inventory." };
   }
 
   db.products.unshift({
@@ -1205,6 +1227,7 @@ export async function createInventoryItemInDatabase(input: {
     title,
     description,
     price,
+    cost,
     originalPrice: price,
     salePrice: null,
     salePercentage: null,
@@ -1223,6 +1246,29 @@ export async function createInventoryItemInDatabase(input: {
       })),
     });
 
+  const today = new Date().toISOString();
+  const existingCrossListed = db.crossListedInventory.find((entry) => entry.sku.toLowerCase() === sku.toLowerCase());
+  if (existingCrossListed) {
+    existingCrossListed.itemName = title;
+    existingCrossListed.cost = cost;
+    existingCrossListed.platforms = Array.from(new Set([...existingCrossListed.platforms, "Website"]));
+    existingCrossListed.platformDates = {
+      ...existingCrossListed.platformDates,
+      Website: existingCrossListed.platformDates.Website ?? today.slice(0, 10),
+    };
+    existingCrossListed.updatedAt = today;
+  } else {
+    db.crossListedInventory.unshift({
+      id: `cross-${Date.now()}-${sku}`,
+      sku,
+      itemName: title,
+      cost,
+      platforms: ["Website"],
+      platformDates: { Website: today.slice(0, 10) },
+      updatedAt: today,
+    });
+  }
+
   if (!db.categories.some((entry) => entry.name.toLowerCase() === category.toLowerCase())) {
     db.categories.push({
       id: `cat-${Date.now()}`,
@@ -1235,7 +1281,7 @@ export async function createInventoryItemInDatabase(input: {
 
   return {
     ok: true,
-    message: `${title} was added with ${images.length} photo${images.length === 1 ? "" : "s"} and ${quantity} item${quantity === 1 ? "" : "s"} on hand.`,
+    message: `${title} was added with ${images.length} photo${images.length === 1 ? "" : "s"}, ${quantity} item${quantity === 1 ? "" : "s"} on hand, and a Website entry in cross-listed inventory.`,
   };
 }
 

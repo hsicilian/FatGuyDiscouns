@@ -431,7 +431,7 @@ export async function listCrossListedInventorySupabase(search?: string): Promise
   const admin = await getAdminClient();
   const baseQuery = admin
     .from("cross_listed_inventory")
-    .select("id, sku, item_name, platforms, platform_dates, updated_at")
+    .select("id, sku, item_name, cost, platforms, platform_dates, updated_at")
     .order("updated_at", { ascending: false });
 
   const trimmedSearch = search?.trim();
@@ -442,6 +442,7 @@ export async function listCrossListedInventorySupabase(search?: string): Promise
     id: row.id,
     sku: row.sku ?? "",
     itemName: row.item_name ?? "",
+    cost: row.cost == null ? null : Number(row.cost),
     platforms: Array.isArray(row.platforms) ? row.platforms : [],
     platformDates: row.platform_dates && typeof row.platform_dates === "object" ? row.platform_dates : {},
     updatedAt: row.updated_at ?? new Date().toISOString(),

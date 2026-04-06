@@ -209,6 +209,7 @@ export async function createInventoryItem(
   title: string,
   description: string,
   price: number,
+  cost: number,
   quantity: number,
   category: string,
   sku: string,
@@ -224,6 +225,7 @@ export async function createInventoryItem(
     title,
     description,
     price,
+    cost,
     quantity,
     category,
     sku,
@@ -752,6 +754,7 @@ export async function dismissNotification(notificationId: string): Promise<FormA
 export async function saveCrossListedInventory(
   sku: string,
   itemName: string,
+  cost: number | null | undefined,
   platforms: string[],
 ): Promise<FormActionState> {
   const access = await requireMasterAdminMutationAccess();
@@ -759,7 +762,7 @@ export async function saveCrossListedInventory(
     return access;
   }
 
-  const result = await saveCrossListedInventoryToDatabase({ sku, itemName, platforms });
+  const result = await saveCrossListedInventoryToDatabase({ sku, itemName, cost, platforms });
   revalidatePath("/admin");
   revalidatePath("/admin/cross-listed");
 

@@ -51,6 +51,38 @@ function parseShippingInvoiceAmount(value: string | null | undefined) {
   return Number(normalized);
 }
 
+async function adjustCycleShippingTotalSupabase(
+  admin: Awaited<ReturnType<typeof getAdminClient>>,
+  cycleId: string,
+  delta: number,
+) {
+  if (!delta) {
+    return { ok: true as const };
+  }
+
+  const { data: cycle, error: cycleError } = await admin
+    .from("balance_cycles")
+    .select("id, shipping_total")
+    .eq("id", cycleId)
+    .single();
+
+  if (cycleError || !cycle) {
+    return { ok: false as const, message: cycleError?.message ?? "Balance cycle not found for shipment." };
+  }
+
+  const nextShippingTotal = Math.max(0, Number(cycle.shipping_total ?? 0) + delta);
+  const cycleUpdate = await admin
+    .from("balance_cycles")
+    .update({ shipping_total: nextShippingTotal, updated_at: new Date().toISOString() })
+    .eq("id", cycleId);
+
+  if (cycleUpdate.error) {
+    return { ok: false as const, message: cycleUpdate.error.message };
+  }
+
+  return { ok: true as const };
+}
+
 async function saveCustomerProfileAddressSupabase(userId: string, input: {
   street: string;
   city: string;
@@ -382,11 +414,14 @@ export async function markNotificationReadInDatabaseSupabase(notificationId: str
 export async function saveCrossListedInventoryToDatabaseSupabase(input: {
   sku: string;
   itemName: string;
+  cost?: number | null;
   platforms: string[];
 }) {
   const admin = await getAdminClient();
   const sku = input.sku.trim();
   const itemName = input.itemName.trim();
+  const hasCost = input.cost != null;
+  const cost = hasCost ? Number(input.cost) : null;
   const platforms = input.platforms.filter((entry) => typeof entry === "string" && entry.length > 0);
 
   if (!sku) {
@@ -397,13 +432,17 @@ export async function saveCrossListedInventoryToDatabaseSupabase(input: {
     return { ok: false, message: "Item name is required." };
   }
 
+  if (cost != null && (!Number.isFinite(cost) || cost < 0)) {
+    return { ok: false, message: "Cost must be zero or higher." };
+  }
+
   if (platforms.length === 0) {
     return { ok: false, message: "Select at least one platform." };
   }
 
   const existingRecord = await admin
     .from("cross_listed_inventory")
-    .select("id, platform_dates")
+    .select("id, cost, platform_dates")
     .eq("sku", sku)
     .maybeSingle();
 
@@ -425,6 +464,7 @@ export async function saveCrossListedInventoryToDatabaseSupabase(input: {
       {
         sku,
         item_name: itemName,
+        cost: cost ?? (existingRecord.data?.cost == null ? null : Number(existingRecord.data.cost)),
         platforms,
         platform_dates: nextPlatformDates,
         updated_at: new Date().toISOString(),
@@ -476,6 +516,7 @@ export async function createInventoryItemInDatabaseSupabase(input: {
   title: string;
   description: string;
   price: number;
+  cost: number;
   quantity: number;
   category: string;
   sku: string;
@@ -488,13 +529,16 @@ export async function createInventoryItemInDatabaseSupabase(input: {
   const sku = input.sku.trim();
   const location = input.location.trim();
   const price = Number(input.price);
+  const cost = Number(input.cost);
   const quantity = Number(input.quantity);
   const images = input.images.filter((file) => file instanceof File);
 
   if (!title) return { ok: false, message: "Item title is required." };
   if (!categoryName) return { ok: false, message: "Category is required." };
   if (!Number.isFinite(price) || price < 0) return { ok: false, message: "Price must be zero or higher." };
+  if (!Number.isFinite(cost) || cost < 0) return { ok: false, message: "Cost must be zero or higher." };
   if (!Number.isInteger(quantity) || quantity < 0) return { ok: false, message: "Starting quantity must be zero or higher." };
+  if (!sku) return { ok: false, message: "SKU is required so the item can be tracked in cross-listed inventory." };
   if (images.length > MAX_IMAGE_COUNT) return { ok: false, message: "Each item can have up to 6 photos." };
   if (images.some((file) => !file.type.startsWith("image/"))) return { ok: false, message: "Only image uploads are allowed." };
   if (images.some((file) => file.size > MAX_IMAGE_BYTES)) return { ok: false, message: "Each image must be 10MB or smaller." };
@@ -534,6 +578,7 @@ export async function createInventoryItemInDatabaseSupabase(input: {
     title,
     description,
     price,
+    cost,
     category_id: categoryId,
     sku: sku || null,
     location: location || null,
@@ -588,9 +633,24 @@ export async function createInventoryItemInDatabaseSupabase(input: {
     return { ok: false, message: imagesInsert.error.message };
   }
 
+  const crossListedSave = await saveCrossListedInventoryToDatabaseSupabase({
+    sku,
+    itemName: title,
+    cost,
+    platforms: ["Website"],
+  });
+  if (!crossListedSave.ok) {
+    await admin.from("product_images").delete().eq("product_id", productId);
+    if (uploadedPaths.length) {
+      await admin.storage.from(bucket).remove(uploadedPaths);
+    }
+    await admin.from("products").delete().eq("id", productId);
+    return { ok: false, message: crossListedSave.message };
+  }
+
   return {
     ok: true,
-    message: `${title} was added with ${images.length} photo${images.length === 1 ? "" : "s"} and ${quantity} item${quantity === 1 ? "" : "s"} on hand.`,
+    message: `${title} was added with ${images.length} photo${images.length === 1 ? "" : "s"}, ${quantity} item${quantity === 1 ? "" : "s"} on hand, and a Website entry in cross-listed inventory.`,
   };
 }
 
@@ -1018,47 +1078,57 @@ export async function updateShipmentInDatabaseSupabase(
   shippingInvoice: string,
 ) {
   const admin = await getAdminClient();
-  const { data: shipment, error } = await admin.from("shipments").select("id, customer_id, cycle_id, shipping_invoice").eq("id", shipmentId).single();
+  const { data: shipment, error } = await admin
+    .from("shipments")
+    .select("id, customer_id, cycle_id, billing_cycle_id, shipping_invoice")
+    .eq("id", shipmentId)
+    .single();
   if (error || !shipment) return { ok: false, message: "Shipment record not found." };
 
   const trimmedShippingInvoice = shippingInvoice.trim();
   const previousShippingAmount = parseShippingInvoiceAmount(shipment.shipping_invoice);
   const nextShippingAmount = parseShippingInvoiceAmount(trimmedShippingInvoice);
   const shipmentDate = nextStatus === "completed" ? siteToday() : null;
+
+  const previousAppliedCycleId =
+    shipment.billing_cycle_id
+    ?? ((previousShippingAmount ?? 0) !== 0 ? shipment.cycle_id : null);
+
+  let nextBillingCycleId: string | null = shipment.billing_cycle_id ?? null;
+
+  if ((nextShippingAmount ?? 0) !== 0 && !nextBillingCycleId) {
+    const activeCycle = await ensureActiveCycle(shipment.customer_id);
+    nextBillingCycleId = activeCycle.id;
+  }
+
+  const shouldRebalanceShipping =
+    previousAppliedCycleId !== nextBillingCycleId
+    || previousShippingAmount !== nextShippingAmount;
+
+  if (shouldRebalanceShipping && previousAppliedCycleId && (previousShippingAmount ?? 0) !== 0) {
+    const rollback = await adjustCycleShippingTotalSupabase(admin, previousAppliedCycleId, -(previousShippingAmount ?? 0));
+    if (!rollback.ok) {
+      return rollback;
+    }
+  }
+
+  if (shouldRebalanceShipping && nextBillingCycleId && (nextShippingAmount ?? 0) !== 0) {
+    const apply = await adjustCycleShippingTotalSupabase(admin, nextBillingCycleId, nextShippingAmount ?? 0);
+    if (!apply.ok) {
+      return apply;
+    }
+  }
+
   const updateResult = await admin.from("shipments").update({
     status: nextStatus,
     tracking_number: trackingNumber.trim() || null,
     shipping_invoice: trimmedShippingInvoice || null,
+    billing_cycle_id: (nextShippingAmount ?? 0) !== 0 ? nextBillingCycleId : null,
     shipment_date: shipmentDate,
     completed_at: nextStatus === "completed" ? new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
   }).eq("id", shipmentId);
   if (updateResult.error) return { ok: false, message: updateResult.error.message };
-
-  if (shipment.cycle_id) {
-    const shippingDelta = (nextShippingAmount ?? 0) - (previousShippingAmount ?? 0);
-    if (shippingDelta !== 0) {
-      const { data: cycle, error: cycleError } = await admin
-        .from("balance_cycles")
-        .select("id, shipping_total")
-        .eq("id", shipment.cycle_id)
-        .single();
-
-      if (cycleError || !cycle) {
-        return { ok: false, message: cycleError?.message ?? "Balance cycle not found for shipment." };
-      }
-
-      const nextShippingTotal = Math.max(0, Number(cycle.shipping_total ?? 0) + shippingDelta);
-      const cycleUpdate = await admin
-        .from("balance_cycles")
-        .update({ shipping_total: nextShippingTotal, updated_at: new Date().toISOString() })
-        .eq("id", shipment.cycle_id);
-
-      if (cycleUpdate.error) {
-        return { ok: false, message: cycleUpdate.error.message };
-      }
-    }
-  }
 
   if (nextStatus === "completed" && shipment.cycle_id) {
     const archiveItems = await admin

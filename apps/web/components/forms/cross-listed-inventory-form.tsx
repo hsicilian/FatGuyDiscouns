@@ -23,6 +23,7 @@ export function CrossListedInventoryForm() {
     <CrossListedInventoryFormInner
       sku=""
       itemName=""
+      cost={null}
       platforms={[]}
       platformDates={{}}
       submitLabel="Save Cross Listed Item"
@@ -34,11 +35,13 @@ export function CrossListedInventoryForm() {
 export function CrossListedInventoryEditForm({
   sku,
   itemName,
+  cost,
   platforms,
   platformDates,
 }: {
   sku: string;
   itemName: string;
+  cost: number | null;
   platforms: string[];
   platformDates: Record<string, string>;
 }) {
@@ -46,6 +49,7 @@ export function CrossListedInventoryEditForm({
     <CrossListedInventoryFormInner
       sku={sku}
       itemName={itemName}
+      cost={cost}
       platforms={platforms}
       platformDates={platformDates}
       submitLabel="Update Platforms"
@@ -57,6 +61,7 @@ export function CrossListedInventoryEditForm({
 function CrossListedInventoryFormInner({
   sku,
   itemName,
+  cost,
   platforms,
   platformDates,
   submitLabel,
@@ -64,6 +69,7 @@ function CrossListedInventoryFormInner({
 }: {
   sku: string;
   itemName: string;
+  cost: number | null;
   platforms: string[];
   platformDates: Record<string, string>;
   submitLabel: string;
@@ -120,6 +126,17 @@ function CrossListedInventoryFormInner({
             type="text"
             defaultValue={itemName}
             placeholder="Vintage denim jacket"
+            style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2" }}
+          />
+        </label>
+        <label style={{ display: "grid", gap: 6 }}>
+          <span style={{ color: "var(--muted)", fontSize: 14 }}>Cost</span>
+          <input
+            name="cost"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={typeof cost === "number" ? cost : 0}
             style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2" }}
           />
         </label>

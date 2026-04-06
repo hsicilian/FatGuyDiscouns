@@ -240,6 +240,7 @@ export async function createInventoryItemInDatabase(input: {
   title: string;
   description: string;
   price: number;
+  cost: number;
   quantity: number;
   category: string;
   sku: string;
@@ -421,6 +422,7 @@ export async function markNotificationReadInDatabase(notificationId: string) {
 export async function saveCrossListedInventoryToDatabase(input: {
   sku: string;
   itemName: string;
+  cost?: number | null;
   platforms: string[];
 }) {
   return shouldUseSupabase()

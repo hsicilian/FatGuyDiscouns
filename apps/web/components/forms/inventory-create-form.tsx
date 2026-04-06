@@ -94,12 +94,16 @@ export function InventoryCreateForm({ categories }: { categories: CategoryOption
           <input name="price" type="number" min="0" step="0.01" defaultValue="0" required style={inputStyle} />
         </label>
         <label style={{ display: "grid", gap: 6 }}>
+          <span style={{ color: "#6d655d", fontSize: 14 }}>Cost</span>
+          <input name="cost" type="number" min="0" step="0.01" defaultValue="0" required style={inputStyle} />
+        </label>
+        <label style={{ display: "grid", gap: 6 }}>
           <span style={{ color: "#6d655d", fontSize: 14 }}>Starting quantity</span>
           <input name="quantity" type="number" min="0" step="1" defaultValue="1" required style={inputStyle} />
         </label>
         <label style={{ display: "grid", gap: 6 }}>
           <span style={{ color: "#6d655d", fontSize: 14 }}>SKU</span>
-          <input name="sku" style={inputStyle} />
+          <input name="sku" required style={inputStyle} />
         </label>
         <label style={{ display: "grid", gap: 6 }}>
           <span style={{ color: "#6d655d", fontSize: 14 }}>Storage location</span>

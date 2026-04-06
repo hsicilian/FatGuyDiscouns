@@ -38,6 +38,7 @@ export interface Product {
   title: string;
   description: string;
   price: number;
+  cost?: number | null;
   originalPrice: number;
   salePrice: number | null;
   salePercentage: number | null;
@@ -220,6 +221,7 @@ export interface CrossListedInventoryRecord {
   id: string;
   sku: string;
   itemName: string;
+  cost?: number | null;
   platforms: CrossListedPlatform[];
   platformDates: Record<string, string>;
   updatedAt: string;
