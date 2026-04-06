@@ -35,6 +35,26 @@ export default async function AdminShipmentsPage() {
                 <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.08em", fontSize: 12 }}>Shipment record</p>
                 <h2 style={{ marginTop: 0 }}>{shipment.customerName}</h2>
                 <p style={{ color: "var(--muted)", margin: "4px 0" }}>Requested: {shipment.requestedAt}</p>
+                {shipment.customerId ? (
+                  <a
+                    href={`/admin/customers/${shipment.customerId}`}
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "10px 16px",
+                      borderRadius: 999,
+                      background: "rgba(255,255,255,0.72)",
+                      border: "1px solid rgba(232,214,195,0.9)",
+                      color: "var(--accent-strong)",
+                      fontWeight: 700,
+                      textDecoration: "none",
+                      marginTop: 8,
+                    }}
+                  >
+                    Open Customer CRM
+                  </a>
+                ) : null}
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 12 }}>
                   <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
                     <p style={{ margin: 0, color: "var(--muted)" }}>Status</p>
