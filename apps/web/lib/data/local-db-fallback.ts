@@ -826,18 +826,24 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
       customer: currentCustomer.displayName,
       customerId: currentCustomer.id,
       amount: amountDue,
+      invoiceAmount: Math.max(db.balanceCycle.subtotal + db.balanceCycle.adjustments - db.balanceCycle.paymentsApplied - db.balanceCycle.creditsApplied, 0),
+      shippingAmount: Math.max(db.balanceCycle.shipping, 0),
       overdue: isBalanceOverdue(db.balanceCycle, new Date().toISOString().slice(0, 10)),
     },
     {
       customer: "Casey Morgan",
       customerId: "cust-002",
       amount: 118,
+      invoiceAmount: 96,
+      shippingAmount: 22,
       overdue: true,
     },
     {
       customer: "Taylor West",
       customerId: "cust-003",
       amount: 76,
+      invoiceAmount: 64,
+      shippingAmount: 12,
       overdue: false,
     },
   ];
@@ -858,6 +864,8 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
   return {
     totalRunningBalance: overdueEntries.reduce((sum, entry) => sum + entry.amount, 0),
     unpaidTotal: overdueEntries.reduce((sum, entry) => sum + entry.amount, 0),
+    unpaidInvoiceTotal: overdueEntries.reduce((sum, entry) => sum + entry.invoiceAmount, 0),
+    unpaidShippingTotal: overdueEntries.reduce((sum, entry) => sum + entry.shippingAmount, 0),
     paymentsThisCycle: db.balanceCycle.paymentsApplied,
     overdueCustomerCount: overdueEntries.filter((entry) => entry.overdue).length,
     overdueTotal: overdueEntries.filter((entry) => entry.overdue).reduce((sum, entry) => sum + entry.amount, 0),

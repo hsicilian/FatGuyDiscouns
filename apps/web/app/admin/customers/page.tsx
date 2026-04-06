@@ -73,7 +73,13 @@ export default async function AdminCustomersPage({ searchParams }: AdminCustomer
         <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "end" }}>
           <div>
             <h2 style={{ margin: "0 0 8px" }}>CRM filters</h2>
-            <p style={{ color: "var(--muted)", margin: 0 }}>Unpaid total across customers: {currency.format(financialSummary.unpaidTotal)}</p>
+            <p style={{ color: "var(--muted)", margin: 0 }}>
+              Unpaid total across customers: {currency.format(financialSummary.unpaidTotal)}
+              {" • "}
+              Invoices: {currency.format(financialSummary.unpaidInvoiceTotal)}
+              {" • "}
+              Shipping: {currency.format(financialSummary.unpaidShippingTotal)}
+            </p>
           </div>
           <span style={{ color: "var(--muted)" }}>{filteredCustomers.length} matching record{filteredCustomers.length === 1 ? "" : "s"}</span>
         </div>
@@ -133,6 +139,14 @@ export default async function AdminCustomersPage({ searchParams }: AdminCustomer
                 <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
                   <p style={{ margin: 0, color: "var(--muted)" }}>Current balance</p>
                   <strong>{currency.format(balanceRow?.amount ?? 0)}</strong>
+                </div>
+                <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                  <p style={{ margin: 0, color: "var(--muted)" }}>Invoices</p>
+                  <strong>{currency.format(balanceRow?.invoiceAmount ?? 0)}</strong>
+                </div>
+                <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                  <p style={{ margin: 0, color: "var(--muted)" }}>Shipping</p>
+                  <strong>{currency.format(balanceRow?.shippingAmount ?? 0)}</strong>
                 </div>
                 <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
                   <p style={{ margin: 0, color: "var(--muted)" }}>Credit</p>

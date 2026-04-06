@@ -191,6 +191,8 @@ export interface ShowEvent {
 export interface FinancialSummary {
   totalRunningBalance: number;
   unpaidTotal: number;
+  unpaidInvoiceTotal: number;
+  unpaidShippingTotal: number;
   paymentsThisCycle: number;
   overdueCustomerCount: number;
   overdueTotal: number;
@@ -199,6 +201,8 @@ export interface FinancialSummary {
   customerBalances: Array<{
     customer: string;
     amount: number;
+    invoiceAmount: number;
+    shippingAmount: number;
     overdue: boolean;
     customerId?: string;
   }>;

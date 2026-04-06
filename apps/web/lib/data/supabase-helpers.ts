@@ -329,10 +329,17 @@ export async function getFinancialSummaryFromCycles() {
     const subtotal = await getCycleSubtotal(cycle.id, { admin: true });
     const summary = mapBalanceCycle(cycle as Record<string, any>, subtotal);
     const customer = await getCustomerSummaryByUserId(cycle.customer_id, { admin: true });
+    const invoiceAmount = Math.max(
+      summary.subtotal + summary.adjustments - summary.paymentsApplied - summary.creditsApplied,
+      0,
+    );
+    const shippingAmount = Math.max(summary.shipping, 0);
     return {
       customer: customer.displayName,
       customerId: customer.id,
-      amount: calculateBalanceDue(summary),
+      amount: invoiceAmount + shippingAmount,
+      invoiceAmount,
+      shippingAmount,
       overdue: isBalanceOverdue(summary, siteToday()),
     };
   }));
@@ -384,6 +391,8 @@ export async function getFinancialSummaryFromCycles() {
   return {
     totalRunningBalance: customerBalances.reduce((sum, entry) => sum + entry.amount, 0),
     unpaidTotal: customerBalances.reduce((sum, entry) => sum + entry.amount, 0),
+    unpaidInvoiceTotal: customerBalances.reduce((sum, entry) => sum + entry.invoiceAmount, 0),
+    unpaidShippingTotal: customerBalances.reduce((sum, entry) => sum + entry.shippingAmount, 0),
     paymentsThisCycle: (cycles ?? []).reduce((sum, cycle) => sum + Number(cycle.payments_applied ?? 0), 0),
     overdueCustomerCount: overdueEntries.length,
     overdueTotal: overdueEntries.reduce((sum, entry) => sum + entry.amount, 0),

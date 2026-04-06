@@ -24,6 +24,8 @@ export default async function AdminReportsPage() {
           <section style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))" }}>
             <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Total running balance</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.totalRunningBalance)}</h2></div>
             <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Unpaid total</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.unpaidTotal)}</h2></div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Unpaid invoices</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.unpaidInvoiceTotal)}</h2></div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Unpaid shipping</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.unpaidShippingTotal)}</h2></div>
             <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Payments this cycle</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.paymentsThisCycle)}</h2></div>
             <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Overdue total</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.overdueTotal)}</h2></div>
             <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Overdue accounts</p><h2 style={{ marginBottom: 0 }}>{financialSummary.overdueCustomerCount}</h2></div>
@@ -33,7 +35,16 @@ export default async function AdminReportsPage() {
           <section style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
             <h2 style={{ marginTop: 0 }}>Customer balances</h2>
             {financialSummary.customerBalances.map((entry) => (
-              <div key={entry.customer} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}><div><strong>{entry.customer}</strong><p style={{ margin: "4px 0 0", color: entry.overdue ? "#8e3200" : "#6d655d" }}>{entry.overdue ? "Overdue" : "Current"}</p></div><strong>{currency.format(entry.amount)}</strong></div>
+              <div key={entry.customer} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                <div>
+                  <strong>{entry.customer}</strong>
+                  <p style={{ margin: "4px 0 0", color: entry.overdue ? "#8e3200" : "#6d655d" }}>{entry.overdue ? "Overdue" : "Current"}</p>
+                  <p style={{ margin: "4px 0 0", color: "#6d655d" }}>
+                    Invoices {currency.format(entry.invoiceAmount)} • Shipping {currency.format(entry.shippingAmount)}
+                  </p>
+                </div>
+                <strong>{currency.format(entry.amount)}</strong>
+              </div>
             ))}
           </section>
           <section style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>

@@ -260,15 +260,17 @@ export const demoEvents: ShowEvent[] = [
 export const demoFinancialSummary: FinancialSummary = {
   totalRunningBalance: 2480,
   unpaidTotal: 2165,
+  unpaidInvoiceTotal: 2077,
+  unpaidShippingTotal: 88,
   paymentsThisCycle: 930,
   overdueCustomerCount: 1,
   overdueTotal: 118,
   archivedInvoiceRevenue: 216,
   lifetimeCollected: 216,
   customerBalances: [
-    { customer: "Jordan Rivers", customerId: "cust-001", amount: 38, overdue: false },
-    { customer: "Casey Morgan", customerId: "cust-002", amount: 118, overdue: true },
-    { customer: "Taylor West", customerId: "cust-003", amount: 76, overdue: false },
+    { customer: "Jordan Rivers", customerId: "cust-001", amount: 38, invoiceAmount: 30, shippingAmount: 8, overdue: false },
+    { customer: "Casey Morgan", customerId: "cust-002", amount: 118, invoiceAmount: 96, shippingAmount: 22, overdue: true },
+    { customer: "Taylor West", customerId: "cust-003", amount: 76, invoiceAmount: 64, shippingAmount: 12, overdue: false },
   ],
   topCustomers: [
     { customer: "Jordan Rivers", customerId: "cust-001", totalSpent: 216, invoiceCount: 2 },
