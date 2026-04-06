@@ -10,6 +10,7 @@ export async function addManualBalanceItemAction(
   const title = String(formData.get("title") ?? "");
   const quantity = Number(formData.get("quantity") ?? 1);
   const unitPrice = Number(formData.get("unitPrice") ?? 0);
+  const recordedAt = String(formData.get("recordedAt") ?? "").trim() || undefined;
   const customerId = String(formData.get("customerId") ?? "").trim() || undefined;
-  return addManualBalanceItem(title, quantity, unitPrice, customerId);
+  return addManualBalanceItem(title, quantity, unitPrice, recordedAt, customerId);
 }

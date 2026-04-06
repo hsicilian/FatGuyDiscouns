@@ -19,6 +19,7 @@ export function PaymentPreviewForm({
   customerId?: string;
 }) {
   const [state, formAction, isPending] = useActionState(previewPaymentAction, initialState);
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 12, width: "100%" }}>
@@ -30,6 +31,10 @@ export function PaymentPreviewForm({
       <label style={{ display: "grid", gap: 6 }}>
         <span>Credit amount</span>
         <input name="creditAmount" type="number" step="0.01" min="0" defaultValue={defaultCredit} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2", boxSizing: "border-box" }} />
+      </label>
+      <label style={{ display: "grid", gap: 6 }}>
+        <span>Record date</span>
+        <input name="recordedAt" type="date" defaultValue={today} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2", boxSizing: "border-box" }} />
       </label>
       <button disabled={isPending} style={{ width: "100%", background: "#bb4d00", color: "#fff", border: 0, borderRadius: 999, padding: "12px 16px" }}>
         {isPending ? "Applying..." : "Apply Payment"}

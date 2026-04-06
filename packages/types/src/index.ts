@@ -69,6 +69,7 @@ export interface ClaimedItem {
   quantity: number;
   unitPrice: number;
   status: "claimed" | "adjusted";
+  createdAt?: string;
 }
 
 export interface ClaimHistoryRecord extends ClaimedItem {

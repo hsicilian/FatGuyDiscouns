@@ -109,13 +109,13 @@ export async function submitClaim(productId: string, requestedQuantity: number):
   };
 }
 
-export async function addManualBalanceItem(title: string, quantity: number, unitPrice: number, customerId?: string): Promise<FormActionState> {
+export async function addManualBalanceItem(title: string, quantity: number, unitPrice: number, recordedAt?: string, customerId?: string): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
     return access;
   }
 
-  const result = await addManualBalanceItemToDatabase(title, quantity, unitPrice, customerId);
+  const result = await addManualBalanceItemToDatabase(title, quantity, unitPrice, recordedAt, customerId);
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/claims");
@@ -681,13 +681,13 @@ export async function updateShipment(
   };
 }
 
-export async function previewPaymentSubmission(paymentAmount: number, creditAmount: number, customerId?: string): Promise<FormActionState> {
+export async function previewPaymentSubmission(paymentAmount: number, creditAmount: number, recordedAt?: string, customerId?: string): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
     return access;
   }
 
-  const result = await applyPaymentToDatabase(paymentAmount, creditAmount, customerId);
+  const result = await applyPaymentToDatabase(paymentAmount, creditAmount, recordedAt, customerId);
   revalidatePath("/account");
   revalidatePath("/account/history");
   revalidatePath("/admin");

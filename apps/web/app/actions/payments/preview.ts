@@ -9,6 +9,7 @@ export async function previewPaymentAction(
 ): Promise<FormActionState> {
   const paymentAmount = Number(formData.get("paymentAmount") ?? 0);
   const creditAmount = Number(formData.get("creditAmount") ?? 0);
+  const recordedAt = String(formData.get("recordedAt") ?? "").trim() || undefined;
   const customerId = String(formData.get("customerId") ?? "").trim() || undefined;
-  return previewPaymentSubmission(paymentAmount, creditAmount, customerId);
+  return previewPaymentSubmission(paymentAmount, creditAmount, recordedAt, customerId);
 }

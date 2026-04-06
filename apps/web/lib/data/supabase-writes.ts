@@ -24,6 +24,18 @@ function slugifyFilename(name: string) {
   return name.replace(/[^a-zA-Z0-9.-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase();
 }
 
+function normalizeRecordedAt(recordedAt?: string) {
+  const trimmed = recordedAt?.trim() ?? "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return null;
+  }
+
+  return {
+    date: trimmed,
+    timestamp: `${trimmed}T12:00:00.000Z`,
+  };
+}
+
 async function saveCustomerProfileAddressSupabase(userId: string, input: {
   street: string;
   city: string;
@@ -1083,7 +1095,7 @@ export async function addCustomerNoteToDatabaseSupabase(customerId: string, note
   return { ok: true, message: `Saved an internal note for ${customer.displayName}.` };
 }
 
-export async function addManualBalanceItemToDatabaseSupabase(title: string, quantity: number, unitPrice: number, customerId?: string) {
+export async function addManualBalanceItemToDatabaseSupabase(title: string, quantity: number, unitPrice: number, recordedAt?: string, customerId?: string) {
   const actor = await getCurrentActor();
   const trimmedTitle = title.trim();
   if (!trimmedTitle) return { ok: false, message: "Enter an item title." };
@@ -1091,9 +1103,20 @@ export async function addManualBalanceItemToDatabaseSupabase(title: string, quan
 
   const context = await getTargetCycleContext(customerId);
   if (!context) return { ok: false, message: "No active balance cycle is available for admin adjustments yet." };
+  const normalizedRecordedAt = normalizeRecordedAt(recordedAt);
+  if (recordedAt && !normalizedRecordedAt) return { ok: false, message: "Enter a valid record date." };
 
   const admin = await getAdminClient();
-  const { error } = await admin.from("balance_line_items").insert({ cycle_id: context.cycle.id, item_type: "manual_item", description: trimmedTitle, quantity, unit_price: unitPrice, status: "adjusted", created_by: actor.id });
+  const { error } = await admin.from("balance_line_items").insert({
+    cycle_id: context.cycle.id,
+    item_type: "manual_item",
+    description: trimmedTitle,
+    quantity,
+    unit_price: unitPrice,
+    status: "adjusted",
+    created_by: actor.id,
+    ...(normalizedRecordedAt ? { created_at: normalizedRecordedAt.timestamp } : {}),
+  });
   if (error) return { ok: false, message: error.message };
   return { ok: true, message: `${trimmedTitle} was added to the active balance cycle.` };
 }
@@ -1150,10 +1173,12 @@ export async function applyBalanceAdjustmentsToDatabaseSupabase(shippingChange: 
   return { ok: true, message: "Balance charges were updated." };
 }
 
-export async function applyPaymentToDatabaseSupabase(paymentAmount: number, creditAmount: number, customerId?: string) {
+export async function applyPaymentToDatabaseSupabase(paymentAmount: number, creditAmount: number, recordedAt?: string, customerId?: string) {
   const context = await getTargetCycleContext(customerId);
   if (!context) return { ok: false, message: "No active balance cycle is available for payment." };
   if (paymentAmount < 0 || creditAmount < 0) return { ok: false, message: "Payment and credit amounts must be zero or higher." };
+  const normalizedRecordedAt = normalizeRecordedAt(recordedAt);
+  if (recordedAt && !normalizedRecordedAt) return { ok: false, message: "Enter a valid record date." };
 
   const customer = await getCustomerSummaryByUserId(context.cycle.customer_id, { admin: true });
   const due = context.summary.subtotal + context.summary.shipping + context.summary.adjustments - context.summary.paymentsApplied - context.summary.creditsApplied;
@@ -1164,7 +1189,14 @@ export async function applyPaymentToDatabaseSupabase(paymentAmount: number, cred
   const cycleUpdate = await admin.from("balance_cycles").update({ payments_applied: Number(context.cycle.payments_applied ?? 0) + paymentAmount, credits_applied: Number(context.cycle.credits_applied ?? 0) + applicableCredit, updated_at: new Date().toISOString() }).eq("id", context.cycle.id);
   if (cycleUpdate.error) return { ok: false, message: cycleUpdate.error.message };
 
-  if (paymentAmount > 0) await admin.from("payments").insert({ cycle_id: context.cycle.id, amount: paymentAmount, notes: "Admin-applied payment" });
+  if (paymentAmount > 0) {
+    await admin.from("payments").insert({
+      cycle_id: context.cycle.id,
+      amount: paymentAmount,
+      notes: "Admin-applied payment",
+      ...(normalizedRecordedAt ? { created_at: normalizedRecordedAt.timestamp } : {}),
+    });
+  }
   if (applicableCredit > 0) await admin.from("credits").insert({ customer_id: context.cycle.customer_id, amount: -applicableCredit, reason: "Applied to active balance cycle" });
 
   const nextCreditBalance = Math.max(customer.creditBalance - applicableCredit, 0) + preview.overpayment;
@@ -1173,7 +1205,16 @@ export async function applyPaymentToDatabaseSupabase(paymentAmount: number, cred
 
   if (shouldArchiveBalance(preview.remaining)) {
     const total = context.summary.subtotal + context.summary.shipping + context.summary.adjustments;
-    await admin.from("archived_invoices").insert({ cycle_id: context.cycle.id, customer_id: context.cycle.customer_id, cycle_label: formatCycleLabel(new Date()), paid_at: siteToday(), total, payment_total: Number(context.cycle.payments_applied ?? 0) + paymentAmount, credit_applied: Number(context.cycle.credits_applied ?? 0) + applicableCredit, status: "archived" });
+    await admin.from("archived_invoices").insert({
+      cycle_id: context.cycle.id,
+      customer_id: context.cycle.customer_id,
+      cycle_label: formatCycleLabel(normalizedRecordedAt ? new Date(normalizedRecordedAt.timestamp) : new Date()),
+      paid_at: normalizedRecordedAt?.date ?? siteToday(),
+      total,
+      payment_total: Number(context.cycle.payments_applied ?? 0) + paymentAmount,
+      credit_applied: Number(context.cycle.credits_applied ?? 0) + applicableCredit,
+      status: "archived",
+    });
     await admin.from("balance_cycles").update({ status: "archived", updated_at: new Date().toISOString() }).eq("id", context.cycle.id);
     await admin.from("balance_cycles").insert({ customer_id: context.cycle.customer_id, status: "active", due_date: nextDueDateFromToday(), shipping_total: 0, adjustments_total: 0, payments_applied: 0, credits_applied: 0 });
   }

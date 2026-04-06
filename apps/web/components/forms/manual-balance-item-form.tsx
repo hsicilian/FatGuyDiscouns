@@ -11,6 +11,7 @@ const initialState: FormActionState = {
 
 export function ManualBalanceItemForm({ customerId }: { customerId?: string }) {
   const [state, formAction, isPending] = useActionState(addManualBalanceItemAction, initialState);
+  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 10 }}>
@@ -29,6 +30,10 @@ export function ManualBalanceItemForm({ customerId }: { customerId?: string }) {
           <input name="unitPrice" type="number" step="0.01" min="0" defaultValue="0" style={{ width: "100%", padding: 10, borderRadius: 12, border: "1px solid #d9c7b2", boxSizing: "border-box" }} />
         </label>
       </div>
+      <label style={{ display: "grid", gap: 4 }}>
+        <span style={{ color: "#6d655d", fontSize: 14 }}>Record date</span>
+        <input name="recordedAt" type="date" defaultValue={today} style={{ width: "100%", padding: 10, borderRadius: 12, border: "1px solid #d9c7b2", boxSizing: "border-box" }} />
+      </label>
       <button disabled={isPending} style={{ width: "100%", background: "#bb4d00", color: "#fff", border: 0, borderRadius: 999, padding: "10px 14px" }}>
         {isPending ? "Saving..." : "Add Manual Item"}
       </button>

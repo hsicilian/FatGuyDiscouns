@@ -45,6 +45,7 @@ export interface LocalDatabase {
   customers: CustomerSummary[];
   balanceCycle: BalanceCycleSummary;
   claimedItems: ClaimedItem[];
+  paymentHistory: PaymentHistoryRecord[];
   archivedInvoices: ArchivedInvoice[];
   shipmentRecords: ShipmentRecord[];
   customerNotes: CustomerNote[];
@@ -226,6 +227,7 @@ function createInitialDatabase(): LocalDatabase {
         quantity: 1,
         unitPrice: 28,
         status: "claimed",
+        createdAt: "2026-03-15T10:30:00-04:00",
       },
       {
         id: "claim-002",
@@ -233,6 +235,7 @@ function createInitialDatabase(): LocalDatabase {
         quantity: 1,
         unitPrice: 12,
         status: "claimed",
+        createdAt: "2026-03-28T14:10:00-04:00",
       },
       {
         id: "claim-003",
@@ -240,7 +243,13 @@ function createInitialDatabase(): LocalDatabase {
         quantity: 1,
         unitPrice: 18,
         status: "adjusted",
+        createdAt: "2026-03-29T18:45:00-04:00",
       },
+    ],
+    paymentHistory: [
+      { id: "payment-001", customerId: "cust-001", amount: 38, createdAt: "2026-03-29", notes: "Active cycle payment" },
+      { id: "payment-002", customerId: "cust-002", amount: 84, createdAt: "2026-03-02", notes: "February 2026 cycle payment" },
+      { id: "payment-003", customerId: "cust-003", amount: 118, createdAt: "2026-02-01", notes: "January 2026 cycle payment" },
     ],
     archivedInvoices: [
       {
@@ -421,6 +430,7 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
     customers: db.customers ?? fallback.customers,
     balanceCycle: db.balanceCycle ?? fallback.balanceCycle,
     claimedItems: db.claimedItems ?? fallback.claimedItems,
+    paymentHistory: db.paymentHistory ?? fallback.paymentHistory,
     archivedInvoices: db.archivedInvoices ?? fallback.archivedInvoices,
     shipmentRecords: db.shipmentRecords ?? fallback.shipmentRecords,
     customerNotes: db.customerNotes ?? fallback.customerNotes,
@@ -696,33 +706,16 @@ export async function listArchivedInvoicesForCustomer(_customerId: string) {
 
 export async function listPaymentHistoryForCustomer(customerId: string): Promise<PaymentHistoryRecord[]> {
   const db = await readDatabase();
-  const customer = db.customers.find((entry) => entry.id === customerId);
-  if (!customer) return [];
-
-  const archivedPayments = db.archivedInvoices.map((invoice) => ({
-    id: `payment-${invoice.id}`,
-    customerId,
-    amount: invoice.paymentTotal,
-    createdAt: invoice.paidAt,
-    notes: `Payment recorded for ${invoice.cycleLabel}`,
-  }));
-
-  const activeCyclePayment = db.balanceCycle.paymentsApplied > 0 ? [{
-    id: "payment-active-cycle",
-    customerId,
-    amount: db.balanceCycle.paymentsApplied,
-    createdAt: new Date().toISOString().slice(0, 10),
-    notes: "Active cycle payment total",
-  }] : [];
-
-  return [...activeCyclePayment, ...archivedPayments];
+  return db.paymentHistory
+    .filter((payment) => payment.customerId === customerId)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
 export async function listClaimHistoryForCustomer(_customerId: string): Promise<ClaimHistoryRecord[]> {
   const db = await readDatabase();
   return db.claimedItems.map((item, index) => ({
     ...item,
-    createdAt: new Date(Date.now() - index * 86400000).toISOString(),
+    createdAt: item.createdAt ?? new Date(Date.now() - index * 86400000).toISOString(),
     cycleStatus: db.balanceCycle.status,
   }));
 }
@@ -851,11 +844,9 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
     { customer: "Casey Morgan", customerId: "cust-002", totalSpent: 184, invoiceCount: 2 },
     { customer: "Taylor West", customerId: "cust-003", totalSpent: 148, invoiceCount: 1 },
   ];
-  const recentPayments: PaymentHistoryRecord[] = [
-    { id: "payment-001", customerId: currentCustomer.id, amount: 38, createdAt: new Date().toISOString(), notes: "Active cycle payment" },
-    { id: "payment-002", customerId: "cust-002", amount: 84, createdAt: "2026-03-02", notes: "February 2026 cycle payment" },
-    { id: "payment-003", customerId: "cust-003", amount: 118, createdAt: "2026-02-01", notes: "January 2026 cycle payment" },
-  ];
+  const recentPayments: PaymentHistoryRecord[] = [...db.paymentHistory]
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+    .slice(0, 5);
   const recentInvoices = db.archivedInvoices.map((invoice) => ({
     ...invoice,
     customer: currentCustomer.displayName,
@@ -1703,7 +1694,7 @@ export async function addCustomerNoteToDatabase(customerId: string, note: string
   };
 }
 
-export async function addManualBalanceItemToDatabase(title: string, quantity: number, unitPrice: number) {
+export async function addManualBalanceItemToDatabase(title: string, quantity: number, unitPrice: number, recordedAt?: string) {
   const db = await readDatabase();
   const trimmedTitle = title.trim();
 
@@ -1721,6 +1712,7 @@ export async function addManualBalanceItemToDatabase(title: string, quantity: nu
     quantity,
     unitPrice,
     status: "adjusted",
+    createdAt: recordedAt ? `${recordedAt}T12:00:00.000Z` : new Date().toISOString(),
   });
   db.balanceCycle.subtotal += quantity * unitPrice;
   await writeDatabase(db);
@@ -1793,7 +1785,7 @@ export async function applyBalanceAdjustmentsToDatabase(shippingChange: number, 
   };
 }
 
-export async function applyPaymentToDatabase(paymentAmount: number, creditAmount: number) {
+export async function applyPaymentToDatabase(paymentAmount: number, creditAmount: number, recordedAt?: string) {
   const db = await readDatabase();
   const customer = findCurrentCustomer(db);
   const amountDue = calculateBalanceDue(db.balanceCycle);
@@ -1806,18 +1798,28 @@ export async function applyPaymentToDatabase(paymentAmount: number, creditAmount
   }
 
   const preview = applyPaymentToBalance(amountDue, paymentAmount, creditAmount);
+  const paymentDate = recordedAt?.trim() || new Date().toISOString().slice(0, 10);
 
   db.balanceCycle.paymentsApplied += paymentAmount;
   db.balanceCycle.creditsApplied += creditAmount;
   db.paymentDefaults = { paymentAmount, creditAmount };
+  if (paymentAmount > 0) {
+    db.paymentHistory.unshift({
+      id: `payment-${Date.now()}`,
+      customerId: customer.id,
+      amount: paymentAmount,
+      createdAt: paymentDate,
+      notes: "Admin-applied payment",
+    });
+  }
 
   if (shouldArchiveBalance(preview.remaining)) {
     const cycleTotal = db.balanceCycle.subtotal + db.balanceCycle.shipping + db.balanceCycle.adjustments;
 
     db.archivedInvoices.unshift({
       id: `inv-${Date.now()}`,
-      cycleLabel: formatCycleLabel(new Date()),
-      paidAt: new Date().toISOString().slice(0, 10),
+      cycleLabel: formatCycleLabel(new Date(`${paymentDate}T12:00:00.000Z`)),
+      paidAt: paymentDate,
       total: cycleTotal,
       paymentTotal: db.balanceCycle.paymentsApplied,
       creditApplied: db.balanceCycle.creditsApplied,
