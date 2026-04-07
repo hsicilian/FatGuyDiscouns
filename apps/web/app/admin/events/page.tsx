@@ -1,4 +1,6 @@
 import { EventCreateForm } from "../../../components/forms/event-create-form";
+import { EventDeleteForm } from "../../../components/forms/event-delete-form";
+import { EventUpdateForm } from "../../../components/forms/event-update-form";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
 import { listEvents } from "../../../lib/data/local-db";
 
@@ -37,13 +39,15 @@ export default async function AdminEventsPage() {
           </div>
 
           {events.length > 0 ? events.map((event) => (
-            <article key={event.id} style={{ borderTop: "1px solid rgba(232,214,195,0.88)", paddingTop: 14, display: "grid", gap: 6 }}>
+            <article key={event.id} style={{ borderTop: "1px solid rgba(232,214,195,0.88)", paddingTop: 14, display: "grid", gap: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                 <strong>{event.title}</strong>
                 <a href={`/events/${event.id}`} style={{ color: "var(--accent-strong)", fontWeight: 700 }}>View page</a>
               </div>
               <p style={{ margin: 0, color: "var(--muted)" }}>{eventDate.format(new Date(event.startsAt))}</p>
               <p style={{ margin: 0, color: "var(--muted)" }}>{event.platform ?? "Live sale"}</p>
+              <EventUpdateForm event={event} />
+              <EventDeleteForm eventId={event.id} />
             </article>
           )) : (
             <div style={{ padding: 18, borderRadius: 18, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)", color: "var(--muted)" }}>

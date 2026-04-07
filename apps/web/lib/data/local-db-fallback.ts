@@ -923,6 +923,56 @@ export async function createEventInDatabase(input: {
   };
 }
 
+export async function updateEventInDatabase(input: {
+  eventId: string;
+  title: string;
+  startsAtLocal: string;
+  description: string;
+  externalLink: string;
+  platform: string;
+  timeZone: string;
+}) {
+  const db = await readDatabase();
+  const eventId = input.eventId.trim();
+  const title = input.title.trim();
+  if (!eventId) {
+    return { ok: false, message: "Event record is missing." };
+  }
+  if (!title) {
+    return { ok: false, message: "Event title is required." };
+  }
+  if (!input.startsAtLocal) {
+    return { ok: false, message: "Event date and time are required." };
+  }
+
+  const event = db.events.find((entry) => entry.id === eventId);
+  if (!event) {
+    return { ok: false, message: "Event record not found." };
+  }
+
+  const { zonedLocalDateTimeToIso } = await import("../events");
+  event.title = title;
+  event.startsAt = zonedLocalDateTimeToIso(input.startsAtLocal, input.timeZone);
+  event.description = input.description.trim();
+  event.externalLink = input.externalLink.trim();
+  event.platform = input.platform.trim() || undefined;
+
+  db.events.sort((left, right) => left.startsAt.localeCompare(right.startsAt));
+  await writeDatabase(db);
+  return { ok: true, message: `${title} was updated.` };
+}
+
+export async function deleteEventInDatabase(eventId: string) {
+  const db = await readDatabase();
+  const trimmed = eventId.trim();
+  const before = db.events.length;
+  db.events = db.events.filter((event) => event.id !== trimmed);
+  await writeDatabase(db);
+  return before === db.events.length
+    ? { ok: false, message: "Event record not found." }
+    : { ok: true, message: "Event deleted." };
+}
+
 export async function saveCrossListedInventoryToDatabase(input: {
   sku: string;
   itemName: string;

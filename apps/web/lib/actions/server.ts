@@ -19,9 +19,11 @@ import {
   createCategoryInDatabase,
   createInventoryItemInDatabase,
   createInventoryItemsBulkInDatabase,
+  createEventInDatabase,
   deleteArchivedProductInDatabase,
   deleteCategoryInDatabase,
   deleteCrossListedInventoryFromDatabase,
+  deleteEventInDatabase,
   markNotificationReadInDatabase,
   replyToCustomerMessage,
   removeClaimedItemFromDatabase,
@@ -31,15 +33,15 @@ import {
   submitCustomerMessageToDatabase,
   submitRestockRequestToDatabase,
   submitShipmentRequestToDatabase,
-  updateProductSaleInDatabase,
-  updateHomepageFeaturedInDatabase,
   updateClaimedItemInDatabase,
   updateCustomerAccountState,
   updateCustomerRoleInDatabase,
   updateCurrentCustomerProfile,
   updateCustomerProfileByAdmin,
+  updateEventInDatabase,
+  updateHomepageFeaturedInDatabase,
+  updateProductSaleInDatabase,
   updateShipmentInDatabase,
-  createEventInDatabase,
 } from "../data/local-db";
 import { hasSupabaseEnv } from "../supabase";
 
@@ -729,6 +731,56 @@ export async function createEvent(
     repeatWeekly,
     repeatUntilLocal,
   });
+  revalidatePath("/events");
+  revalidatePath("/admin");
+  revalidatePath("/admin/events");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateEvent(
+  eventId: string,
+  title: string,
+  startsAtLocal: string,
+  description: string,
+  externalLink: string,
+  platform: string,
+  timeZone: string,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateEventInDatabase({
+    eventId,
+    title,
+    startsAtLocal,
+    description,
+    externalLink,
+    platform,
+    timeZone,
+  });
+  revalidatePath("/events");
+  revalidatePath("/admin");
+  revalidatePath("/admin/events");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function deleteEvent(eventId: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await deleteEventInDatabase(eventId);
   revalidatePath("/events");
   revalidatePath("/admin");
   revalidatePath("/admin/events");

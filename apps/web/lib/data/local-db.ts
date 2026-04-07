@@ -46,6 +46,7 @@ import {
   deleteArchivedProductInDatabaseSupabase,
   deleteCrossListedInventoryFromDatabaseSupabase,
   deleteCategoryInDatabaseSupabase,
+  deleteEventInDatabaseSupabase,
   markNotificationReadInDatabaseSupabase,
   replyToCustomerMessageSupabase,
   removeClaimedItemFromDatabaseSupabase,
@@ -62,6 +63,7 @@ import {
   updateCurrentCustomerProfileSupabase,
   updateCustomerAccountStateSupabase,
   updateCustomerRoleInDatabaseSupabase,
+  updateEventInDatabaseSupabase,
   updateShipmentInDatabaseSupabase,
   createEventInDatabaseSupabase,
 } from "./supabase-writes";
@@ -413,6 +415,26 @@ export async function createEventInDatabase(input: {
   return shouldUseSupabase()
     ? createEventInDatabaseSupabase(input)
     : fallback.createEventInDatabase(input);
+}
+
+export async function updateEventInDatabase(input: {
+  eventId: string;
+  title: string;
+  startsAtLocal: string;
+  description: string;
+  externalLink: string;
+  platform: string;
+  timeZone: string;
+}) {
+  return shouldUseSupabase()
+    ? updateEventInDatabaseSupabase(input)
+    : fallback.updateEventInDatabase(input);
+}
+
+export async function deleteEventInDatabase(eventId: string) {
+  return shouldUseSupabase()
+    ? deleteEventInDatabaseSupabase(eventId)
+    : fallback.deleteEventInDatabase(eventId);
 }
 
 export async function markNotificationReadInDatabase(notificationId: string) {

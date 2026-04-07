@@ -1411,3 +1411,58 @@ export async function createEventInDatabaseSupabase(input: {
         : `${title} was added to the events calendar ${startsAtLocalValues.length} times.`,
   };
 }
+
+export async function updateEventInDatabaseSupabase(input: {
+  eventId: string;
+  title: string;
+  startsAtLocal: string;
+  description: string;
+  externalLink: string;
+  platform: string;
+  timeZone: string;
+}) {
+  const admin = await getAdminClient();
+  const eventId = input.eventId.trim();
+  const title = input.title.trim();
+  const description = input.description.trim();
+  const platform = input.platform.trim();
+  const externalLink = input.externalLink.trim();
+  const timeZone = input.timeZone.trim() || "America/New_York";
+
+  if (!eventId) return { ok: false, message: "Event record is missing." };
+  if (!title) return { ok: false, message: "Event title is required." };
+  if (!input.startsAtLocal) return { ok: false, message: "Event date and time are required." };
+
+  const { error } = await admin
+    .from("events")
+    .update({
+      title,
+      starts_at: zonedLocalDateTimeToIso(input.startsAtLocal, timeZone),
+      description,
+      external_link: externalLink || null,
+      platform: platform || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", eventId);
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  return { ok: true, message: `${title} was updated.` };
+}
+
+export async function deleteEventInDatabaseSupabase(eventId: string) {
+  const admin = await getAdminClient();
+  const trimmed = eventId.trim();
+  if (!trimmed) {
+    return { ok: false, message: "Event record is missing." };
+  }
+
+  const { error } = await admin.from("events").delete().eq("id", trimmed);
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  return { ok: true, message: "Event deleted." };
+}

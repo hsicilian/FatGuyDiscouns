@@ -88,6 +88,21 @@ export function zonedLocalDateTimeToIso(localDateTime: string, timeZone: string)
   return new Date(timestamp).toISOString();
 }
 
+export function formatIsoForDateTimeInput(iso: string, timeZone: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const parts = getZonedParts(date, timeZone);
+  const year = String(parts.year);
+  const month = String(parts.month).padStart(2, "0");
+  const day = String(parts.day).padStart(2, "0");
+  const hour = String(parts.hour).padStart(2, "0");
+  const minute = String(parts.minute).padStart(2, "0");
+  return `${year}-${month}-${day}T${hour}:${minute}`;
+}
+
 export function buildWeeklyRecurringLocalDateTimes(
   startsAtLocal: string,
   repeatWeekly: boolean,
