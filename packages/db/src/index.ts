@@ -298,6 +298,22 @@ export const demoFinancialSummary: FinancialSummary = {
     { monthKey: "2026-03", monthLabel: "March 2026", customer: "Jordan Rivers", customerId: "cust-001", totalSpent: 216, invoiceCount: 2 },
     { monthKey: "2026-02", monthLabel: "February 2026", customer: "Taylor West", customerId: "cust-003", totalSpent: 148, invoiceCount: 1 },
   ],
+  latePaymentWatchlist: [
+    { customer: "Casey Morgan", customerId: "cust-002", overdueAmount: 118, invoiceAmount: 96, shippingAmount: 22, lastPaymentAt: "2026-03-02" },
+  ],
+  customerLifetimeSummary: [
+    { customer: "Jordan Rivers", customerId: "cust-001", lifetimeSpent: 216, lifetimePaid: 216, invoiceCount: 2, paymentCount: 1, shipmentCount: 1, lastPaymentAt: "2026-03-29" },
+    { customer: "Casey Morgan", customerId: "cust-002", lifetimeSpent: 184, lifetimePaid: 84, invoiceCount: 2, paymentCount: 1, shipmentCount: 0, lastPaymentAt: "2026-03-02" },
+  ],
+  monthlyShipmentVolume: [
+    { monthKey: "2026-03", monthLabel: "March 2026", shipmentCount: 1 },
+  ],
+  restockDemand: [
+    { productTitle: "Retro flannel", requestCount: 2, openCount: 2, customerCount: 2 },
+  ],
+  itemRequestDemand: [
+    { request: "Looking for plus-size vintage band tees", requestCount: 1, customerCount: 1, latestRequestAt: "2026-03-28T14:00:00.000Z" },
+  ],
 };
 
 export const demoPaymentPreview = {

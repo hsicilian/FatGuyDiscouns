@@ -237,6 +237,41 @@ export interface FinancialSummary {
     totalSpent: number;
     invoiceCount: number;
   }>;
+  latePaymentWatchlist: Array<{
+    customer: string;
+    customerId?: string;
+    overdueAmount: number;
+    invoiceAmount: number;
+    shippingAmount: number;
+    lastPaymentAt?: string;
+  }>;
+  customerLifetimeSummary: Array<{
+    customer: string;
+    customerId?: string;
+    lifetimeSpent: number;
+    lifetimePaid: number;
+    invoiceCount: number;
+    paymentCount: number;
+    shipmentCount: number;
+    lastPaymentAt?: string;
+  }>;
+  monthlyShipmentVolume: Array<{
+    monthKey: string;
+    monthLabel: string;
+    shipmentCount: number;
+  }>;
+  restockDemand: Array<{
+    productTitle: string;
+    requestCount: number;
+    openCount: number;
+    customerCount: number;
+  }>;
+  itemRequestDemand: Array<{
+    request: string;
+    requestCount: number;
+    customerCount: number;
+    latestRequestAt?: string;
+  }>;
 }
 
 export type CrossListedPlatform = string;

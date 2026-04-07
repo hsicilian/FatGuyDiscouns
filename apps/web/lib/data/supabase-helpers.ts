@@ -362,16 +362,34 @@ export async function getFinancialSummaryFromCycles() {
     };
   }))).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 
-  const [{ data: archivedInvoices, error: archivedError }, { data: payments, error: paymentError }] = await Promise.all([
+  const [
+    { data: archivedInvoices, error: archivedError },
+    { data: payments, error: paymentError },
+    { data: shipments, error: shipmentError },
+    { data: restockRequests, error: restockError },
+    { data: itemRequests, error: itemRequestError },
+  ] = await Promise.all([
     admin
       .from("archived_invoices")
       .select("id, customer_id, cycle_label, paid_at, total, payment_total, credit_applied")
       .order("paid_at", { ascending: false }),
     admin
       .from("payments")
-      .select("id, amount, created_at, notes, balance_cycles!inner(customer_id)")
-      .order("created_at", { ascending: false })
-      .limit(25),
+        .select("id, amount, created_at, notes, balance_cycles!inner(customer_id)")
+        .order("created_at", { ascending: false })
+        .limit(25),
+    admin
+      .from("shipments")
+      .select("id, customer_id, status, shipment_date, requested_at")
+      .order("requested_at", { ascending: false }),
+    admin
+      .from("restock_requests")
+      .select("id, customer_id, status, created_at, products(title)")
+      .order("created_at", { ascending: false }),
+    admin
+      .from("customer_item_requests")
+      .select("id, customer_id, body, created_at")
+      .order("created_at", { ascending: false }),
   ]);
 
   if (archivedError) {
@@ -381,10 +399,22 @@ export async function getFinancialSummaryFromCycles() {
   if (paymentError) {
     throw paymentError;
   }
+  if (shipmentError) {
+    throw shipmentError;
+  }
+  if (restockError) {
+    throw restockError;
+  }
+  if (itemRequestError) {
+    throw itemRequestError;
+  }
 
   const invoiceCustomerIds = [...new Set((archivedInvoices ?? []).map((invoice) => invoice.customer_id).filter(Boolean))];
+  const paymentCustomerIds = [...new Set((payments ?? []).map((payment) => (payment as any).balance_cycles?.customer_id).filter(Boolean))];
+  const shipmentCustomerIds = [...new Set((shipments ?? []).map((shipment) => shipment.customer_id).filter(Boolean))];
+  const itemRequestCustomerIds = [...new Set((itemRequests ?? []).map((request) => request.customer_id).filter(Boolean))];
   const invoiceCustomerMap = new Map<string, Awaited<ReturnType<typeof getCustomerSummaryByUserId>>>();
-  await Promise.all(invoiceCustomerIds.map(async (customerId) => {
+  await Promise.all([...new Set([...invoiceCustomerIds, ...paymentCustomerIds, ...shipmentCustomerIds, ...itemRequestCustomerIds])].map(async (customerId) => {
     invoiceCustomerMap.set(customerId, await getCustomerSummaryByUserId(customerId, { admin: true }));
   }));
 
@@ -433,9 +463,18 @@ export async function getFinancialSummaryFromCycles() {
   }
 
   const monthlyPaymentTotals = new Map<string, { monthKey: string; monthLabel: string; total: number; paymentCount: number }>();
+  const paymentsByCustomer = new Map<string, { total: number; paymentCount: number; lastPaymentAt?: string }>();
   for (const payment of payments ?? []) {
     const monthKey = getMonthKey(String(payment.created_at ?? ""));
+    const customerId = (payment as any).balance_cycles?.customer_id ?? "";
     if (!monthKey) {
+      if (customerId) {
+        const existing = paymentsByCustomer.get(customerId) ?? { total: 0, paymentCount: 0, lastPaymentAt: undefined };
+        existing.total += Number(payment.amount ?? 0);
+        existing.paymentCount += 1;
+        existing.lastPaymentAt = existing.lastPaymentAt && existing.lastPaymentAt > String(payment.created_at ?? "") ? existing.lastPaymentAt : String(payment.created_at ?? "");
+        paymentsByCustomer.set(customerId, existing);
+      }
       continue;
     }
 
@@ -448,9 +487,115 @@ export async function getFinancialSummaryFromCycles() {
     monthlyPayment.total += Number(payment.amount ?? 0);
     monthlyPayment.paymentCount += 1;
     monthlyPaymentTotals.set(monthKey, monthlyPayment);
+
+    if (customerId) {
+      const existing = paymentsByCustomer.get(customerId) ?? { total: 0, paymentCount: 0, lastPaymentAt: undefined };
+      existing.total += Number(payment.amount ?? 0);
+      existing.paymentCount += 1;
+      existing.lastPaymentAt = existing.lastPaymentAt && existing.lastPaymentAt > String(payment.created_at ?? "") ? existing.lastPaymentAt : String(payment.created_at ?? "");
+      paymentsByCustomer.set(customerId, existing);
+    }
+  }
+
+  const shipmentCountsByCustomer = new Map<string, number>();
+  const monthlyShipmentVolume = new Map<string, { monthKey: string; monthLabel: string; shipmentCount: number }>();
+  for (const shipment of shipments ?? []) {
+    if (shipment.status !== "completed") {
+      continue;
+    }
+
+    if (shipment.customer_id) {
+      shipmentCountsByCustomer.set(shipment.customer_id, (shipmentCountsByCustomer.get(shipment.customer_id) ?? 0) + 1);
+    }
+
+    const rawDate = String(shipment.shipment_date ?? shipment.requested_at ?? "");
+    const monthKey = getMonthKey(rawDate);
+    if (!monthKey) {
+      continue;
+    }
+    const existing = monthlyShipmentVolume.get(monthKey) ?? {
+      monthKey,
+      monthLabel: formatMonthLabel(monthKey),
+      shipmentCount: 0,
+    };
+    existing.shipmentCount += 1;
+    monthlyShipmentVolume.set(monthKey, existing);
+  }
+
+  const restockDemand = new Map<string, { productTitle: string; requestCount: number; openCount: number; customerIds: Set<string> }>();
+  for (const request of restockRequests ?? []) {
+    const productRelation = (request as any).products;
+    const productTitle = Array.isArray(productRelation) ? productRelation[0]?.title ?? "Product" : productRelation?.title ?? "Product";
+    const existing = restockDemand.get(productTitle) ?? {
+      productTitle,
+      requestCount: 0,
+      openCount: 0,
+      customerIds: new Set<string>(),
+    };
+    existing.requestCount += 1;
+    if (request.status === "open") {
+      existing.openCount += 1;
+    }
+    if (request.customer_id) {
+      existing.customerIds.add(request.customer_id);
+    }
+    restockDemand.set(productTitle, existing);
+  }
+
+  const itemRequestDemand = new Map<string, { request: string; requestCount: number; customerIds: Set<string>; latestRequestAt?: string }>();
+  for (const request of itemRequests ?? []) {
+    const body = String(request.body ?? "").trim();
+    if (!body) {
+      continue;
+    }
+    const existing = itemRequestDemand.get(body) ?? {
+      request: body,
+      requestCount: 0,
+      customerIds: new Set<string>(),
+      latestRequestAt: undefined,
+    };
+    existing.requestCount += 1;
+    if (request.customer_id) {
+      existing.customerIds.add(request.customer_id);
+    }
+    const createdAt = String(request.created_at ?? "");
+    existing.latestRequestAt = existing.latestRequestAt && existing.latestRequestAt > createdAt ? existing.latestRequestAt : createdAt;
+    itemRequestDemand.set(body, existing);
   }
 
   const overdueEntries = customerBalances.filter((entry) => entry.overdue);
+
+  const customerLifetimeSummary = [...spendByCustomer.values()]
+    .map((entry) => {
+      const paymentSummary = entry.customerId ? paymentsByCustomer.get(entry.customerId) : undefined;
+      const shipmentCount = entry.customerId ? shipmentCountsByCustomer.get(entry.customerId) ?? 0 : 0;
+      return {
+        customer: entry.customer,
+        customerId: entry.customerId,
+        lifetimeSpent: entry.totalSpent,
+        lifetimePaid: paymentSummary?.total ?? 0,
+        invoiceCount: entry.invoiceCount,
+        paymentCount: paymentSummary?.paymentCount ?? 0,
+        shipmentCount,
+        lastPaymentAt: paymentSummary?.lastPaymentAt,
+      };
+    })
+    .sort((left, right) => right.lifetimeSpent - left.lifetimeSpent)
+    .slice(0, 20);
+
+  const latePaymentWatchlist = overdueEntries
+    .map((entry) => {
+      const paymentSummary = entry.customerId ? paymentsByCustomer.get(entry.customerId) : undefined;
+      return {
+        customer: entry.customer,
+        customerId: entry.customerId,
+        overdueAmount: entry.amount,
+        invoiceAmount: entry.invoiceAmount,
+        shippingAmount: entry.shippingAmount,
+        lastPaymentAt: paymentSummary?.lastPaymentAt,
+      };
+    })
+    .sort((left, right) => right.overdueAmount - left.overdueAmount);
 
   return {
     totalRunningBalance: customerBalances.reduce((sum, entry) => sum + entry.amount, 0),
@@ -474,5 +619,31 @@ export async function getFinancialSummaryFromCycles() {
         return monthCompare !== 0 ? monthCompare : right.totalSpent - left.totalSpent;
       })
       .slice(0, 24),
+    latePaymentWatchlist,
+    customerLifetimeSummary,
+    monthlyShipmentVolume: [...monthlyShipmentVolume.values()].sort((left, right) => right.monthKey.localeCompare(left.monthKey)).slice(0, 12),
+    restockDemand: [...restockDemand.values()]
+      .map((entry) => ({
+        productTitle: entry.productTitle,
+        requestCount: entry.requestCount,
+        openCount: entry.openCount,
+        customerCount: entry.customerIds.size,
+      }))
+      .sort((left, right) => right.requestCount - left.requestCount)
+      .slice(0, 12),
+    itemRequestDemand: [...itemRequestDemand.values()]
+      .map((entry) => ({
+        request: entry.request,
+        requestCount: entry.requestCount,
+        customerCount: entry.customerIds.size,
+        latestRequestAt: entry.latestRequestAt,
+      }))
+      .sort((left, right) => {
+        if (right.requestCount !== left.requestCount) {
+          return right.requestCount - left.requestCount;
+        }
+        return String(right.latestRequestAt ?? "").localeCompare(String(left.latestRequestAt ?? ""));
+      })
+      .slice(0, 12),
   } satisfies FinancialSummary;
 }

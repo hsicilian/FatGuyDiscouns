@@ -49,6 +49,49 @@ export default async function AdminReportsPage() {
           </section>
           <section style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
             <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+              <h2 style={{ marginTop: 0 }}>Late payment watchlist</h2>
+              {financialSummary.latePaymentWatchlist.map((entry) => (
+                <div key={entry.customerId ?? entry.customer} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <div>
+                    <strong>{entry.customer}</strong>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>
+                      Invoices {currency.format(entry.invoiceAmount)} • Shipping {currency.format(entry.shippingAmount)}
+                    </p>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>
+                      Last payment {entry.lastPaymentAt ?? "No payments yet"}
+                    </p>
+                  </div>
+                  <strong>{currency.format(entry.overdueAmount)}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+              <h2 style={{ marginTop: 0 }}>Customer lifetime summary</h2>
+              {financialSummary.customerLifetimeSummary.map((entry) => (
+                <div key={entry.customerId ?? entry.customer} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <div>
+                    <strong>{entry.customer}</strong>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>
+                      {entry.invoiceCount} invoices • {entry.paymentCount} payments • {entry.shipmentCount} shipments
+                    </p>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>
+                      Lifetime paid {currency.format(entry.lifetimePaid)}
+                    </p>
+                  </div>
+                  <strong>{currency.format(entry.lifetimeSpent)}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+              <h2 style={{ marginTop: 0 }}>Shipment volume by month</h2>
+              {financialSummary.monthlyShipmentVolume.map((entry) => (
+                <div key={entry.monthKey} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <strong>{entry.monthLabel}</strong>
+                  <strong>{entry.shipmentCount}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
               <h2 style={{ marginTop: 0 }}>Monthly invoice totals</h2>
               {financialSummary.monthlyInvoiceTotals.map((entry) => (
                 <div key={entry.monthKey} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
@@ -117,6 +160,34 @@ export default async function AdminReportsPage() {
                     <p style={{ margin: "4px 0 0", color: "#6d655d" }}>{entry.cycleLabel} • {entry.paidAt}</p>
                   </div>
                   <strong>{currency.format(entry.total)}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+              <h2 style={{ marginTop: 0 }}>Restock demand</h2>
+              {financialSummary.restockDemand.map((entry) => (
+                <div key={entry.productTitle} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <div>
+                    <strong>{entry.productTitle}</strong>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>
+                      {entry.customerCount} customer{entry.customerCount === 1 ? "" : "s"} • {entry.openCount} open
+                    </p>
+                  </div>
+                  <strong>{entry.requestCount}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+              <h2 style={{ marginTop: 0 }}>Item request demand</h2>
+              {financialSummary.itemRequestDemand.map((entry) => (
+                <div key={`${entry.request}-${entry.latestRequestAt ?? ""}`} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <div>
+                    <strong>{entry.request}</strong>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>
+                      {entry.customerCount} customer{entry.customerCount === 1 ? "" : "s"} • latest {entry.latestRequestAt ?? "n/a"}
+                    </p>
+                  </div>
+                  <strong>{entry.requestCount}</strong>
                 </div>
               ))}
             </div>

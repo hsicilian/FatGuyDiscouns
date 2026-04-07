@@ -900,6 +900,81 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
     totalSpent: row.total,
     invoiceCount: row.invoiceCount,
   }));
+  const latePaymentWatchlist = overdueEntries
+    .filter((entry) => entry.overdue)
+    .map((entry) => ({
+      customer: entry.customer,
+      customerId: entry.customerId,
+      overdueAmount: entry.amount,
+      invoiceAmount: entry.invoiceAmount,
+      shippingAmount: entry.shippingAmount,
+      lastPaymentAt: recentPayments[0]?.createdAt,
+    }));
+  const customerLifetimeSummary = [
+    {
+      customer: currentCustomer.displayName,
+      customerId: currentCustomer.id,
+      lifetimeSpent: recentInvoices.reduce((sum, invoice) => sum + invoice.total, 0),
+      lifetimePaid: recentInvoices.reduce((sum, invoice) => sum + invoice.paymentTotal + invoice.creditApplied, 0),
+      invoiceCount: recentInvoices.length,
+      paymentCount: db.paymentHistory.length,
+      shipmentCount: db.shipmentRecords.filter((shipment) => shipment.status === "completed").length,
+      lastPaymentAt: recentPayments[0]?.createdAt,
+    },
+  ];
+  const monthlyShipmentVolume = db.shipmentRecords
+    .filter((shipment) => shipment.status === "completed" && (shipment.shipmentDate || shipment.requestedAt))
+    .reduce<Array<{ monthKey: string; monthLabel: string; shipmentCount: number }>>((rows, shipment) => {
+      const monthKey = String(shipment.shipmentDate ?? shipment.requestedAt).slice(0, 7);
+      const existing = rows.find((row) => row.monthKey === monthKey);
+      if (existing) {
+        existing.shipmentCount += 1;
+        return rows;
+      }
+      rows.push({
+        monthKey,
+        monthLabel: new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date(`${monthKey}-01T12:00:00Z`)),
+        shipmentCount: 1,
+      });
+      return rows;
+    }, [])
+    .sort((left, right) => right.monthKey.localeCompare(left.monthKey));
+  const restockDemand = (await listRestockRequests())
+    .reduce<Array<{ productTitle: string; requestCount: number; openCount: number; customerCount: number }>>((rows, request) => {
+      const existing = rows.find((row) => row.productTitle === request.productTitle);
+      if (existing) {
+        existing.requestCount += 1;
+        existing.openCount += request.status === "open" ? 1 : 0;
+        existing.customerCount += request.customerId ? 1 : 0;
+        return rows;
+      }
+      rows.push({
+        productTitle: request.productTitle,
+        requestCount: 1,
+        openCount: request.status === "open" ? 1 : 0,
+        customerCount: request.customerId ? 1 : 0,
+      });
+      return rows;
+    }, [])
+    .sort((left, right) => right.requestCount - left.requestCount);
+  const itemRequestDemand = db.customerItemRequests
+    .reduce<Array<{ request: string; requestCount: number; customerCount: number; latestRequestAt?: string }>>((rows, request) => {
+      const existing = rows.find((row) => row.request === request.request);
+      if (existing) {
+        existing.requestCount += 1;
+        existing.customerCount += request.customerId ? 1 : 0;
+        existing.latestRequestAt = existing.latestRequestAt && existing.latestRequestAt > request.createdAt ? existing.latestRequestAt : request.createdAt;
+        return rows;
+      }
+      rows.push({
+        request: request.request,
+        requestCount: 1,
+        customerCount: request.customerId ? 1 : 0,
+        latestRequestAt: request.createdAt,
+      });
+      return rows;
+    }, [])
+    .sort((left, right) => right.requestCount - left.requestCount);
 
   return {
     totalRunningBalance: overdueEntries.reduce((sum, entry) => sum + entry.amount, 0),
@@ -918,6 +993,11 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
     monthlyInvoiceTotals,
     monthlyPaymentTotals,
     monthlyCustomerSpend,
+    latePaymentWatchlist,
+    customerLifetimeSummary,
+    monthlyShipmentVolume,
+    restockDemand,
+    itemRequestDemand,
   };
 }
 
