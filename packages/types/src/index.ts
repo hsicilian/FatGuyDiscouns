@@ -217,6 +217,26 @@ export interface FinancialSummary {
     customer: string;
     customerId?: string;
   }>;
+  monthlyInvoiceTotals: Array<{
+    monthKey: string;
+    monthLabel: string;
+    total: number;
+    invoiceCount: number;
+  }>;
+  monthlyPaymentTotals: Array<{
+    monthKey: string;
+    monthLabel: string;
+    total: number;
+    paymentCount: number;
+  }>;
+  monthlyCustomerSpend: Array<{
+    monthKey: string;
+    monthLabel: string;
+    customer: string;
+    customerId?: string;
+    totalSpent: number;
+    invoiceCount: number;
+  }>;
 }
 
 export type CrossListedPlatform = string;

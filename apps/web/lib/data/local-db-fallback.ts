@@ -860,6 +860,46 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
     customer: currentCustomer.displayName,
     customerId: currentCustomer.id,
   }));
+  const monthlyInvoiceTotals = db.archivedInvoices.reduce<Array<{ monthKey: string; monthLabel: string; total: number; invoiceCount: number }>>((rows, invoice) => {
+    const monthKey = invoice.paidAt.slice(0, 7);
+    const existing = rows.find((row) => row.monthKey === monthKey);
+    if (existing) {
+      existing.total += invoice.total;
+      existing.invoiceCount += 1;
+      return rows;
+    }
+    rows.push({
+      monthKey,
+      monthLabel: new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date(`${monthKey}-01T12:00:00Z`)),
+      total: invoice.total,
+      invoiceCount: 1,
+    });
+    return rows;
+  }, []).sort((left, right) => right.monthKey.localeCompare(left.monthKey));
+  const monthlyPaymentTotals = db.paymentHistory.reduce<Array<{ monthKey: string; monthLabel: string; total: number; paymentCount: number }>>((rows, payment) => {
+    const monthKey = payment.createdAt.slice(0, 7);
+    const existing = rows.find((row) => row.monthKey === monthKey);
+    if (existing) {
+      existing.total += payment.amount;
+      existing.paymentCount += 1;
+      return rows;
+    }
+    rows.push({
+      monthKey,
+      monthLabel: new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date(`${monthKey}-01T12:00:00Z`)),
+      total: payment.amount,
+      paymentCount: 1,
+    });
+    return rows;
+  }, []).sort((left, right) => right.monthKey.localeCompare(left.monthKey));
+  const monthlyCustomerSpend = monthlyInvoiceTotals.map((row) => ({
+    monthKey: row.monthKey,
+    monthLabel: row.monthLabel,
+    customer: currentCustomer.displayName,
+    customerId: currentCustomer.id,
+    totalSpent: row.total,
+    invoiceCount: row.invoiceCount,
+  }));
 
   return {
     totalRunningBalance: overdueEntries.reduce((sum, entry) => sum + entry.amount, 0),
@@ -875,6 +915,9 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
     topCustomers,
     recentPayments,
     recentInvoices,
+    monthlyInvoiceTotals,
+    monthlyPaymentTotals,
+    monthlyCustomerSpend,
   };
 }
 

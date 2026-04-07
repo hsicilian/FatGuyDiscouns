@@ -49,6 +49,42 @@ export default async function AdminReportsPage() {
           </section>
           <section style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
             <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+              <h2 style={{ marginTop: 0 }}>Monthly invoice totals</h2>
+              {financialSummary.monthlyInvoiceTotals.map((entry) => (
+                <div key={entry.monthKey} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <div>
+                    <strong>{entry.monthLabel}</strong>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>{entry.invoiceCount} invoice{entry.invoiceCount === 1 ? "" : "s"}</p>
+                  </div>
+                  <strong>{currency.format(entry.total)}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+              <h2 style={{ marginTop: 0 }}>Monthly payments received</h2>
+              {financialSummary.monthlyPaymentTotals.map((entry) => (
+                <div key={entry.monthKey} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <div>
+                    <strong>{entry.monthLabel}</strong>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>{entry.paymentCount} payment{entry.paymentCount === 1 ? "" : "s"}</p>
+                  </div>
+                  <strong>{currency.format(entry.total)}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+              <h2 style={{ marginTop: 0 }}>Monthly customer spend</h2>
+              {financialSummary.monthlyCustomerSpend.map((entry) => (
+                <div key={`${entry.monthKey}-${entry.customerId ?? entry.customer}`} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <div>
+                    <strong>{entry.customer}</strong>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>{entry.monthLabel} • {entry.invoiceCount} invoice{entry.invoiceCount === 1 ? "" : "s"}</p>
+                  </div>
+                  <strong>{currency.format(entry.totalSpent)}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
               <h2 style={{ marginTop: 0 }}>Top customer spend</h2>
               {financialSummary.topCustomers.map((entry) => (
                 <div key={`${entry.customer}-${entry.customerId ?? "none"}`} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>

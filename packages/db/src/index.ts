@@ -286,6 +286,18 @@ export const demoFinancialSummary: FinancialSummary = {
     { ...demoArchivedInvoices[0], customer: "Jordan Rivers", customerId: "cust-001" },
     { ...demoArchivedInvoices[1], customer: "Jordan Rivers", customerId: "cust-001" },
   ],
+  monthlyInvoiceTotals: [
+    { monthKey: "2026-03", monthLabel: "March 2026", total: 216, invoiceCount: 2 },
+    { monthKey: "2026-02", monthLabel: "February 2026", total: 148, invoiceCount: 1 },
+  ],
+  monthlyPaymentTotals: [
+    { monthKey: "2026-03", monthLabel: "March 2026", total: 122, paymentCount: 2 },
+    { monthKey: "2026-02", monthLabel: "February 2026", total: 118, paymentCount: 1 },
+  ],
+  monthlyCustomerSpend: [
+    { monthKey: "2026-03", monthLabel: "March 2026", customer: "Jordan Rivers", customerId: "cust-001", totalSpent: 216, invoiceCount: 2 },
+    { monthKey: "2026-02", monthLabel: "February 2026", customer: "Taylor West", customerId: "cust-003", totalSpent: 148, invoiceCount: 1 },
+  ],
 };
 
 export const demoPaymentPreview = {

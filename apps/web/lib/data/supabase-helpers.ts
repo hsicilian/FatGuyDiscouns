@@ -45,6 +45,18 @@ export function formatCycleLabel(date: Date) {
   return `${date.toLocaleString("en-US", { month: "long" })} ${date.getFullYear()} cycle`;
 }
 
+function getMonthKey(value: string) {
+  return value.slice(0, 7);
+}
+
+function formatMonthLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    year: "numeric",
+  }).format(new Date(Date.UTC(year, month - 1, 1, 12)));
+}
+
 export function formatAddress(address: Record<string, unknown> | null | undefined) {
   if (!address) {
     return "No address on file yet";
@@ -383,6 +395,8 @@ export async function getFinancialSummaryFromCycles() {
   }));
 
   const spendByCustomer = new Map<string, { customer: string; customerId?: string; totalSpent: number; invoiceCount: number }>();
+  const monthlyInvoiceTotals = new Map<string, { monthKey: string; monthLabel: string; total: number; invoiceCount: number }>();
+  const monthlyCustomerSpend = new Map<string, { monthKey: string; monthLabel: string; customer: string; customerId?: string; totalSpent: number; invoiceCount: number }>();
   for (const invoice of archivedInvoices ?? []) {
     const customerId = invoice.customer_id ?? "";
     const name = invoiceCustomerMap.get(customerId)?.displayName ?? "Customer";
@@ -390,6 +404,50 @@ export async function getFinancialSummaryFromCycles() {
     existing.totalSpent += Number(invoice.total ?? 0);
     existing.invoiceCount += 1;
     spendByCustomer.set(customerId, existing);
+
+    const monthKey = getMonthKey(String(invoice.paid_at ?? ""));
+    if (monthKey) {
+      const monthlyInvoice = monthlyInvoiceTotals.get(monthKey) ?? {
+        monthKey,
+        monthLabel: formatMonthLabel(monthKey),
+        total: 0,
+        invoiceCount: 0,
+      };
+      monthlyInvoice.total += Number(invoice.total ?? 0);
+      monthlyInvoice.invoiceCount += 1;
+      monthlyInvoiceTotals.set(monthKey, monthlyInvoice);
+
+      const customerMonthKey = `${monthKey}:${customerId || name}`;
+      const monthlySpend = monthlyCustomerSpend.get(customerMonthKey) ?? {
+        monthKey,
+        monthLabel: formatMonthLabel(monthKey),
+        customer: name,
+        customerId: customerId || undefined,
+        totalSpent: 0,
+        invoiceCount: 0,
+      };
+      monthlySpend.totalSpent += Number(invoice.total ?? 0);
+      monthlySpend.invoiceCount += 1;
+      monthlyCustomerSpend.set(customerMonthKey, monthlySpend);
+    }
+  }
+
+  const monthlyPaymentTotals = new Map<string, { monthKey: string; monthLabel: string; total: number; paymentCount: number }>();
+  for (const payment of payments ?? []) {
+    const monthKey = getMonthKey(String(payment.created_at ?? ""));
+    if (!monthKey) {
+      continue;
+    }
+
+    const monthlyPayment = monthlyPaymentTotals.get(monthKey) ?? {
+      monthKey,
+      monthLabel: formatMonthLabel(monthKey),
+      total: 0,
+      paymentCount: 0,
+    };
+    monthlyPayment.total += Number(payment.amount ?? 0);
+    monthlyPayment.paymentCount += 1;
+    monthlyPaymentTotals.set(monthKey, monthlyPayment);
   }
 
   const overdueEntries = customerBalances.filter((entry) => entry.overdue);
@@ -408,5 +466,13 @@ export async function getFinancialSummaryFromCycles() {
     topCustomers: [...spendByCustomer.values()].sort((left, right) => right.totalSpent - left.totalSpent).slice(0, 8),
     recentPayments: (payments ?? []).map((payment) => toPaymentHistoryRecord(payment as Record<string, any>)),
     recentInvoices,
+    monthlyInvoiceTotals: [...monthlyInvoiceTotals.values()].sort((left, right) => right.monthKey.localeCompare(left.monthKey)).slice(0, 12),
+    monthlyPaymentTotals: [...monthlyPaymentTotals.values()].sort((left, right) => right.monthKey.localeCompare(left.monthKey)).slice(0, 12),
+    monthlyCustomerSpend: [...monthlyCustomerSpend.values()]
+      .sort((left, right) => {
+        const monthCompare = right.monthKey.localeCompare(left.monthKey);
+        return monthCompare !== 0 ? monthCompare : right.totalSpent - left.totalSpent;
+      })
+      .slice(0, 24),
   } satisfies FinancialSummary;
 }
