@@ -1377,6 +1377,7 @@ export async function applyPaymentToDatabaseSupabase(paymentAmount: number, cred
       cycle_label: formatCycleLabel(normalizedRecordedAt ? new Date(normalizedRecordedAt.timestamp) : new Date()),
       paid_at: normalizedRecordedAt?.date ?? siteToday(),
       total,
+      shipping_total: Number(context.summary.shipping ?? 0),
       payment_total: Number(context.cycle.payments_applied ?? 0) + paymentAmount,
       credit_applied: Number(context.cycle.credits_applied ?? 0) + applicableCredit,
       status: "archived",
