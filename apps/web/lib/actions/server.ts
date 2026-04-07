@@ -98,7 +98,7 @@ async function recordAuditIfSuccessful(
     summary: string;
   },
 ) {
-  if (!result.ok) {
+  if (!result.ok || input.actorRole === "master_admin") {
     return;
   }
 
