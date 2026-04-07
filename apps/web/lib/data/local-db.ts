@@ -407,6 +407,8 @@ export async function createEventInDatabase(input: {
   externalLink: string;
   platform: string;
   timeZone: string;
+  repeatWeekly?: boolean;
+  repeatUntilLocal?: string;
 }) {
   return shouldUseSupabase()
     ? createEventInDatabaseSupabase(input)

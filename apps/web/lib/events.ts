@@ -88,6 +88,51 @@ export function zonedLocalDateTimeToIso(localDateTime: string, timeZone: string)
   return new Date(timestamp).toISOString();
 }
 
+export function buildWeeklyRecurringLocalDateTimes(
+  startsAtLocal: string,
+  repeatWeekly: boolean,
+  repeatUntilLocal: string,
+) {
+  if (!repeatWeekly) {
+    return [startsAtLocal];
+  }
+
+  const [datePart, timePart] = startsAtLocal.split("T");
+  if (!datePart || !timePart) {
+    throw new Error("Event date and time are required.");
+  }
+
+  if (!repeatUntilLocal) {
+    throw new Error("Repeat end date is required for weekly repeating events.");
+  }
+
+  const [startYear, startMonth, startDay] = datePart.split("-").map(Number);
+  const [endYear, endMonth, endDay] = repeatUntilLocal.split("-").map(Number);
+  const startDate = new Date(Date.UTC(startYear, startMonth - 1, startDay, 12));
+  const endDate = new Date(Date.UTC(endYear, endMonth - 1, endDay, 12));
+
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    throw new Error("Repeat end date is invalid.");
+  }
+
+  if (endDate.getTime() < startDate.getTime()) {
+    throw new Error("Repeat end date must be on or after the event date.");
+  }
+
+  const dates: string[] = [];
+  const current = new Date(startDate);
+
+  while (current.getTime() <= endDate.getTime()) {
+    const year = current.getUTCFullYear();
+    const month = String(current.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(current.getUTCDate()).padStart(2, "0");
+    dates.push(`${year}-${month}-${day}T${timePart}`);
+    current.setUTCDate(current.getUTCDate() + 7);
+  }
+
+  return dates;
+}
+
 export function getCalendarMonth(events: ShowEvent[], timeZone: string) {
   const now = new Date();
   const current = getZonedParts(now, timeZone);

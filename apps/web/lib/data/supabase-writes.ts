@@ -15,7 +15,7 @@ import {
 } from "./supabase-helpers";
 import { getCurrentCustomerSupabase, listProductsSupabase } from "./supabase-reads";
 import { getProductImagesBucket, getSiteUrl } from "../supabase";
-import { zonedLocalDateTimeToIso } from "../events";
+import { buildWeeklyRecurringLocalDateTimes, zonedLocalDateTimeToIso } from "../events";
 import { getProductPath } from "../products";
 
 const MAX_IMAGE_COUNT = 6;
@@ -1371,6 +1371,8 @@ export async function createEventInDatabaseSupabase(input: {
   externalLink: string;
   platform: string;
   timeZone: string;
+  repeatWeekly?: boolean;
+  repeatUntilLocal?: string;
 }) {
   const admin = await getAdminClient();
   const title = input.title.trim();
@@ -1382,18 +1384,30 @@ export async function createEventInDatabaseSupabase(input: {
   if (!title) return { ok: false, message: "Event title is required." };
   if (!input.startsAtLocal) return { ok: false, message: "Event date and time are required." };
 
-  const startsAt = zonedLocalDateTimeToIso(input.startsAtLocal, timeZone);
-  const { error } = await admin.from("events").insert({
-    title,
-    starts_at: startsAt,
-    description,
-    external_link: externalLink || null,
-    platform: platform || null,
-  });
+  const startsAtLocalValues = buildWeeklyRecurringLocalDateTimes(
+    input.startsAtLocal,
+    input.repeatWeekly ?? false,
+    input.repeatUntilLocal ?? "",
+  );
+  const { error } = await admin.from("events").insert(
+    startsAtLocalValues.map((startsAtLocal) => ({
+      title,
+      starts_at: zonedLocalDateTimeToIso(startsAtLocal, timeZone),
+      description,
+      external_link: externalLink || null,
+      platform: platform || null,
+    })),
+  );
 
   if (error) {
     return { ok: false, message: error.message };
   }
 
-  return { ok: true, message: `${title} was added to the events calendar.` };
+  return {
+    ok: true,
+    message:
+      startsAtLocalValues.length === 1
+        ? `${title} was added to the events calendar.`
+        : `${title} was added to the events calendar ${startsAtLocalValues.length} times.`,
+  };
 }

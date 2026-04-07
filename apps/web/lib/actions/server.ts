@@ -711,6 +711,8 @@ export async function createEvent(
   externalLink: string,
   platform: string,
   timeZone: string,
+  repeatWeekly = false,
+  repeatUntilLocal = "",
 ): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
@@ -724,6 +726,8 @@ export async function createEvent(
     externalLink,
     platform,
     timeZone,
+    repeatWeekly,
+    repeatUntilLocal,
   });
   revalidatePath("/events");
   revalidatePath("/admin");

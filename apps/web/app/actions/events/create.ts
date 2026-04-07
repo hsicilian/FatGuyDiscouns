@@ -14,5 +14,7 @@ export async function createEventAction(
     String(formData.get("externalLink") ?? ""),
     String(formData.get("platform") ?? ""),
     String(formData.get("timeZone") ?? "America/New_York"),
+    formData.get("repeatWeekly") === "on",
+    String(formData.get("repeatUntilLocal") ?? ""),
   );
 }

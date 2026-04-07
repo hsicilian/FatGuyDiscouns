@@ -885,6 +885,8 @@ export async function createEventInDatabase(input: {
   externalLink: string;
   platform: string;
   timeZone: string;
+  repeatWeekly?: boolean;
+  repeatUntilLocal?: string;
 }) {
   const db = await readDatabase();
   const title = input.title.trim();
@@ -892,20 +894,33 @@ export async function createEventInDatabase(input: {
     return { ok: false, message: "Event title is required." };
   }
 
+  const { buildWeeklyRecurringLocalDateTimes, zonedLocalDateTimeToIso } = await import("../events");
+  const startsAtLocalValues = buildWeeklyRecurringLocalDateTimes(
+    input.startsAtLocal,
+    input.repeatWeekly ?? false,
+    input.repeatUntilLocal ?? "",
+  );
+
   db.events = [
-    {
-      id: `event-${Date.now()}`,
+    ...startsAtLocalValues.map((startsAtLocal, index) => ({
+      id: `event-${Date.now()}-${index}`,
       title,
-      startsAt: new Date(input.startsAtLocal).toISOString(),
+      startsAt: zonedLocalDateTimeToIso(startsAtLocal, input.timeZone),
       description: input.description.trim(),
       externalLink: input.externalLink.trim(),
       platform: input.platform.trim() || undefined,
-    },
+    })),
     ...db.events,
   ].sort((left, right) => left.startsAt.localeCompare(right.startsAt));
 
   await writeDatabase(db);
-  return { ok: true, message: `${title} was added to the events calendar.` };
+  return {
+    ok: true,
+    message:
+      startsAtLocalValues.length === 1
+        ? `${title} was added to the events calendar.`
+        : `${title} was added to the events calendar ${startsAtLocalValues.length} times.`,
+  };
 }
 
 export async function saveCrossListedInventoryToDatabase(input: {
