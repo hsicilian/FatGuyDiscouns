@@ -186,6 +186,7 @@ export const demoArchivedInvoices: ArchivedInvoice[] = [
     cycleLabel: "February 2026 cycle",
     paidAt: "2026-03-02",
     total: 84,
+    shippingTotal: 8,
     paymentTotal: 84,
     creditApplied: 0,
   },
@@ -194,6 +195,7 @@ export const demoArchivedInvoices: ArchivedInvoice[] = [
     cycleLabel: "January 2026 cycle",
     paidAt: "2026-02-01",
     total: 132,
+    shippingTotal: 12,
     paymentTotal: 118,
     creditApplied: 14,
   },
@@ -276,9 +278,9 @@ export const demoFinancialSummary: FinancialSummary = {
     { customer: "Taylor West", customerId: "cust-003", amount: 76, invoiceAmount: 64, shippingAmount: 12, overdue: false },
   ],
   topCustomers: [
-    { customer: "Jordan Rivers", customerId: "cust-001", totalSpent: 216, invoiceCount: 2 },
-    { customer: "Casey Morgan", customerId: "cust-002", totalSpent: 184, invoiceCount: 2 },
-    { customer: "Taylor West", customerId: "cust-003", totalSpent: 148, invoiceCount: 1 },
+    { customer: "Jordan Rivers", customerId: "cust-001", totalSpent: 196, invoiceCount: 2 },
+    { customer: "Casey Morgan", customerId: "cust-002", totalSpent: 162, invoiceCount: 2 },
+    { customer: "Taylor West", customerId: "cust-003", totalSpent: 136, invoiceCount: 1 },
   ],
   recentPayments: [
     { id: "payment-001", customerId: "cust-001", amount: 38, createdAt: "2026-03-29", notes: "Active cycle payment" },
@@ -298,15 +300,15 @@ export const demoFinancialSummary: FinancialSummary = {
     { monthKey: "2026-02", monthLabel: "February 2026", total: 118, paymentCount: 1 },
   ],
   monthlyCustomerSpend: [
-    { monthKey: "2026-03", monthLabel: "March 2026", customer: "Jordan Rivers", customerId: "cust-001", totalSpent: 216, invoiceCount: 2 },
-    { monthKey: "2026-02", monthLabel: "February 2026", customer: "Taylor West", customerId: "cust-003", totalSpent: 148, invoiceCount: 1 },
+    { monthKey: "2026-03", monthLabel: "March 2026", customer: "Jordan Rivers", customerId: "cust-001", totalSpent: 196, invoiceCount: 2 },
+    { monthKey: "2026-02", monthLabel: "February 2026", customer: "Taylor West", customerId: "cust-003", totalSpent: 136, invoiceCount: 1 },
   ],
   latePaymentWatchlist: [
     { customer: "Casey Morgan", customerId: "cust-002", overdueAmount: 118, invoiceAmount: 96, shippingAmount: 22, lastPaymentAt: "2026-03-02" },
   ],
   customerLifetimeSummary: [
-    { customer: "Jordan Rivers", customerId: "cust-001", lifetimeSpent: 216, lifetimePaid: 216, invoiceCount: 2, paymentCount: 1, shipmentCount: 1, lastPaymentAt: "2026-03-29" },
-    { customer: "Casey Morgan", customerId: "cust-002", lifetimeSpent: 184, lifetimePaid: 84, invoiceCount: 2, paymentCount: 1, shipmentCount: 0, lastPaymentAt: "2026-03-02" },
+    { customer: "Jordan Rivers", customerId: "cust-001", lifetimeSpent: 196, lifetimePaid: 216, invoiceCount: 2, paymentCount: 1, shipmentCount: 1, lastPaymentAt: "2026-03-29" },
+    { customer: "Casey Morgan", customerId: "cust-002", lifetimeSpent: 162, lifetimePaid: 84, invoiceCount: 2, paymentCount: 1, shipmentCount: 0, lastPaymentAt: "2026-03-02" },
   ],
   monthlyShipmentVolume: [
     { monthKey: "2026-03", monthLabel: "March 2026", shipmentCount: 1 },

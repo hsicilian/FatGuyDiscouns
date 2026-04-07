@@ -96,6 +96,7 @@ export interface ArchivedInvoice {
   cycleLabel: string;
   paidAt: string;
   total: number;
+  shippingTotal?: number;
   paymentTotal: number;
   creditApplied: number;
 }

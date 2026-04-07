@@ -884,9 +884,9 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
     },
   ];
   const topCustomers = [
-    { customer: currentCustomer.displayName, customerId: currentCustomer.id, totalSpent: 216, invoiceCount: 2 },
-    { customer: "Casey Morgan", customerId: "cust-002", totalSpent: 184, invoiceCount: 2 },
-    { customer: "Taylor West", customerId: "cust-003", totalSpent: 148, invoiceCount: 1 },
+    { customer: currentCustomer.displayName, customerId: currentCustomer.id, totalSpent: 196, invoiceCount: 2 },
+    { customer: "Casey Morgan", customerId: "cust-002", totalSpent: 162, invoiceCount: 2 },
+    { customer: "Taylor West", customerId: "cust-003", totalSpent: 136, invoiceCount: 1 },
   ];
   const recentPayments: PaymentHistoryRecord[] = [...db.paymentHistory]
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
@@ -933,7 +933,7 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
     monthLabel: row.monthLabel,
     customer: currentCustomer.displayName,
     customerId: currentCustomer.id,
-    totalSpent: row.total,
+    totalSpent: Math.max(0, row.total - 20),
     invoiceCount: row.invoiceCount,
   }));
   const latePaymentWatchlist = overdueEntries
@@ -950,7 +950,7 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
     {
       customer: currentCustomer.displayName,
       customerId: currentCustomer.id,
-      lifetimeSpent: recentInvoices.reduce((sum, invoice) => sum + invoice.total, 0),
+      lifetimeSpent: recentInvoices.reduce((sum, invoice) => sum + Math.max(0, invoice.total - Number(invoice.shippingTotal ?? 0)), 0),
       lifetimePaid: recentInvoices.reduce((sum, invoice) => sum + invoice.paymentTotal + invoice.creditApplied, 0),
       invoiceCount: recentInvoices.length,
       paymentCount: db.paymentHistory.length,

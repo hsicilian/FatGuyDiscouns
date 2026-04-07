@@ -57,6 +57,12 @@ function formatMonthLabel(monthKey: string) {
   }).format(new Date(Date.UTC(year, month - 1, 1, 12)));
 }
 
+function getInvoiceMerchandiseTotal(invoice: Record<string, any>) {
+  const total = Number(invoice.total ?? 0);
+  const shippingTotal = Number(invoice.shipping_total ?? invoice.shippingTotal ?? 0);
+  return Math.max(0, total - shippingTotal);
+}
+
 function daysBetween(startDate: string, endDate: string) {
   const start = new Date(`${startDate.slice(0, 10)}T00:00:00.000Z`);
   const end = new Date(`${endDate.slice(0, 10)}T00:00:00.000Z`);
@@ -156,6 +162,7 @@ export function toArchivedInvoice(row: Record<string, any>): ArchivedInvoice {
     cycleLabel: row.cycle_label,
     paidAt: row.paid_at,
     total: Number(row.total ?? 0),
+    shippingTotal: Number(row.shipping_total ?? 0),
     paymentTotal: Number(row.payment_total ?? 0),
     creditApplied: Number(row.credit_applied ?? 0),
   };
@@ -379,7 +386,7 @@ export async function getFinancialSummaryFromCycles() {
   ] = await Promise.all([
     admin
       .from("archived_invoices")
-      .select("id, customer_id, cycle_label, paid_at, total, payment_total, credit_applied")
+      .select("id, customer_id, cycle_label, paid_at, total, shipping_total, payment_total, credit_applied")
       .order("paid_at", { ascending: false }),
     admin
       .from("payments")
@@ -446,8 +453,9 @@ export async function getFinancialSummaryFromCycles() {
   for (const invoice of archivedInvoices ?? []) {
     const customerId = invoice.customer_id ?? "";
     const name = invoiceCustomerMap.get(customerId)?.displayName ?? "Customer";
+    const merchandiseTotal = getInvoiceMerchandiseTotal(invoice as Record<string, any>);
     const existing = spendByCustomer.get(customerId) ?? { customer: name, customerId: customerId || undefined, totalSpent: 0, invoiceCount: 0 };
-    existing.totalSpent += Number(invoice.total ?? 0);
+    existing.totalSpent += merchandiseTotal;
     existing.invoiceCount += 1;
     spendByCustomer.set(customerId, existing);
 
@@ -472,7 +480,7 @@ export async function getFinancialSummaryFromCycles() {
         totalSpent: 0,
         invoiceCount: 0,
       };
-      monthlySpend.totalSpent += Number(invoice.total ?? 0);
+      monthlySpend.totalSpent += merchandiseTotal;
       monthlySpend.invoiceCount += 1;
       monthlyCustomerSpend.set(customerMonthKey, monthlySpend);
     }
