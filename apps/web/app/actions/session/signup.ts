@@ -7,6 +7,7 @@ import { assertProductionSupabaseReady, createServerSupabaseClient, getSiteUrl, 
 import { createStoredCustomerAccount, hasStoredAccountWithEmail } from "../../../lib/auth/local-auth-store";
 import { createPendingCustomerProfile, removeCustomerProfileById, setActiveCustomer } from "../../../lib/data/local-db";
 import { createSupabaseAdminClient } from "../../../lib/supabase";
+import { sendAdminEmailNotification } from "../../../lib/admin-email";
 
 const signupSchema = z.object({
   displayName: z.string().trim().min(2, "Enter your full name."),
@@ -118,6 +119,14 @@ export async function signUpLocalCustomerAction(
           email,
         },
       });
+      try {
+        await sendAdminEmailNotification({
+          subject: "Account approval needed",
+          text: `${displayName} is waiting for account approval.\nEmail: ${email}`,
+        });
+      } catch {
+        // Keep the in-app approval queue even if email delivery fails.
+      }
     }
   }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import { createSupabaseAdminClient, getSiteUrl, normalizeInternalRedirect } from "../../../lib/supabase";
+import { sendAdminEmailNotification } from "../../../lib/admin-email";
 
 function requireEnv(name: string, value: string | undefined) {
   if (!value) {
@@ -70,6 +71,14 @@ export async function GET(request: NextRequest) {
             email: user.email ?? null,
           },
         });
+        try {
+          await sendAdminEmailNotification({
+            subject: "Account approval needed",
+            text: `${displayName} confirmed an email and is waiting for account approval.\nEmail: ${user.email ?? "unknown"}`,
+          });
+        } catch {
+          // Keep the in-app approval queue even if email delivery fails.
+        }
       }
     }
   }
