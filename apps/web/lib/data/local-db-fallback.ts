@@ -18,6 +18,7 @@ import { productMatchesLookup } from "../products";
 import { platformSummary } from "@fatguydiscounts/db";
 import type {
   AccountState,
+  AdminAuditEntry,
   AdminNotification,
   ArchivedInvoice,
   BalanceCycleSummary,
@@ -52,6 +53,7 @@ export interface LocalDatabase {
   customerMessages: CustomerMessageRecord[];
   customerItemRequests: CustomerItemRequestRecord[];
   crossListedInventory: CrossListedInventoryRecord[];
+  adminAuditLog: AdminAuditEntry[];
   notifications: AdminNotification[];
   events: ShowEvent[];
   paymentDefaults: {
@@ -347,6 +349,32 @@ function createInitialDatabase(): LocalDatabase {
         updatedAt: "2026-04-02T09:00:00.000Z",
       },
     ],
+    adminAuditLog: [
+      {
+        id: "audit-001",
+        actorId: "admin-demo",
+        actorName: "Harold Sicilian",
+        actorRole: "master_admin",
+        actionType: "inventory.create",
+        entityType: "product",
+        entityId: "prod-001",
+        targetCustomerId: null,
+        summary: "Created Vintage denim jacket in inventory.",
+        createdAt: "2026-04-01T14:00:00.000Z",
+      },
+      {
+        id: "audit-002",
+        actorId: "admin-demo",
+        actorName: "Harold Sicilian",
+        actorRole: "master_admin",
+        actionType: "shipment.update",
+        entityType: "shipment",
+        entityId: "ship-002",
+        targetCustomerId: "cust-003",
+        summary: "Completed Taylor West shipment and saved tracking.",
+        createdAt: "2026-04-02T16:30:00.000Z",
+      },
+    ],
     notifications: [
       {
         id: "notif-001",
@@ -442,6 +470,7 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
       cost: typeof entry.cost === "number" ? entry.cost : null,
       platformDates: entry.platformDates ?? Object.fromEntries((entry.platforms ?? []).map((platform) => [platform, entry.updatedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10)])),
     })),
+    adminAuditLog: db.adminAuditLog ?? fallback.adminAuditLog,
     notifications: db.notifications ?? fallback.notifications,
     events: db.events ?? fallback.events,
     paymentDefaults: db.paymentDefaults ?? fallback.paymentDefaults,
@@ -786,6 +815,13 @@ export async function listNotifications(options?: { includeRead?: boolean }) {
   return options?.includeRead ? db.notifications : db.notifications.filter((entry) => !entry.readAt);
 }
 
+export async function listAdminAuditEntries(limit = 100) {
+  const db = await readDatabase();
+  return [...db.adminAuditLog]
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
+    .slice(0, limit);
+}
+
 export async function listCrossListedInventory(search?: string) {
   const db = await readDatabase();
   const trimmedSearch = search?.trim().toLowerCase() ?? "";
@@ -939,6 +975,75 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
       return rows;
     }, [])
     .sort((left, right) => right.monthKey.localeCompare(left.monthKey));
+  const inventoryMarginByCategory = db.products.reduce<Array<{
+    category: string;
+    itemCount: number;
+    units: number;
+    retailValue: number;
+    costValue: number;
+    estimatedGrossProfit: number;
+  }>>((rows, product) => {
+    if (product.status === "archived" || product.status === "draft" || product.status === "hidden") {
+      return rows;
+    }
+    const existing = rows.find((row) => row.category === product.category);
+    const retailValue = product.price * product.quantity;
+    const costValue = Number(product.cost ?? 0) * product.quantity;
+    if (existing) {
+      existing.itemCount += 1;
+      existing.units += product.quantity;
+      existing.retailValue += retailValue;
+      existing.costValue += costValue;
+      existing.estimatedGrossProfit += retailValue - costValue;
+      return rows;
+    }
+    rows.push({
+      category: product.category,
+      itemCount: 1,
+      units: product.quantity,
+      retailValue,
+      costValue,
+      estimatedGrossProfit: retailValue - costValue,
+    });
+    return rows;
+  }, []).sort((left, right) => right.estimatedGrossProfit - left.estimatedGrossProfit);
+  const today = new Date().toISOString().slice(0, 10);
+  const inventoryRows = db.products
+    .filter((product) => product.status !== "archived" && product.status !== "draft" && product.status !== "hidden")
+    .map((product) => {
+      const assumedCreatedDate = product.archivedAt?.slice(0, 10) ?? today;
+      const productAgeSeed = product.id === "prod-001" ? "2026-01-10" : product.id === "prod-002" ? "2026-03-01" : "2026-02-05";
+      const createdDate = productAgeSeed || assumedCreatedDate;
+      const daysListed = Math.max(0, Math.floor((new Date(`${today}T00:00:00.000Z`).getTime() - new Date(`${createdDate}T00:00:00.000Z`).getTime()) / 86400000));
+      return {
+        productId: product.id,
+        title: product.title,
+        category: product.category,
+        quantity: product.quantity,
+        daysListed,
+        retailValue: product.price * product.quantity,
+        costValue: Number(product.cost ?? 0) * product.quantity,
+      };
+    });
+  const inventoryAgingBuckets = [
+    { label: "0-30 days", itemCount: 0, units: 0, retailValue: 0, costValue: 0 },
+    { label: "31-60 days", itemCount: 0, units: 0, retailValue: 0, costValue: 0 },
+    { label: "61-90 days", itemCount: 0, units: 0, retailValue: 0, costValue: 0 },
+    { label: "91+ days", itemCount: 0, units: 0, retailValue: 0, costValue: 0 },
+  ];
+  for (const row of inventoryRows) {
+    const bucket = row.daysListed <= 30
+      ? inventoryAgingBuckets[0]
+      : row.daysListed <= 60
+        ? inventoryAgingBuckets[1]
+        : row.daysListed <= 90
+          ? inventoryAgingBuckets[2]
+          : inventoryAgingBuckets[3];
+    bucket.itemCount += 1;
+    bucket.units += row.quantity;
+    bucket.retailValue += row.retailValue;
+    bucket.costValue += row.costValue;
+  }
   const restockDemand = (await listRestockRequests())
     .reduce<Array<{ productTitle: string; requestCount: number; openCount: number; customerCount: number }>>((rows, request) => {
       const existing = rows.find((row) => row.productTitle === request.productTitle);
@@ -998,6 +1103,14 @@ export async function getFinancialSummary(): Promise<FinancialSummary> {
     monthlyShipmentVolume,
     restockDemand,
     itemRequestDemand,
+    inventoryRetailValue: inventoryRows.reduce((sum, row) => sum + row.retailValue, 0),
+    inventoryCostBasis: inventoryRows.reduce((sum, row) => sum + row.costValue, 0),
+    inventoryEstimatedGrossProfit: inventoryRows.reduce((sum, row) => sum + row.retailValue - row.costValue, 0),
+    inventoryMarginByCategory,
+    inventoryAgingBuckets,
+    stalestInventory: [...inventoryRows]
+      .sort((left, right) => right.daysListed - left.daysListed)
+      .slice(0, 12),
   };
 }
 
@@ -2122,4 +2235,31 @@ export async function markNotificationReadInDatabase(notificationId: string) {
     ok: true,
     message: "Notification dismissed.",
   };
+}
+
+export async function recordAdminAuditEntry(input: {
+  actionType: string;
+  entityType: string;
+  entityId?: string | null;
+  targetCustomerId?: string | null;
+  summary: string;
+  actorId?: string;
+  actorName?: string;
+  actorRole?: "customer" | "admin" | "master_admin";
+}) {
+  const db = await readDatabase();
+  db.adminAuditLog.unshift({
+    id: `audit-${Date.now()}`,
+    actorId: input.actorId ?? "admin-demo",
+    actorName: input.actorName ?? "Admin",
+    actorRole: input.actorRole ?? "admin",
+    actionType: input.actionType,
+    entityType: input.entityType,
+    entityId: input.entityId ?? null,
+    targetCustomerId: input.targetCustomerId ?? null,
+    summary: input.summary,
+    createdAt: new Date().toISOString(),
+  });
+  await writeDatabase(db);
+  return { ok: true as const };
 }

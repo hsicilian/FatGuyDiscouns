@@ -1,7 +1,7 @@
 ﻿import "server-only";
 
 import { applyPaymentToBalance, canRequestShipment, deriveProductStatus, nextShipmentStatus, shouldArchiveBalance, validateClaimAttempt } from "@fatguydiscounts/core";
-import type { AccountState, ShipmentStatus } from "@fatguydiscounts/types";
+import type { AccountState, NotificationType, ShipmentStatus } from "@fatguydiscounts/types";
 import {
   dueDateForReferenceDate,
   ensureActiveCycle,
@@ -17,6 +17,7 @@ import { getCurrentCustomerSupabase, listProductsSupabase } from "./supabase-rea
 import { getProductImagesBucket, getSiteUrl } from "../supabase";
 import { buildWeeklyRecurringLocalDateTimes, zonedLocalDateTimeToIso } from "../events";
 import { getProductPath } from "../products";
+import { sendAdminEmailNotification } from "../admin-email";
 
 const MAX_IMAGE_COUNT = 6;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -81,6 +82,44 @@ async function adjustCycleShippingTotalSupabase(
   }
 
   return { ok: true as const };
+}
+
+async function createAdminNotificationSupabase(
+  admin: Awaited<ReturnType<typeof getAdminClient>>,
+  input: {
+    type: NotificationType;
+    customerId?: string | null;
+    productId?: string | null;
+    label: string;
+    payload?: Record<string, unknown>;
+    emailSubject?: string;
+    emailText?: string;
+  },
+) {
+  const { error } = await admin.from("notifications").insert({
+    type: input.type,
+    customer_id: input.customerId ?? null,
+    product_id: input.productId ?? null,
+    payload: {
+      label: input.label,
+      ...(input.payload ?? {}),
+    },
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  if (input.emailSubject && input.emailText) {
+    try {
+      await sendAdminEmailNotification({
+        subject: input.emailSubject,
+        text: input.emailText,
+      });
+    } catch {
+      // Keep the in-app notification even if outbound email fails.
+    }
+  }
 }
 
 async function saveCustomerProfileAddressSupabase(userId: string, input: {
@@ -251,7 +290,13 @@ export async function adjustInventoryInDatabaseSupabase(productId: string, quant
   if (updateResult.error) return { ok: false, message: updateResult.error.message };
 
   if (nextQuantity === 1) {
-    await admin.from("notifications").insert({ type: "low_stock", product_id: productId, payload: { label: `${product.title} reached low stock.` } });
+    await createAdminNotificationSupabase(admin, {
+      type: "low_stock",
+      productId,
+      label: `${product.title} reached low stock.`,
+      emailSubject: "Low stock alert",
+      emailText: `${product.title} reached low stock on Fat Guy Discounts.`,
+    });
   }
 
   if (previousQuantity === 0 && nextQuantity > 0) {
@@ -835,15 +880,17 @@ export async function submitRestockRequestToDatabaseSupabase(productId: string) 
     email: actor?.email ?? null,
     status: "open",
   });
-  await admin.from("notifications").insert({
+  await createAdminNotificationSupabase(admin, {
     type: "restock_request",
-    product_id: productId,
-    customer_id: actor?.role === "customer" ? actor.id : null,
-    payload: {
-      label: customer
-        ? `${customer.displayName} requested a restock check for ${product.title}.`
-        : `Restock request received for ${product.title}.`,
-    },
+    productId,
+    customerId: actor?.role === "customer" ? actor.id : null,
+    label: customer
+      ? `${customer.displayName} requested a restock check for ${product.title}.`
+      : `Restock request received for ${product.title}.`,
+    emailSubject: "Restock request",
+    emailText: customer
+      ? `${customer.displayName} requested a restock check for ${product.title}.`
+      : `A restock request was received for ${product.title}.`,
   });
   return { ok: true, message: "The admin team has been asked about getting more of this item." };
 }
@@ -869,18 +916,14 @@ export async function submitCustomerMessageToDatabaseSupabase(message: string) {
     return { ok: false, message: messageInsert.error.message };
   }
 
-  const { error } = await admin.from("notifications").insert({
+  await createAdminNotificationSupabase(admin, {
     type: "customer_message",
-    customer_id: actor.id,
-    payload: {
-      label: `${customer.displayName}: ${trimmedMessage}`,
-      message: trimmedMessage,
-    },
+    customerId: actor.id,
+    label: `${customer.displayName}: ${trimmedMessage}`,
+    payload: { message: trimmedMessage },
+    emailSubject: "Customer message",
+    emailText: `${customer.displayName} sent a new customer message:\n\n${trimmedMessage}`,
   });
-
-  if (error) {
-    return { ok: false, message: error.message };
-  }
 
   return {
     ok: true,
@@ -911,18 +954,14 @@ export async function submitCustomerItemRequestToDatabaseSupabase(request: strin
     return { ok: false, message: requestInsert.error.message };
   }
 
-  const { error } = await admin.from("notifications").insert({
+  await createAdminNotificationSupabase(admin, {
     type: "customer_item_request",
-    customer_id: actor.id,
-    payload: {
-      label: `${customer.displayName} requested help finding an item: ${preview}`,
-      request: trimmedRequest,
-    },
+    customerId: actor.id,
+    label: `${customer.displayName} requested help finding an item: ${preview}`,
+    payload: { request: trimmedRequest },
+    emailSubject: "Customer item request",
+    emailText: `${customer.displayName} requested help finding an item:\n\n${trimmedRequest}`,
   });
-
-  if (error) {
-    return { ok: false, message: error.message };
-  }
 
   return {
     ok: true,
@@ -982,7 +1021,13 @@ export async function submitShipmentRequestToDatabaseSupabase() {
   const { error } = await admin.from("shipments").insert({ cycle_id: cycle.id, customer_id: actor.id, address_id: address?.id ?? null, address_confirmed: true, status: nextStatus, requested_at: new Date().toISOString() });
   if (error) return { ok: false, message: error.message };
 
-  await admin.from("notifications").insert({ type: "shipment_request", customer_id: actor.id, payload: { label: `${customer.displayName} requested shipment confirmation.` } });
+  await createAdminNotificationSupabase(admin, {
+    type: "shipment_request",
+    customerId: actor.id,
+    label: `${customer.displayName} requested shipment confirmation.`,
+    emailSubject: "Shipment request",
+    emailText: `${customer.displayName} requested shipment confirmation.`,
+  });
   return { ok: true, message: "Shipment request submitted for admin review.", nextStatus };
 }
 
@@ -1030,10 +1075,12 @@ export async function addCustomerToShipmentQueueSupabase(customerId: string) {
   });
   if (error) return { ok: false, message: error.message };
 
-  await admin.from("notifications").insert({
+  await createAdminNotificationSupabase(admin, {
     type: "shipment_request",
-    customer_id: customerId,
-    payload: { label: `${customer.displayName} was added to the shipment queue by admin.` },
+    customerId,
+    label: `${customer.displayName} was added to the shipment queue by admin.`,
+    emailSubject: "Shipment queue update",
+    emailText: `${customer.displayName} was added to the shipment queue by admin.`,
   });
   return { ok: true, message: `${customer.displayName} was added to the shipment queue.`, nextStatus };
 }

@@ -119,6 +119,7 @@ export async function getCurrentSessionUser(): Promise<SessionUser | null> {
   return {
     id: account.customerId ?? account.id,
     email: account.email,
+    displayName: account.displayName,
     role: account.role,
     accountState: account.accountState,
   };

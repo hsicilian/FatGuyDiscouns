@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache";
-import type { FormActionState, ShipmentStatus } from "@fatguydiscounts/types";
+import type { FormActionState, ShipmentStatus, UserRole } from "@fatguydiscounts/types";
 import { previewApprovalAction } from "./approvals";
 import { previewClaimAction } from "./claims";
 import { previewPaymentAction } from "./payments";
@@ -42,6 +42,7 @@ import {
   updateHomepageFeaturedInDatabase,
   updateProductSaleInDatabase,
   updateShipmentInDatabase,
+  recordAdminAuditEntryInDatabase,
 } from "../data/local-db";
 import { hasSupabaseEnv } from "../supabase";
 
@@ -84,6 +85,26 @@ async function requireMasterAdminMutationAccess() {
   return { ok: true as const, currentUser };
 }
 
+async function recordAuditIfSuccessful(
+  result: FormActionState,
+  input: {
+    actorId: string;
+    actorName: string;
+    actorRole: UserRole;
+    actionType: string;
+    entityType: string;
+    entityId?: string | null;
+    targetCustomerId?: string | null;
+    summary: string;
+  },
+) {
+  if (!result.ok) {
+    return;
+  }
+
+  await recordAdminAuditEntryInDatabase(input);
+}
+
 export async function submitClaim(productId: string, requestedQuantity: number): Promise<FormActionState> {
   const access = await requireCustomerMutationAccess();
   if (!access.ok) {
@@ -118,6 +139,15 @@ export async function addManualBalanceItem(title: string, quantity: number, unit
   }
 
   const result = await addManualBalanceItemToDatabase(title, quantity, unitPrice, recordedAt, customerId);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "balance.manual_item",
+    entityType: "balance_line_item",
+    targetCustomerId: customerId ?? null,
+    summary: `Added manual item "${title}" (${quantity} x ${unitPrice.toFixed(2)})${recordedAt ? ` dated ${recordedAt}` : ""}.`,
+  });
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/claims");
@@ -137,6 +167,15 @@ export async function updateBalanceLineItem(claimId: string, quantity: number, u
   }
 
   const result = await updateClaimedItemInDatabase(claimId, quantity, unitPrice);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "balance.line_item_update",
+    entityType: "balance_line_item",
+    entityId: claimId,
+    summary: `Updated balance line item ${claimId} to quantity ${quantity} at ${unitPrice.toFixed(2)}.`,
+  });
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/claims");
@@ -155,6 +194,15 @@ export async function removeBalanceLineItem(claimId: string): Promise<FormAction
   }
 
   const result = await removeClaimedItemFromDatabase(claimId);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "balance.line_item_remove",
+    entityType: "balance_line_item",
+    entityId: claimId,
+    summary: `Removed balance line item ${claimId}.`,
+  });
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/claims");
@@ -173,6 +221,15 @@ export async function applyBalanceAdjustments(shippingChange: number, adjustment
   }
 
   const result = await applyBalanceAdjustmentsToDatabase(shippingChange, adjustmentChange, customerId);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "balance.adjustments",
+    entityType: "balance_cycle",
+    targetCustomerId: customerId ?? null,
+    summary: `Adjusted shipping by ${shippingChange.toFixed(2)} and balance modifiers by ${adjustmentChange.toFixed(2)}.`,
+  });
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/claims");
@@ -192,6 +249,15 @@ export async function adjustInventory(productId: string, quantityChange: number)
   }
 
   const result = await adjustInventoryInDatabase(productId, quantityChange);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.adjust",
+    entityType: "product",
+    entityId: productId,
+    summary: `Adjusted product inventory by ${quantityChange}.`,
+  });
   revalidatePath("/");
   revalidatePath("/store");
   revalidatePath("/claims");
@@ -234,6 +300,14 @@ export async function createInventoryItem(
     location,
     images,
   });
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.create",
+    entityType: "product",
+    summary: `Created inventory item "${title}" in ${category} with SKU ${sku}.`,
+  });
   revalidatePath("/");
   revalidatePath("/store");
   revalidatePath("/claims");
@@ -263,6 +337,14 @@ export async function createInventoryItemsBulk(
   }
 
   const result = await createInventoryItemsBulkInDatabase(items);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.bulk_import",
+    entityType: "product",
+    summary: `Imported ${items.length} inventory items in bulk.`,
+  });
   revalidatePath("/");
   revalidatePath("/store");
   revalidatePath("/claims");
@@ -318,6 +400,15 @@ export async function updateProductSale(
   }
 
   const result = await updateProductSaleInDatabase(productId, salePercentage, saleEndsAt);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.sale_set",
+    entityType: "product",
+    entityId: productId,
+    summary: `Set product sale to ${salePercentage}% off through ${saleEndsAt}.`,
+  });
   revalidatePath("/");
   revalidatePath("/store");
   revalidatePath("/claims");
@@ -337,6 +428,15 @@ export async function clearProductSale(productId: string): Promise<FormActionSta
   }
 
   const result = await clearProductSaleInDatabase(productId);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.sale_clear",
+    entityType: "product",
+    entityId: productId,
+    summary: `Cleared product sale pricing.`,
+  });
   revalidatePath("/");
   revalidatePath("/store");
   revalidatePath("/claims");
@@ -356,6 +456,15 @@ export async function updateHomepageFeatured(productId: string, featured: boolea
   }
 
   const result = await updateHomepageFeaturedInDatabase(productId, featured);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: featured ? "inventory.homepage_feature_on" : "inventory.homepage_feature_off",
+    entityType: "product",
+    entityId: productId,
+    summary: `${featured ? "Featured" : "Removed"} product ${productId} on homepage.`,
+  });
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/admin/inventory");
@@ -373,6 +482,15 @@ export async function archiveProduct(productId: string): Promise<FormActionState
   }
 
   const result = await archiveProductInDatabase(productId);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.archive",
+    entityType: "product",
+    entityId: productId,
+    summary: `Archived product ${productId}.`,
+  });
   revalidatePath("/");
   revalidatePath("/store");
   revalidatePath("/claims");
@@ -393,6 +511,15 @@ export async function deleteArchivedProduct(productId: string): Promise<FormActi
   }
 
   const result = await deleteArchivedProductInDatabase(productId);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.delete",
+    entityType: "product",
+    entityId: productId,
+    summary: `Deleted archived product ${productId}.`,
+  });
   revalidatePath("/admin");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin/inventory/archived");
@@ -435,6 +562,16 @@ export async function updateApprovalState(
   if (result.ok && !hasSupabaseEnv()) {
     await updateStoredAccountState(customerId, nextState);
   }
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "customer.account_state",
+    entityType: "customer",
+    entityId: customerId,
+    targetCustomerId: customerId,
+    summary: `Changed customer ${customerId} state to ${nextState.replaceAll("_", " ")}.`,
+  });
   revalidatePath("/admin");
   revalidatePath("/admin/approvals");
   revalidatePath("/admin/customers");
@@ -454,6 +591,15 @@ export async function addCustomerNote(customerId: string, note: string): Promise
   }
 
   const result = await addCustomerNoteToDatabase(customerId, note);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "customer.note",
+    entityType: "customer_note",
+    targetCustomerId: customerId,
+    summary: `Added internal note for customer ${customerId}.`,
+  });
   revalidatePath("/admin");
   revalidatePath("/admin/customers");
 
@@ -473,6 +619,16 @@ export async function promoteCustomerToAdmin(customerId: string): Promise<FormAc
   if (result.ok && !hasSupabaseEnv()) {
     await updateStoredAccountRole(customerId, "admin");
   }
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "customer.role",
+    entityType: "customer",
+    entityId: customerId,
+    targetCustomerId: customerId,
+    summary: `Promoted customer ${customerId} to admin.`,
+  });
   revalidatePath("/admin");
   revalidatePath("/admin/customers");
   revalidatePath("/login");
@@ -519,6 +675,16 @@ export async function updateCustomerProfileDetailsByAdmin(
   }
 
   const result = await updateCustomerProfileByAdmin(customerId, { street, city, region, postalCode, timezone });
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "customer.profile_update",
+    entityType: "customer",
+    entityId: customerId,
+    targetCustomerId: customerId,
+    summary: `Updated customer profile address/timezone for ${customerId}.`,
+  });
   revalidatePath("/account");
   revalidatePath("/claims");
   revalidatePath("/admin/customers");
@@ -630,6 +796,15 @@ export async function addCustomerToShipmentQueue(customerId: string): Promise<Fo
   }
 
   const result = await addCustomerToShipmentQueueInDatabase(customerId);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "shipment.queue_add",
+    entityType: "shipment",
+    targetCustomerId: customerId,
+    summary: `Added customer ${customerId} to the shipment queue.`,
+  });
   revalidatePath("/admin");
   revalidatePath("/admin/shipments");
   revalidatePath("/admin/customers");
@@ -651,6 +826,17 @@ export async function cancelShipmentRequest(shipmentId?: string): Promise<FormAc
   }
 
   const result = await cancelShipmentRequestInDatabase(shipmentId);
+  if (currentUser.role !== "customer") {
+    await recordAuditIfSuccessful(result, {
+      actorId: currentUser.id,
+      actorName: currentUser.displayName,
+      actorRole: currentUser.role,
+      actionType: "shipment.cancel",
+      entityType: "shipment",
+      entityId: shipmentId ?? null,
+      summary: `Canceled shipment request${shipmentId ? ` ${shipmentId}` : ""}.`,
+    });
+  }
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/shipments");
@@ -674,6 +860,15 @@ export async function updateShipment(
   }
 
   const result = await updateShipmentInDatabase(shipmentId, nextStatus, trackingNumber, shippingInvoice);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "shipment.update",
+    entityType: "shipment",
+    entityId: shipmentId,
+    summary: `Updated shipment ${shipmentId} to ${nextStatus.replaceAll("_", " ")}.`,
+  });
   revalidatePath("/account");
   revalidatePath("/admin");
   revalidatePath("/admin/shipments");
@@ -692,6 +887,15 @@ export async function previewPaymentSubmission(paymentAmount: number, creditAmou
   }
 
   const result = await applyPaymentToDatabase(paymentAmount, creditAmount, recordedAt, customerId);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "payment.apply",
+    entityType: "balance_cycle",
+    targetCustomerId: customerId ?? null,
+    summary: `Applied payment ${paymentAmount.toFixed(2)} and credit ${creditAmount.toFixed(2)}${recordedAt ? ` dated ${recordedAt}` : ""}.`,
+  });
   revalidatePath("/account");
   revalidatePath("/account/history");
   revalidatePath("/admin");
@@ -731,6 +935,14 @@ export async function createEvent(
     repeatWeekly,
     repeatUntilLocal,
   });
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "event.create",
+    entityType: "event",
+    summary: `Created event "${title}".`,
+  });
   revalidatePath("/events");
   revalidatePath("/admin");
   revalidatePath("/admin/events");
@@ -764,6 +976,15 @@ export async function updateEvent(
     platform,
     timeZone,
   });
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "event.update",
+    entityType: "event",
+    entityId: eventId,
+    summary: `Updated event "${title}".`,
+  });
   revalidatePath("/events");
   revalidatePath("/admin");
   revalidatePath("/admin/events");
@@ -781,6 +1002,15 @@ export async function deleteEvent(eventId: string): Promise<FormActionState> {
   }
 
   const result = await deleteEventInDatabase(eventId);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "event.delete",
+    entityType: "event",
+    entityId: eventId,
+    summary: `Deleted event ${eventId}.`,
+  });
   revalidatePath("/events");
   revalidatePath("/admin");
   revalidatePath("/admin/events");
@@ -819,6 +1049,15 @@ export async function saveCrossListedInventory(
   }
 
   const result = await saveCrossListedInventoryToDatabase({ sku, itemName, cost, platforms });
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "cross_listed.save",
+    entityType: "cross_listed_inventory",
+    entityId: sku,
+    summary: `Saved cross-listed record for SKU ${sku}.`,
+  });
   revalidatePath("/admin");
   revalidatePath("/admin/cross-listed");
 
@@ -869,6 +1108,15 @@ export async function deleteCrossListedInventory(recordId: string): Promise<Form
   }
 
   const result = await deleteCrossListedInventoryFromDatabase(recordId);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "cross_listed.delete",
+    entityType: "cross_listed_inventory",
+    entityId: recordId,
+    summary: `Deleted cross-listed record ${recordId}.`,
+  });
   revalidatePath("/admin");
   revalidatePath("/admin/cross-listed");
 

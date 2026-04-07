@@ -57,6 +57,12 @@ function formatMonthLabel(monthKey: string) {
   }).format(new Date(Date.UTC(year, month - 1, 1, 12)));
 }
 
+function daysBetween(startDate: string, endDate: string) {
+  const start = new Date(`${startDate.slice(0, 10)}T00:00:00.000Z`);
+  const end = new Date(`${endDate.slice(0, 10)}T00:00:00.000Z`);
+  return Math.max(0, Math.floor((end.getTime() - start.getTime()) / 86400000));
+}
+
 export function formatAddress(address: Record<string, unknown> | null | undefined) {
   if (!address) {
     return "No address on file yet";
@@ -106,6 +112,7 @@ export function toProduct(row: Record<string, any>): Product {
     title: row.title,
     description: row.description ?? "",
     price: salePrice ?? originalPrice,
+    cost: row.cost == null ? null : Number(row.cost),
     originalPrice,
     salePrice,
     salePercentage,
@@ -368,6 +375,7 @@ export async function getFinancialSummaryFromCycles() {
     { data: shipments, error: shipmentError },
     { data: restockRequests, error: restockError },
     { data: itemRequests, error: itemRequestError },
+    { data: products, error: productError },
   ] = await Promise.all([
     admin
       .from("archived_invoices")
@@ -390,6 +398,11 @@ export async function getFinancialSummaryFromCycles() {
       .from("customer_item_requests")
       .select("id, customer_id, body, created_at")
       .order("created_at", { ascending: false }),
+    admin
+      .from("products")
+      .select("id, title, price, cost, inventory_quantity, status, created_at, categories(name)")
+      .neq("status", "archived")
+      .order("created_at", { ascending: true }),
   ]);
 
   if (archivedError) {
@@ -407,6 +420,9 @@ export async function getFinancialSummaryFromCycles() {
   }
   if (itemRequestError) {
     throw itemRequestError;
+  }
+  if (productError) {
+    throw productError;
   }
 
   const invoiceCustomerIds = [...new Set((archivedInvoices ?? []).map((invoice) => invoice.customer_id).filter(Boolean))];
@@ -597,6 +613,97 @@ export async function getFinancialSummaryFromCycles() {
     })
     .sort((left, right) => right.overdueAmount - left.overdueAmount);
 
+  const activeInventoryRows = (products ?? []).filter((row) => row.status !== "draft" && row.status !== "hidden");
+  const inventoryMarginByCategory = new Map<string, {
+    category: string;
+    itemCount: number;
+    units: number;
+    retailValue: number;
+    costValue: number;
+    estimatedGrossProfit: number;
+  }>();
+  const inventoryAgingBuckets = new Map<string, {
+    label: string;
+    itemCount: number;
+    units: number;
+    retailValue: number;
+    costValue: number;
+  }>();
+  const stalestInventory = activeInventoryRows
+    .map((row) => {
+      const categoryRelation = (row as Record<string, any>).categories as { name?: string } | Array<{ name?: string }> | null | undefined;
+      const quantity = Number(row.inventory_quantity ?? 0);
+      const price = Number(row.price ?? 0);
+      const cost = Number(row.cost ?? 0);
+      const category =
+        Array.isArray(categoryRelation)
+          ? (categoryRelation[0]?.name ?? "Uncategorized")
+          : (categoryRelation?.name ?? "Uncategorized");
+      const createdDate = String(row.created_at ?? siteToday()).slice(0, 10);
+      const daysListed = daysBetween(createdDate, siteToday());
+      const retailValue = price * quantity;
+      const costValue = cost * quantity;
+
+      const categoryEntry = inventoryMarginByCategory.get(category) ?? {
+        category,
+        itemCount: 0,
+        units: 0,
+        retailValue: 0,
+        costValue: 0,
+        estimatedGrossProfit: 0,
+      };
+      categoryEntry.itemCount += 1;
+      categoryEntry.units += quantity;
+      categoryEntry.retailValue += retailValue;
+      categoryEntry.costValue += costValue;
+      categoryEntry.estimatedGrossProfit += retailValue - costValue;
+      inventoryMarginByCategory.set(category, categoryEntry);
+
+      const bucketLabel =
+        daysListed <= 30 ? "0-30 days"
+          : daysListed <= 60 ? "31-60 days"
+            : daysListed <= 90 ? "61-90 days"
+              : "91+ days";
+      const bucketEntry = inventoryAgingBuckets.get(bucketLabel) ?? {
+        label: bucketLabel,
+        itemCount: 0,
+        units: 0,
+        retailValue: 0,
+        costValue: 0,
+      };
+      bucketEntry.itemCount += 1;
+      bucketEntry.units += quantity;
+      bucketEntry.retailValue += retailValue;
+      bucketEntry.costValue += costValue;
+      inventoryAgingBuckets.set(bucketLabel, bucketEntry);
+
+      return {
+        productId: String(row.id),
+        title: String(row.title ?? "Product"),
+        category,
+        quantity,
+        daysListed,
+        retailValue,
+        costValue,
+      };
+    })
+    .sort((left, right) => {
+      if (right.daysListed !== left.daysListed) {
+        return right.daysListed - left.daysListed;
+      }
+      return right.costValue - left.costValue;
+    })
+    .slice(0, 12);
+
+  const inventoryRetailValue = activeInventoryRows.reduce(
+    (sum, row) => sum + Number(row.price ?? 0) * Number(row.inventory_quantity ?? 0),
+    0,
+  );
+  const inventoryCostBasis = activeInventoryRows.reduce(
+    (sum, row) => sum + Number(row.cost ?? 0) * Number(row.inventory_quantity ?? 0),
+    0,
+  );
+
   return {
     totalRunningBalance: customerBalances.reduce((sum, entry) => sum + entry.amount, 0),
     unpaidTotal: customerBalances.reduce((sum, entry) => sum + entry.amount, 0),
@@ -645,5 +752,23 @@ export async function getFinancialSummaryFromCycles() {
         return String(right.latestRequestAt ?? "").localeCompare(String(left.latestRequestAt ?? ""));
       })
       .slice(0, 12),
+    inventoryRetailValue,
+    inventoryCostBasis,
+    inventoryEstimatedGrossProfit: inventoryRetailValue - inventoryCostBasis,
+    inventoryMarginByCategory: [...inventoryMarginByCategory.values()].sort((left, right) => right.estimatedGrossProfit - left.estimatedGrossProfit),
+    inventoryAgingBuckets: [
+      "0-30 days",
+      "31-60 days",
+      "61-90 days",
+      "91+ days",
+    ]
+      .map((label) => inventoryAgingBuckets.get(label) ?? {
+        label,
+        itemCount: 0,
+        units: 0,
+        retailValue: 0,
+        costValue: 0,
+      }),
+    stalestInventory,
   } satisfies FinancialSummary;
 }

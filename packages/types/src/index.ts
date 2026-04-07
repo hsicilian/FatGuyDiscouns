@@ -179,6 +179,19 @@ export interface AdminNotification {
   readAt?: string | null;
 }
 
+export interface AdminAuditEntry {
+  id: string;
+  actorId: string;
+  actorName: string;
+  actorRole: UserRole;
+  actionType: string;
+  entityType: string;
+  entityId: string | null;
+  targetCustomerId?: string | null;
+  summary: string;
+  createdAt: string;
+}
+
 export interface ShowEvent {
   id: string;
   title: string;
@@ -271,6 +284,33 @@ export interface FinancialSummary {
     requestCount: number;
     customerCount: number;
     latestRequestAt?: string;
+  }>;
+  inventoryRetailValue: number;
+  inventoryCostBasis: number;
+  inventoryEstimatedGrossProfit: number;
+  inventoryMarginByCategory: Array<{
+    category: string;
+    itemCount: number;
+    units: number;
+    retailValue: number;
+    costValue: number;
+    estimatedGrossProfit: number;
+  }>;
+  inventoryAgingBuckets: Array<{
+    label: string;
+    itemCount: number;
+    units: number;
+    retailValue: number;
+    costValue: number;
+  }>;
+  stalestInventory: Array<{
+    productId: string;
+    title: string;
+    category: string;
+    quantity: number;
+    daysListed: number;
+    retailValue: number;
+    costValue: number;
   }>;
 }
 

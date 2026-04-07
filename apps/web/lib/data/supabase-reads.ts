@@ -26,13 +26,14 @@ import {
   getSessionClient,
   getTargetCycleContext,
   toArchivedInvoice,
+  toProduct,
   toClaimedItem,
   toClaimHistoryRecord,
   toCustomerMessageRecord,
   toPaymentHistoryRecord,
-  toProduct,
   toShowEvent,
 } from "./supabase-helpers";
+import { toAdminAuditEntry } from "../audit";
 import { isUuidLike, productMatchesLookup } from "../products";
 
 async function attachProductImages(
@@ -95,7 +96,7 @@ export async function listCategoriesSupabase(): Promise<CategoryOption[]> {
 export async function listProductsSupabase(options?: { includeArchived?: boolean }) {
   const actor = await getCurrentActor().catch(() => null);
   const client = await getAdminClient();
-  let query = client.from("products").select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name)");
+  let query = client.from("products").select("id, title, description, price, cost, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name)");
 
   if (options?.includeArchived) {
     query = query.eq("status", "archived");
@@ -116,8 +117,8 @@ export async function getProductByIdSupabase(productId: string) {
   const client = await getAdminClient();
   if (isUuidLike(productId)) {
     let query = client
-      .from("products")
-        .select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name), product_images(id, image_url, position)")
+        .from("products")
+        .select("id, title, description, price, cost, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name), product_images(id, image_url, position)")
       .eq("id", productId);
 
     if (!actor || actor.role === "customer") {
@@ -135,7 +136,7 @@ export async function getProductByIdSupabase(productId: string) {
 
   let fallbackQuery = client
     .from("products")
-    .select("id, title, description, price, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name)")
+    .select("id, title, description, price, cost, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name)")
     .order("created_at", { ascending: false });
 
   if (!actor || actor.role === "customer") {
@@ -425,6 +426,18 @@ export async function listNotificationsSupabase(options?: { includeRead?: boolea
     createdAt: row.created_at,
     readAt: row.read_at ?? null,
   } satisfies AdminNotification));
+}
+
+export async function listAdminAuditEntriesSupabase(limit = 100) {
+  const admin = await getAdminClient();
+  const { data, error } = await admin
+    .from("admin_audit_log")
+    .select("id, actor_id, actor_name, actor_role, action_type, entity_type, entity_id, target_customer_id, summary, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return (data ?? []).map((row) => toAdminAuditEntry(row as Record<string, any>));
 }
 
 export async function listCrossListedInventorySupabase(search?: string): Promise<CrossListedInventoryRecord[]> {

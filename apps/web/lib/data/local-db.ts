@@ -1,10 +1,12 @@
 import "server-only";
 
 import { assertProductionSupabaseReady, hasSupabaseEnv } from "../supabase";
+import { recordAdminAuditEntry as recordAdminAuditEntrySupabase } from "../audit";
 import { platformSummary } from "@fatguydiscounts/db";
 import * as fallback from "./local-db-fallback";
 import {
   listCrossListedInventorySupabase,
+  listAdminAuditEntriesSupabase,
   getBalanceCycleSupabase,
   getCurrentCustomerSupabase,
   listCategoriesSupabase,
@@ -192,6 +194,10 @@ export async function listRestockRequests(customerId?: string) {
 
 export async function listNotifications(options?: { includeRead?: boolean }) {
   return shouldUseSupabase() ? listNotificationsSupabase(options) : fallback.listNotifications(options);
+}
+
+export async function listAdminAuditEntries(limit?: number) {
+  return shouldUseSupabase() ? listAdminAuditEntriesSupabase(limit) : fallback.listAdminAuditEntries(limit);
 }
 
 export async function listCrossListedInventory(search?: string) {
@@ -458,6 +464,21 @@ export async function deleteCrossListedInventoryFromDatabase(recordId: string) {
   return shouldUseSupabase()
     ? deleteCrossListedInventoryFromDatabaseSupabase(recordId)
     : fallback.deleteCrossListedInventoryFromDatabase(recordId);
+}
+
+export async function recordAdminAuditEntryInDatabase(input: {
+  actionType: string;
+  entityType: string;
+  entityId?: string | null;
+  targetCustomerId?: string | null;
+  summary: string;
+  actorId?: string;
+  actorName?: string;
+  actorRole?: "customer" | "admin" | "master_admin";
+}) {
+  return shouldUseSupabase()
+    ? recordAdminAuditEntrySupabase(input)
+    : fallback.recordAdminAuditEntry(input);
 }
 
 export { platformSummary };

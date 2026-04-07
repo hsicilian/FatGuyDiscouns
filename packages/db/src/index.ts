@@ -19,6 +19,7 @@ export const demoProducts: Product[] = [
     title: "Vintage denim jacket",
     description: "Live-sale featured outerwear item.",
     price: 28,
+    cost: 8,
     originalPrice: 28,
     salePrice: null,
     salePercentage: null,
@@ -41,6 +42,7 @@ export const demoProducts: Product[] = [
     title: "Bundle lot tee",
     description: "Single-quantity live claim item.",
     price: 12,
+    cost: 3,
     originalPrice: 12,
     salePrice: null,
     salePercentage: null,
@@ -63,6 +65,7 @@ export const demoProducts: Product[] = [
     title: "Retro flannel",
     description: "Held visible after sellout for restock requests.",
     price: 18,
+    cost: 6,
     originalPrice: 18,
     salePrice: null,
     salePercentage: null,
@@ -313,6 +316,25 @@ export const demoFinancialSummary: FinancialSummary = {
   ],
   itemRequestDemand: [
     { request: "Looking for plus-size vintage band tees", requestCount: 1, customerCount: 1, latestRequestAt: "2026-03-28T14:00:00.000Z" },
+  ],
+  inventoryRetailValue: 68,
+  inventoryCostBasis: 19,
+  inventoryEstimatedGrossProfit: 49,
+  inventoryMarginByCategory: [
+    { category: "Outerwear", itemCount: 1, units: 2, retailValue: 56, costValue: 16, estimatedGrossProfit: 40 },
+    { category: "Tees", itemCount: 1, units: 1, retailValue: 12, costValue: 3, estimatedGrossProfit: 9 },
+    { category: "Flannels", itemCount: 1, units: 0, retailValue: 0, costValue: 0, estimatedGrossProfit: 0 },
+  ],
+  inventoryAgingBuckets: [
+    { label: "0-30 days", itemCount: 1, units: 1, retailValue: 12, costValue: 3 },
+    { label: "31-60 days", itemCount: 1, units: 0, retailValue: 0, costValue: 0 },
+    { label: "61-90 days", itemCount: 1, units: 2, retailValue: 56, costValue: 16 },
+    { label: "91+ days", itemCount: 0, units: 0, retailValue: 0, costValue: 0 },
+  ],
+  stalestInventory: [
+    { productId: "prod-001", title: "Vintage denim jacket", category: "Outerwear", quantity: 2, daysListed: 87, retailValue: 56, costValue: 16 },
+    { productId: "prod-003", title: "Retro flannel", category: "Flannels", quantity: 0, daysListed: 62, retailValue: 0, costValue: 0 },
+    { productId: "prod-002", title: "Bundle lot tee", category: "Tees", quantity: 1, daysListed: 37, retailValue: 12, costValue: 3 },
   ],
 };
 

@@ -31,6 +31,9 @@ export default async function AdminReportsPage() {
             <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Overdue accounts</p><h2 style={{ marginBottom: 0 }}>{financialSummary.overdueCustomerCount}</h2></div>
             <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Archived invoice revenue</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.archivedInvoiceRevenue)}</h2></div>
             <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Lifetime collected</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.lifetimeCollected)}</h2></div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Inventory retail value</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.inventoryRetailValue)}</h2></div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Inventory cost basis</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.inventoryCostBasis)}</h2></div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 20 }}><p style={{ color: "#6d655d", marginTop: 0 }}>Estimated gross profit</p><h2 style={{ marginBottom: 0 }}>{currency.format(financialSummary.inventoryEstimatedGrossProfit)}</h2></div>
           </section>
           <section style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
             <h2 style={{ marginTop: 0 }}>Customer balances</h2>
@@ -48,6 +51,48 @@ export default async function AdminReportsPage() {
             ))}
           </section>
           <section style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+              <h2 style={{ marginTop: 0 }}>Profit snapshot by category</h2>
+              {financialSummary.inventoryMarginByCategory.map((entry) => (
+                <div key={entry.category} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <div>
+                    <strong>{entry.category}</strong>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>
+                      {entry.itemCount} items • {entry.units} units • Cost {currency.format(entry.costValue)}
+                    </p>
+                  </div>
+                  <strong>{currency.format(entry.estimatedGrossProfit)}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+              <h2 style={{ marginTop: 0 }}>Inventory aging</h2>
+              {financialSummary.inventoryAgingBuckets.map((entry) => (
+                <div key={entry.label} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <div>
+                    <strong>{entry.label}</strong>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>
+                      {entry.itemCount} items • {entry.units} units • Cost {currency.format(entry.costValue)}
+                    </p>
+                  </div>
+                  <strong>{currency.format(entry.retailValue)}</strong>
+                </div>
+              ))}
+            </div>
+            <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
+              <h2 style={{ marginTop: 0 }}>Stalest inventory</h2>
+              {financialSummary.stalestInventory.map((entry) => (
+                <div key={entry.productId} style={{ display: "flex", justifyContent: "space-between", gap: 16, borderTop: "1px solid #eedfce", paddingTop: 12 }}>
+                  <div>
+                    <strong>{entry.title}</strong>
+                    <p style={{ margin: "4px 0 0", color: "#6d655d" }}>
+                      {entry.category} • {entry.daysListed} days • {entry.quantity} units
+                    </p>
+                  </div>
+                  <strong>{currency.format(entry.costValue)}</strong>
+                </div>
+              ))}
+            </div>
             <div style={{ background: "#fffaf3", border: "1px solid #e8d6c3", borderRadius: 20, padding: 24 }}>
               <h2 style={{ marginTop: 0 }}>Late payment watchlist</h2>
               {financialSummary.latePaymentWatchlist.map((entry) => (
