@@ -14,6 +14,7 @@ import { ShipmentRequestForm } from "../../components/forms/shipment-request-for
 import { previewShipmentRequest } from "../../lib/actions/shipments";
 import { ensureCustomerAccess } from "../../lib/auth/guards";
 import { getBalanceCycle, getCurrentCustomer, listClaimedItems, listCustomerItemRequests, listCustomerMessagesForCustomer, listShipmentRecordsForCustomer } from "../../lib/data/local-db";
+import { formatEasternTimestamp } from "../../lib/date-format";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -227,7 +228,7 @@ export default async function AccountPage() {
                     {message.senderRole === "admin" ? "Admin reply" : "You"}
                   </p>
                   <MessageContent message={message.message} />
-                  <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>{message.createdAt}</p>
+                  <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>{formatEasternTimestamp(message.createdAt)}</p>
                 </div>
               )) : <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)", color: "var(--muted)" }}>No messages yet.</div>}
             </div>

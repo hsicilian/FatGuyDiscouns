@@ -2,6 +2,7 @@ import { CustomerMessageForm } from "../../../components/forms/customer-message-
 import { MessageContent } from "../../../components/messages/message-content";
 import { ensureCustomerAccess } from "../../../lib/auth/guards";
 import { getCurrentCustomer, listCustomerMessagesForCustomer } from "../../../lib/data/local-db";
+import { formatEasternTimestamp } from "../../../lib/date-format";
 
 export default async function AccountMessagesPage() {
   await ensureCustomerAccess();
@@ -34,7 +35,7 @@ export default async function AccountMessagesPage() {
               {message.senderRole === "admin" ? "Admin" : "You"}
             </p>
             <MessageContent message={message.message} />
-            <p style={{ margin: "8px 0 0", color: "var(--muted)", fontSize: 13 }}>{message.createdAt}</p>
+            <p style={{ margin: "8px 0 0", color: "var(--muted)", fontSize: 13 }}>{formatEasternTimestamp(message.createdAt)}</p>
           </article>
         )) : <p style={{ margin: 0, color: "var(--muted)" }}>No messages yet.</p>}
       </section>

@@ -12,6 +12,7 @@ import { PaymentPreviewForm } from "../../../../components/forms/payment-preview
 import { PromoteAdminForm } from "../../../../components/forms/promote-admin-form";
 import { ensureAdminAccess } from "../../../../lib/auth/guards";
 import { getCurrentSessionAccount } from "../../../../lib/auth/session";
+import { formatEasternTimestamp } from "../../../../lib/date-format";
 import {
   getBalanceCycle,
   getPaymentDefaults,
@@ -208,7 +209,7 @@ export default async function AdminCustomerDetailPage({
                 {message.senderRole === "admin" ? "Admin" : customer.displayName}
               </p>
               <MessageContent message={message.message} />
-              <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>{message.createdAt}</p>
+                    <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>{formatEasternTimestamp(message.createdAt)}</p>
             </div>
           )) : <p style={{ margin: 0, color: "var(--muted)" }}>No customer messages yet.</p>}
         </div>
