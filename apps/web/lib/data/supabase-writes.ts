@@ -1,14 +1,16 @@
 ﻿import "server-only";
 
-import { applyPaymentToBalance, canRequestShipment, deriveProductStatus, nextShipmentStatus, validateClaimAttempt } from "@fatguydiscounts/core";
+import { applyPaymentToBalance, canRequestShipment, deriveProductStatus, isBalanceOverdue, nextShipmentStatus, validateClaimAttempt } from "@fatguydiscounts/core";
 import type { AccountState, NotificationType, ShipmentStatus } from "@fatguydiscounts/types";
 import {
   dueDateForReferenceDate,
   ensureActiveCycle,
   getAdminClient,
+  mapBalanceCycle,
   getCurrentActor,
   getCustomerSummaryByUserId,
   getTargetCycleContext,
+  getCycleSubtotal,
   siteToday,
 } from "./supabase-helpers";
 import { getCurrentCustomerSupabase, listProductsSupabase } from "./supabase-reads";
@@ -44,6 +46,48 @@ function getPaymentBreakdown(balanceDue: number, paymentAmount: number) {
   const appliedAmount = Math.min(paymentAmount, Math.max(balanceDue, 0));
   const overpaymentAmount = Math.max(paymentAmount - appliedAmount, 0);
   return { appliedAmount, overpaymentAmount };
+}
+
+async function listOpenCycleContextsForPayment(customerId: string, recordedDueDate?: string) {
+  const admin = await getAdminClient();
+  const { data: cycles, error } = await admin
+    .from("balance_cycles")
+    .select("*")
+    .eq("customer_id", customerId)
+    .eq("status", "active")
+    .order("due_date", { ascending: true })
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  let cycleRows = [...(cycles ?? [])];
+  if (cycleRows.length === 0) {
+    cycleRows = [await ensureActiveCycle(customerId, recordedDueDate || dueDateForReferenceDate())];
+  }
+
+  const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
+  const contexts = await Promise.all(cycleRows.map(async (cycle) => {
+    const subtotal = await getCycleSubtotal(cycle.id, { admin: true });
+    const summary = mapBalanceCycle(cycle as Record<string, any>, subtotal, { id: customer.id, displayName: customer.displayName });
+    const due = getBalanceDueAmount(summary);
+    return {
+      cycle,
+      summary,
+      due,
+      overdue: isBalanceOverdue(summary, siteToday()),
+    };
+  }));
+
+  return contexts
+    .filter((context) => context.due > 0)
+    .sort((left, right) => {
+      if (left.overdue !== right.overdue) {
+        return left.overdue ? -1 : 1;
+      }
+      return String(left.summary.dueDate).localeCompare(String(right.summary.dueDate));
+    });
 }
 
 function parseShippingInvoiceAmount(value: string | null | undefined) {
@@ -1347,54 +1391,79 @@ export async function applyBalanceAdjustmentsToDatabaseSupabase(shippingChange: 
 export async function applyPaymentToDatabaseSupabase(paymentAmount: number, creditAmount: number, recordedAt?: string, customerId?: string) {
   const normalizedRecordedAt = normalizeRecordedAt(recordedAt);
   if (recordedAt && !normalizedRecordedAt) return { ok: false, message: "Enter a valid record date." };
-  let context = await getTargetCycleContext(customerId);
-  if (!context) {
-    context = await getTargetCycleContext(customerId, {
-      dueDate: dueDateForReferenceDate(normalizedRecordedAt?.date),
-      ensureIfMissing: Boolean(customerId),
-    });
-  }
-  if (!context) return { ok: false, message: "No active balance cycle is available for payment." };
+  if (!customerId) return { ok: false, message: "Choose a customer before applying a payment." };
   if (paymentAmount < 0 || creditAmount < 0) return { ok: false, message: "Payment and credit amounts must be zero or higher." };
 
-  const customer = await getCustomerSummaryByUserId(context.cycle.customer_id, { admin: true });
-  const due = getBalanceDueAmount(context.summary);
-  const applicableCredit = Math.min(creditAmount, customer.creditBalance, Math.max(due - paymentAmount, 0));
-  const balanceAfterCredit = Math.max(due - applicableCredit, 0);
-  const paymentBreakdown = getPaymentBreakdown(balanceAfterCredit, paymentAmount);
-  const preview = applyPaymentToBalance(due, paymentAmount, applicableCredit);
+  const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
+  const cycleContexts = await listOpenCycleContextsForPayment(customerId, dueDateForReferenceDate(normalizedRecordedAt?.date));
+  if (cycleContexts.length === 0) return { ok: false, message: "No active balance cycle is available for payment." };
+
+  const totalDue = cycleContexts.reduce((sum, context) => sum + context.due, 0);
+  const totalApplicableCredit = Math.min(creditAmount, customer.creditBalance, totalDue);
+  const preview = applyPaymentToBalance(totalDue, paymentAmount, totalApplicableCredit);
   const admin = await getAdminClient();
+  let remainingPayment = paymentAmount;
+  let remainingCreditToApply = totalApplicableCredit;
 
-  const cycleUpdate = await admin.from("balance_cycles").update({
-    payments_applied: Number(context.cycle.payments_applied ?? 0) + paymentBreakdown.appliedAmount,
-    credits_applied: Number(context.cycle.credits_applied ?? 0) + applicableCredit,
-    updated_at: new Date().toISOString(),
-  }).eq("id", context.cycle.id);
-  if (cycleUpdate.error) return { ok: false, message: cycleUpdate.error.message };
+  for (const context of cycleContexts) {
+    const cycleDue = context.due;
+    if (cycleDue <= 0) continue;
 
-  if (paymentAmount > 0) {
-    await admin.from("payments").insert({
-      cycle_id: context.cycle.id,
-      amount: paymentAmount,
-      applied_amount: paymentBreakdown.appliedAmount,
-      overpayment_amount: paymentBreakdown.overpaymentAmount,
-      notes: "Admin-applied payment",
+    const creditApplied = Math.min(remainingCreditToApply, cycleDue);
+    remainingCreditToApply -= creditApplied;
+    const dueAfterCredit = cycleDue - creditApplied;
+    const appliedAmount = Math.min(remainingPayment, Math.max(dueAfterCredit, 0));
+    remainingPayment -= appliedAmount;
+
+    const cycleUpdate = await admin.from("balance_cycles").update({
+      payments_applied: Number(context.cycle.payments_applied ?? 0) + appliedAmount,
+      credits_applied: Number(context.cycle.credits_applied ?? 0) + creditApplied,
+      updated_at: new Date().toISOString(),
+    }).eq("id", context.cycle.id);
+    if (cycleUpdate.error) return { ok: false, message: cycleUpdate.error.message };
+
+    if (appliedAmount > 0) {
+      const paymentInsert = await admin.from("payments").insert({
+        cycle_id: context.cycle.id,
+        amount: appliedAmount,
+        applied_amount: appliedAmount,
+        overpayment_amount: 0,
+        notes: "Admin-applied payment",
+        ...(normalizedRecordedAt ? { created_at: normalizedRecordedAt.timestamp } : {}),
+      });
+      if (paymentInsert.error) return { ok: false, message: paymentInsert.error.message };
+    }
+
+    if (creditApplied > 0) {
+      const creditInsert = await admin.from("credits").insert({
+        customer_id: customerId,
+        amount: -creditApplied,
+        reason: "Applied to active balance cycle",
+        ...(normalizedRecordedAt ? { created_at: normalizedRecordedAt.timestamp } : {}),
+      });
+      if (creditInsert.error) return { ok: false, message: creditInsert.error.message };
+    }
+  }
+
+  const totalOverpayment = Math.max(remainingPayment, 0);
+  const nextCreditBalance = Math.max(customer.creditBalance - totalApplicableCredit, 0) + totalOverpayment;
+  const profileUpdate = await admin.from("customer_profiles").update({ credit_balance: nextCreditBalance }).eq("user_id", customerId);
+  if (profileUpdate.error) return { ok: false, message: profileUpdate.error.message };
+  if (totalOverpayment > 0) {
+    const overpaymentInsert = await admin.from("credits").insert({
+      customer_id: customerId,
+      amount: totalOverpayment,
+      reason: "Overpayment credit",
       ...(normalizedRecordedAt ? { created_at: normalizedRecordedAt.timestamp } : {}),
     });
-  }
-  if (applicableCredit > 0) await admin.from("credits").insert({ customer_id: context.cycle.customer_id, amount: -applicableCredit, reason: "Applied to active balance cycle" });
-
-  const nextCreditBalance = Math.max(customer.creditBalance - applicableCredit, 0) + paymentBreakdown.overpaymentAmount;
-  await admin.from("customer_profiles").update({ credit_balance: nextCreditBalance }).eq("user_id", context.cycle.customer_id);
-  if (paymentBreakdown.overpaymentAmount > 0) {
-    await admin.from("credits").insert({ customer_id: context.cycle.customer_id, amount: paymentBreakdown.overpaymentAmount, reason: "Overpayment credit" });
+    if (overpaymentInsert.error) return { ok: false, message: overpaymentInsert.error.message };
   }
 
   return {
     ok: true,
     message: "Payment applied to the active balance cycle.",
     remainingBalance: Math.max(preview.remaining, 0),
-    overpayment: paymentBreakdown.overpaymentAmount,
+    overpayment: totalOverpayment,
   };
 }
 
