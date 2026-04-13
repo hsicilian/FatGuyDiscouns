@@ -1415,8 +1415,8 @@ export async function updatePaymentInDatabaseSupabase(paymentId: string, payment
   }
 
   const cycleRow = Array.isArray(paymentRow.balance_cycles) ? paymentRow.balance_cycles[0] : paymentRow.balance_cycles;
-  if (!cycleRow || cycleRow.status !== "active") {
-    return { ok: false, message: "Only payments on an active balance cycle can be edited right now." };
+  if (!cycleRow) {
+    return { ok: false, message: "Payment cycle could not be found." };
   }
 
   const customer = await getCustomerSummaryByUserId(cycleRow.customer_id, { admin: true });
@@ -1445,6 +1445,53 @@ export async function updatePaymentInDatabaseSupabase(paymentId: string, payment
     0,
   );
   const paymentBreakdown = getPaymentBreakdown(balanceDueBeforeThisPayment, paymentAmount);
+
+  if (cycleRow.status === "archived") {
+    const { data: activeCycles, error: activeCyclesError } = await admin
+      .from("balance_cycles")
+      .select("id, shipping_total, adjustments_total, payments_applied, credits_applied")
+      .eq("customer_id", cycleRow.customer_id)
+      .eq("status", "active");
+    if (activeCyclesError) return { ok: false, message: activeCyclesError.message };
+
+    const displacedCycle = (activeCycles ?? []).find((entry) => entry.id !== cycleRow.id);
+    if (displacedCycle) {
+      const { data: displacedItems, error: displacedItemsError } = await admin
+        .from("balance_line_items")
+        .select("id")
+        .eq("cycle_id", displacedCycle.id)
+        .limit(1);
+      if (displacedItemsError) return { ok: false, message: displacedItemsError.message };
+
+      const displacedHasContent = (displacedItems?.length ?? 0) > 0
+        || Number(displacedCycle.shipping_total ?? 0) !== 0
+        || Number(displacedCycle.adjustments_total ?? 0) !== 0
+        || Number(displacedCycle.payments_applied ?? 0) !== 0
+        || Number(displacedCycle.credits_applied ?? 0) !== 0;
+
+      if (displacedHasContent) {
+        return { ok: false, message: "This archived payment belongs to a cycle that no longer matches the active balance. Clear the newer cycle first, then edit this payment." };
+      }
+
+      const displacedArchive = await admin
+        .from("balance_cycles")
+        .update({ status: "archived", updated_at: new Date().toISOString() })
+        .eq("id", displacedCycle.id);
+      if (displacedArchive.error) return { ok: false, message: displacedArchive.error.message };
+    }
+
+    const restoreCycle = await admin
+      .from("balance_cycles")
+      .update({ status: "active", updated_at: new Date().toISOString() })
+      .eq("id", cycleRow.id);
+    if (restoreCycle.error) return { ok: false, message: restoreCycle.error.message };
+
+    const archivedInvoiceDelete = await admin
+      .from("archived_invoices")
+      .delete()
+      .eq("cycle_id", cycleRow.id);
+    if (archivedInvoiceDelete.error) return { ok: false, message: archivedInvoiceDelete.error.message };
+  }
 
   const cycleUpdate = await admin
     .from("balance_cycles")
@@ -1478,6 +1525,56 @@ export async function updatePaymentInDatabaseSupabase(paymentId: string, payment
     message: "Payment updated.",
     remainingBalance: Math.max(balanceDueBeforeThisPayment - paymentAmount, 0),
     overpayment: paymentBreakdown.overpaymentAmount,
+  };
+}
+
+export async function updateCreditInDatabaseSupabase(creditId: string, creditAmount: number, recordedAt?: string, reason?: string) {
+  const normalizedRecordedAt = normalizeRecordedAt(recordedAt);
+  if (recordedAt && !normalizedRecordedAt) return { ok: false, message: "Enter a valid record date." };
+
+  const admin = await getAdminClient();
+  const { data: creditRow, error: creditError } = await admin
+    .from("credits")
+    .select("id, customer_id, amount, reason, created_at")
+    .eq("id", creditId)
+    .single();
+  if (creditError || !creditRow) {
+    return { ok: false, message: creditError?.message ?? "Credit entry not found." };
+  }
+
+  const previousAmount = Number(creditRow.amount ?? 0);
+  if (previousAmount < 0) {
+    return { ok: false, message: "Applied-credit history can’t be edited from this page." };
+  }
+  if (creditAmount < 0) {
+    return { ok: false, message: "Credit amount must be zero or higher." };
+  }
+
+  const customer = await getCustomerSummaryByUserId(creditRow.customer_id, { admin: true });
+  const nextCreditBalance = customer.creditBalance - previousAmount + creditAmount;
+  if (nextCreditBalance < 0) {
+    return { ok: false, message: "This credit has already been used, so it can’t be reduced that far." };
+  }
+
+  const creditUpdate = await admin
+    .from("credits")
+    .update({
+      amount: creditAmount,
+      reason: (reason?.trim() || creditRow.reason || "Credit adjustment"),
+      ...(normalizedRecordedAt ? { created_at: normalizedRecordedAt.timestamp } : {}),
+    })
+    .eq("id", creditId);
+  if (creditUpdate.error) return { ok: false, message: creditUpdate.error.message };
+
+  const profileUpdate = await admin
+    .from("customer_profiles")
+    .update({ credit_balance: nextCreditBalance })
+    .eq("user_id", creditRow.customer_id);
+  if (profileUpdate.error) return { ok: false, message: profileUpdate.error.message };
+
+  return {
+    ok: true,
+    message: "Credit updated.",
   };
 }
 

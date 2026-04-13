@@ -1,53 +1,107 @@
-import { applyPaymentToBalance, calculateBalanceDue, getNextScheduledDueDate, isBalanceOverdue, shouldArchiveBalance } from "@fatguydiscounts/core";
-import { PaymentPreviewForm } from "../../../components/forms/payment-preview-form";
-import { ensureAdminAccess } from "../../../lib/auth/guards";
-import { getBalanceCycle, getPaymentDefaults } from "../../../lib/data/local-db";
+import { CreditHistoryEditForm } from "../../../components/forms/credit-history-edit-form";
+import { PaymentHistoryEditForm } from "../../../components/forms/payment-history-edit-form";
+import { ensureMasterAdminAccess } from "../../../lib/auth/guards";
+import { listCreditHistory, listCustomers, listPaymentHistory } from "../../../lib/data/local-db";
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
 export default async function AdminPaymentsPage() {
-  await ensureAdminAccess();
+  await ensureMasterAdminAccess();
 
-  const [balanceCycle, paymentDefaults] = await Promise.all([getBalanceCycle(), getPaymentDefaults()]);
-  const due = calculateBalanceDue(balanceCycle);
-  const preview = applyPaymentToBalance(due, paymentDefaults.paymentAmount, paymentDefaults.creditAmount);
-  const today = new Date().toISOString().slice(0, 10);
-  const overdue = isBalanceOverdue(balanceCycle, today);
-  const nextRegularDueDate = getNextScheduledDueDate(today);
+  const [customers, payments, credits] = await Promise.all([
+    listCustomers(),
+    listPaymentHistory(),
+    listCreditHistory(),
+  ]);
+  const customerMap = new Map(customers.map((customer) => [customer.id, customer]));
 
   return (
-    <main style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 24px 72px" }}>
-      <section style={{ background: "linear-gradient(145deg, rgba(255, 249, 241, 0.95) 0%, rgba(246, 229, 209, 0.92) 100%)", border: "1px solid var(--line)", borderRadius: 30, padding: 28, boxShadow: "var(--shadow)", marginBottom: 24 }}>
-        <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0 }}>Cash desk</p>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 18, alignItems: "end", flexWrap: "wrap" }}>
-          <div>
-            <h1 style={{ margin: "0 0 10px" }}>Payments and archive flow</h1>
-            <p style={{ color: "var(--muted)", lineHeight: 1.7, maxWidth: 760, margin: 0 }}>
-              Apply partial payments, use customer credit, record overpayments, and archive a cycle when the balance reaches zero.
-            </p>
-          </div>
-          <div style={{ background: "rgba(255,255,255,0.52)", border: "1px solid rgba(232,214,195,0.9)", borderRadius: 18, padding: 16, minWidth: 220 }}>
-            <p style={{ marginTop: 0, color: "var(--muted)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.08em" }}>Amount due</p>
-            <strong style={{ fontSize: "1.9rem" }}>{currency.format(due)}</strong>
-          </div>
+    <main style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px 72px", display: "grid", gap: 24 }}>
+      <section style={{ background: "linear-gradient(145deg, rgba(255, 249, 241, 0.95) 0%, rgba(246, 229, 209, 0.92) 100%)", border: "1px solid var(--line)", borderRadius: 30, padding: 28, boxShadow: "var(--shadow)" }}>
+        <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0 }}>Master admin only</p>
+        <h1 style={{ margin: "0 0 10px" }}>Payments and credits</h1>
+        <p style={{ color: "var(--muted)", lineHeight: 1.7, margin: 0, maxWidth: 820 }}>
+          Review payment and credit records across all customers, fix mistyped amounts, and repair older entries that were attached to the wrong cycle.
+        </p>
+      </section>
+
+      <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 24, boxShadow: "var(--shadow)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
+          <h2 style={{ margin: 0 }}>Payment ledger</h2>
+          <span style={{ color: "var(--muted)" }}>{payments.length} records</span>
+        </div>
+        <div style={{ display: "grid", gap: 16, marginTop: 18 }}>
+          {payments.length > 0 ? payments.map((payment) => {
+            const customer = customerMap.get(payment.customerId);
+            return (
+              <div key={payment.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 16, display: "grid", gap: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                  <div>
+                    <strong style={{ display: "block" }}>{customer?.displayName ?? "Unknown customer"}</strong>
+                    <span style={{ color: "var(--muted)" }}>{customer?.email ?? payment.customerId}</span>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <strong style={{ display: "block" }}>{currency.format(payment.amount)}</strong>
+                    <span style={{ color: "var(--muted)" }}>{payment.notes || "Payment recorded"}</span>
+                  </div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", color: "var(--muted)" }}>
+                  <span>{payment.createdAt}</span>
+                  <span>Applied: {currency.format(payment.appliedAmount ?? payment.amount)}</span>
+                  <span>Credit created: {currency.format(payment.overpaymentAmount ?? 0)}</span>
+                  <span>Cycle: {payment.cycleStatus ?? "unknown"}</span>
+                  {customer ? <a href={`/admin/customers/${customer.id}`} style={{ color: "var(--accent-strong)" }}>Open CRM</a> : null}
+                </div>
+                <PaymentHistoryEditForm
+                  paymentId={payment.id}
+                  defaultAmount={payment.amount}
+                  defaultRecordedAt={payment.createdAt.slice(0, 10)}
+                />
+              </div>
+            );
+          }) : <p style={{ margin: 0, color: "var(--muted)" }}>No payment records yet.</p>}
         </div>
       </section>
 
-      <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginBottom: 24 }}>
-        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 22, boxShadow: "var(--shadow)" }}><p style={{ marginTop: 0, color: "var(--muted)" }}>Incoming payment</p><h2 style={{ marginBottom: 0 }}>{currency.format(paymentDefaults.paymentAmount)}</h2></div>
-        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 22, boxShadow: "var(--shadow)" }}><p style={{ marginTop: 0, color: "var(--muted)" }}>Credit applied</p><h2 style={{ marginBottom: 0 }}>{currency.format(paymentDefaults.creditAmount)}</h2></div>
-        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 22, boxShadow: "var(--shadow)" }}><p style={{ marginTop: 0, color: "var(--muted)" }}>Remaining after payment</p><h2 style={{ marginBottom: 0 }}>{currency.format(Math.max(preview.remaining, 0))}</h2></div>
-        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 22, boxShadow: "var(--shadow)" }}><p style={{ marginTop: 0, color: "var(--muted)" }}>{overdue ? "Next regular due date" : "Cycle due date"}</p><h2 style={{ marginBottom: 0 }}>{overdue ? nextRegularDueDate : balanceCycle.dueDate}</h2></div>
-      </div>
-
-      <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 24, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
-        <h2 style={{ marginTop: 0 }}>Payment application</h2>
-        <p style={{ color: preview.paidInFull ? "#2f5d32" : "var(--accent-strong)", marginBottom: 24, lineHeight: 1.7 }}>
-          {shouldArchiveBalance(preview.remaining)
-            ? `Cycle should archive now. Overpayment to convert into credit: ${currency.format(preview.overpayment)}`
-            : "Cycle stays active until the remaining balance is cleared."}
-        </p>
-        <PaymentPreviewForm defaultPayment={paymentDefaults.paymentAmount} defaultCredit={paymentDefaults.creditAmount} />
+      <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 24, boxShadow: "var(--shadow)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}>
+          <h2 style={{ margin: 0 }}>Credit ledger</h2>
+          <span style={{ color: "var(--muted)" }}>{credits.length} records</span>
+        </div>
+        <div style={{ display: "grid", gap: 16, marginTop: 18 }}>
+          {credits.length > 0 ? credits.map((credit) => {
+            const customer = customerMap.get(credit.customerId);
+            const isEditable = credit.amount >= 0;
+            return (
+              <div key={credit.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 16, display: "grid", gap: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+                  <div>
+                    <strong style={{ display: "block" }}>{customer?.displayName ?? "Unknown customer"}</strong>
+                    <span style={{ color: "var(--muted)" }}>{customer?.email ?? credit.customerId}</span>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <strong style={{ display: "block" }}>{currency.format(credit.amount)}</strong>
+                    <span style={{ color: "var(--muted)" }}>{credit.reason || "Credit entry"}</span>
+                  </div>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", color: "var(--muted)" }}>
+                  <span>{credit.createdAt}</span>
+                  {customer ? <a href={`/admin/customers/${customer.id}`} style={{ color: "var(--accent-strong)" }}>Open CRM</a> : null}
+                </div>
+                {isEditable ? (
+                  <CreditHistoryEditForm
+                    creditId={credit.id}
+                    defaultAmount={credit.amount}
+                    defaultRecordedAt={credit.createdAt.slice(0, 10)}
+                    defaultReason={credit.reason}
+                  />
+                ) : (
+                  <p style={{ margin: 0, color: "var(--muted)" }}>Applied credits are shown here for reference and stay read-only.</p>
+                )}
+              </div>
+            );
+          }) : <p style={{ margin: 0, color: "var(--muted)" }}>No credit records yet.</p>}
+        </div>
       </section>
     </main>
   );

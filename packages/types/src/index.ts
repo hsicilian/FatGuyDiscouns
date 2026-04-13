@@ -113,6 +113,14 @@ export interface PaymentHistoryRecord {
   notes: string;
 }
 
+export interface CreditHistoryRecord {
+  id: string;
+  customerId: string;
+  amount: number;
+  reason: string;
+  createdAt: string;
+}
+
 export interface CustomerMessageRecord {
   id: string;
   customerId: string;

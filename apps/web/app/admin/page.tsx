@@ -11,6 +11,7 @@ const cards = [
   { href: "/admin/customers", title: "Customer CRM", body: "Search customer records, review notes, shipment history, overdue status, and balances." },
   { href: "/admin/shipments", title: "Shipment queue", body: "Process requests, add tracking, complete shipments, and update last shipment dates." },
   { href: "/admin/events", title: "Events calendar", body: "Add upcoming live sales, keep the calendar current, and drive shoppers to internal event pages." },
+  { href: "/admin/payments", title: "Payments and credits", body: "Master-admin-only correction ledger for payment records, overpayments, and stored credits." },
   { href: "/admin/cross-listed", title: "Cross listed inventory", body: "Master-admin-only tracker for the outside platforms each SKU is currently listed on." },
   { href: "/admin/audit", title: "Admin audit trail", body: "Master-admin-only history of key inventory, CRM, shipment, and event changes." },
   { href: "/admin/reports", title: "Financial reports", body: "Master-admin-only summaries for unpaid totals and customer balances." },
@@ -21,7 +22,7 @@ export default async function AdminPage() {
   const currentUser = await getCurrentSessionUser();
   const isMasterAdmin = currentUser?.role === "master_admin";
   const visibleCards = cards.filter((card) => (
-    card.href === "/admin/reports" || card.href === "/admin/cross-listed" || card.href === "/admin/audit"
+    card.href === "/admin/reports" || card.href === "/admin/cross-listed" || card.href === "/admin/audit" || card.href === "/admin/payments"
       ? isMasterAdmin
       : true
   ));

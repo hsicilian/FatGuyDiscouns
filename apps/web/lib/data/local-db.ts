@@ -24,9 +24,11 @@ import {
   listClaimedItemsForCustomerSupabase,
   listCustomerNotesSupabase,
   listCustomersSupabase,
+  listCreditHistorySupabase,
   listEventsSupabase,
   listNotificationsSupabase,
   listPaymentHistoryForCustomerSupabase,
+  listPaymentHistorySupabase,
   listProductsSupabase,
   listRestockRequestsSupabase,
   listShipmentRecordsSupabase,
@@ -58,6 +60,7 @@ import {
   submitCustomerMessageToDatabaseSupabase,
   submitRestockRequestToDatabaseSupabase,
   submitShipmentRequestToDatabaseSupabase,
+  updateCreditInDatabaseSupabase,
   updatePaymentInDatabaseSupabase,
   updateCustomerProfileByAdminSupabase,
   updateHomepageFeaturedInDatabaseSupabase,
@@ -167,6 +170,14 @@ export async function listShipmentRecordsForCustomer(customerId: string) {
 
 export async function listPaymentHistoryForCustomer(customerId: string) {
   return shouldUseSupabase() ? listPaymentHistoryForCustomerSupabase(customerId) : fallback.listPaymentHistoryForCustomer(customerId);
+}
+
+export async function listPaymentHistory() {
+  return shouldUseSupabase() ? listPaymentHistorySupabase() : fallback.listPaymentHistory();
+}
+
+export async function listCreditHistory() {
+  return shouldUseSupabase() ? listCreditHistorySupabase() : fallback.listCreditHistory();
 }
 
 export async function listClaimHistoryForCustomer(customerId: string) {
@@ -413,6 +424,12 @@ export async function updatePaymentInDatabase(paymentId: string, paymentAmount: 
   return shouldUseSupabase()
     ? updatePaymentInDatabaseSupabase(paymentId, paymentAmount, recordedAt)
     : fallback.updatePaymentInDatabase(paymentId, paymentAmount, recordedAt);
+}
+
+export async function updateCreditInDatabase(creditId: string, creditAmount: number, recordedAt?: string, reason?: string) {
+  return shouldUseSupabase()
+    ? updateCreditInDatabaseSupabase(creditId, creditAmount, recordedAt, reason)
+    : fallback.updateCreditInDatabase(creditId, creditAmount, recordedAt, reason);
 }
 
 export async function createEventInDatabase(input: {

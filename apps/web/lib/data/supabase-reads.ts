@@ -7,6 +7,7 @@ import type {
   CategoryOption,
   ClaimedItem,
   ClaimHistoryRecord,
+  CreditHistoryRecord,
   CrossListedInventoryRecord,
   CustomerItemRequestRecord,
   CustomerMessageRecord,
@@ -29,6 +30,7 @@ import {
   toProduct,
   toClaimedItem,
   toClaimHistoryRecord,
+  toCreditHistoryRecord,
   toCustomerMessageRecord,
   toPaymentHistoryRecord,
   toShowEvent,
@@ -240,6 +242,28 @@ export async function listPaymentHistoryForCustomerSupabase(customerId: string):
 
   if (error) throw error;
   return (data ?? []).map((row) => toPaymentHistoryRecord(row as Record<string, any>));
+}
+
+export async function listPaymentHistorySupabase(): Promise<PaymentHistoryRecord[]> {
+  const admin = await getAdminClient();
+  const { data, error } = await admin
+    .from("payments")
+    .select("id, cycle_id, amount, applied_amount, overpayment_amount, created_at, notes, balance_cycles!inner(id, customer_id, status)")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => toPaymentHistoryRecord(row as Record<string, any>));
+}
+
+export async function listCreditHistorySupabase(): Promise<CreditHistoryRecord[]> {
+  const admin = await getAdminClient();
+  const { data, error } = await admin
+    .from("credits")
+    .select("id, customer_id, amount, reason, created_at")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map((row) => toCreditHistoryRecord(row as Record<string, any>));
 }
 
 export async function listClaimHistoryForCustomerSupabase(customerId: string): Promise<ClaimHistoryRecord[]> {

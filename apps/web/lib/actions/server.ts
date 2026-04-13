@@ -36,6 +36,7 @@ import {
   updateClaimedItemInDatabase,
   updateCustomerAccountState,
   updateCustomerRoleInDatabase,
+  updateCreditInDatabase,
   updateCurrentCustomerProfile,
   updatePaymentInDatabase,
   updateCustomerProfileByAdmin,
@@ -932,6 +933,33 @@ export async function updatePaymentSubmission(paymentId: string, paymentAmount: 
   revalidatePath("/admin");
   revalidatePath("/admin/reports");
   revalidatePath("/admin/customers");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateCreditSubmission(creditId: string, creditAmount: number, recordedAt?: string, reason?: string): Promise<FormActionState> {
+  const access = await requireMasterAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateCreditInDatabase(creditId, creditAmount, recordedAt, reason);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "credit.update",
+    entityType: "credit",
+    entityId: creditId,
+    summary: `Updated credit ${creditId} to ${creditAmount.toFixed(2)}${recordedAt ? ` dated ${recordedAt}` : ""}.`,
+  });
+  revalidatePath("/admin");
+  revalidatePath("/admin/payments");
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/reports");
 
   return {
     ...result,

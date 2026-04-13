@@ -24,6 +24,7 @@ import type {
   CategoryOption,
   ClaimedItem,
   ClaimHistoryRecord,
+  CreditHistoryRecord,
   CrossListedInventoryRecord,
   CustomerItemRequestRecord,
   CustomerMessageRecord,
@@ -46,6 +47,7 @@ export interface LocalDatabase {
   balanceCycle: BalanceCycleSummary;
   claimedItems: ClaimedItem[];
   paymentHistory: PaymentHistoryRecord[];
+  creditHistory: CreditHistoryRecord[];
   archivedInvoices: ArchivedInvoice[];
   shipmentRecords: ShipmentRecord[];
   customerNotes: CustomerNote[];
@@ -258,6 +260,9 @@ function createInitialDatabase(): LocalDatabase {
       { id: "payment-002", customerId: "cust-002", amount: 84, appliedAmount: 84, overpaymentAmount: 0, cycleStatus: "archived", createdAt: "2026-03-02", notes: "February 2026 cycle payment" },
       { id: "payment-003", customerId: "cust-003", amount: 118, appliedAmount: 118, overpaymentAmount: 0, cycleStatus: "archived", createdAt: "2026-02-01", notes: "January 2026 cycle payment" },
     ],
+    creditHistory: [
+      { id: "credit-001", customerId: "cust-001", amount: 12, reason: "Manual credit", createdAt: "2026-03-30" },
+    ],
     archivedInvoices: [
       {
         id: "inv-2026-02",
@@ -465,6 +470,7 @@ function normalizeDatabase(db: Partial<LocalDatabase>): LocalDatabase {
     balanceCycle: db.balanceCycle ?? fallback.balanceCycle,
     claimedItems: db.claimedItems ?? fallback.claimedItems,
     paymentHistory: db.paymentHistory ?? fallback.paymentHistory,
+    creditHistory: db.creditHistory ?? fallback.creditHistory,
     archivedInvoices: db.archivedInvoices ?? fallback.archivedInvoices,
     shipmentRecords: db.shipmentRecords ?? fallback.shipmentRecords,
     customerNotes: db.customerNotes ?? fallback.customerNotes,
@@ -745,6 +751,16 @@ export async function listPaymentHistoryForCustomer(customerId: string): Promise
   return db.paymentHistory
     .filter((payment) => payment.customerId === customerId)
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
+export async function listPaymentHistory(): Promise<PaymentHistoryRecord[]> {
+  const db = await readDatabase();
+  return [...db.paymentHistory].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+}
+
+export async function listCreditHistory(): Promise<CreditHistoryRecord[]> {
+  const db = await readDatabase();
+  return [...db.creditHistory].sort((left, right) => right.createdAt.localeCompare(left.createdAt));
 }
 
 export async function listClaimHistoryForCustomer(_customerId: string): Promise<ClaimHistoryRecord[]> {
@@ -2207,13 +2223,16 @@ export async function applyPaymentToDatabase(paymentAmount: number, creditAmount
 export async function updatePaymentInDatabase(paymentId: string, paymentAmount: number, recordedAt?: string) {
   const db = await readDatabase();
   const payment = db.paymentHistory.find((entry) => entry.id === paymentId);
-  const customer = findCurrentCustomer(db);
 
   if (!payment) {
     return { ok: false, message: "Payment not found." };
   }
+  const customer = db.customers.find((entry) => entry.id === payment.customerId);
+  if (!customer) {
+    return { ok: false, message: "Customer for this payment could not be found." };
+  }
   if ((payment.cycleStatus ?? "active") !== "active") {
-    return { ok: false, message: "Only payments on an active balance cycle can be edited right now." };
+    payment.cycleStatus = "active";
   }
   if (paymentAmount < 0) {
     return { ok: false, message: "Payment amount must be zero or higher." };
@@ -2248,6 +2267,38 @@ export async function updatePaymentInDatabase(paymentId: string, paymentAmount: 
     remainingBalance: Math.max(balanceDueBeforeThisPayment - paymentAmount, 0),
     overpayment: paymentBreakdown.overpaymentAmount,
   };
+}
+
+export async function updateCreditInDatabase(creditId: string, creditAmount: number, recordedAt?: string, reason?: string) {
+  const db = await readDatabase();
+  const credit = db.creditHistory.find((entry) => entry.id === creditId);
+
+  if (!credit) {
+    return { ok: false, message: "Credit entry not found." };
+  }
+  const customer = db.customers.find((entry) => entry.id === credit.customerId);
+  if (!customer) {
+    return { ok: false, message: "Customer for this credit could not be found." };
+  }
+  if (credit.amount < 0) {
+    return { ok: false, message: "Applied-credit history can’t be edited from this page." };
+  }
+  if (creditAmount < 0) {
+    return { ok: false, message: "Credit amount must be zero or higher." };
+  }
+
+  const nextCreditBalance = customer.creditBalance - credit.amount + creditAmount;
+  if (nextCreditBalance < 0) {
+    return { ok: false, message: "This credit has already been used, so it can’t be reduced that far." };
+  }
+
+  customer.creditBalance = nextCreditBalance;
+  credit.amount = creditAmount;
+  credit.reason = reason?.trim() || credit.reason || "Credit adjustment";
+  credit.createdAt = recordedAt?.trim() || credit.createdAt;
+  await writeDatabase(db);
+
+  return { ok: true, message: "Credit updated." };
 }
 
 export async function markNotificationReadInDatabase(notificationId: string) {

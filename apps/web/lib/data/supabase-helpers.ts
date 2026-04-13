@@ -6,6 +6,7 @@ import type {
   BalanceCycleSummary,
   ClaimedItem,
   ClaimHistoryRecord,
+  CreditHistoryRecord,
   CustomerMessageRecord,
   CustomerSummary,
   FinancialSummary,
@@ -179,6 +180,16 @@ export function toPaymentHistoryRecord(row: Record<string, any>): PaymentHistory
     cycleStatus: row.balance_cycles?.status ?? undefined,
     createdAt: row.created_at ?? new Date().toISOString(),
     notes: row.notes ?? "",
+  };
+}
+
+export function toCreditHistoryRecord(row: Record<string, any>): CreditHistoryRecord {
+  return {
+    id: row.id,
+    customerId: row.customer_id ?? "",
+    amount: Number(row.amount ?? 0),
+    reason: row.reason ?? "",
+    createdAt: row.created_at ?? new Date().toISOString(),
   };
 }
 
