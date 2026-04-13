@@ -10,7 +10,6 @@ import {
   getScheduledDueDateForDate,
   isBalanceOverdue,
   nextShipmentStatus,
-  shouldArchiveBalance,
   validateClaimAttempt,
 } from "@fatguydiscounts/core";
 import { getProductPath } from "../products";
@@ -63,6 +62,12 @@ export interface LocalDatabase {
 }
 
 const dbPath = join(process.cwd(), "apps", "web", "data", "local-db.json");
+
+function getPaymentBreakdown(balanceDue: number, paymentAmount: number) {
+  const appliedAmount = Math.min(paymentAmount, Math.max(balanceDue, 0));
+  const overpaymentAmount = Math.max(paymentAmount - appliedAmount, 0);
+  return { appliedAmount, overpaymentAmount };
+}
 
 function serialize(db: LocalDatabase) {
   return `${JSON.stringify(db, null, 2)}\n`;
@@ -249,9 +254,9 @@ function createInitialDatabase(): LocalDatabase {
       },
     ],
     paymentHistory: [
-      { id: "payment-001", customerId: "cust-001", amount: 38, createdAt: "2026-03-29", notes: "Active cycle payment" },
-      { id: "payment-002", customerId: "cust-002", amount: 84, createdAt: "2026-03-02", notes: "February 2026 cycle payment" },
-      { id: "payment-003", customerId: "cust-003", amount: 118, createdAt: "2026-02-01", notes: "January 2026 cycle payment" },
+      { id: "payment-001", customerId: "cust-001", amount: 38, appliedAmount: 38, overpaymentAmount: 0, cycleStatus: "active", createdAt: "2026-03-29", notes: "Active cycle payment" },
+      { id: "payment-002", customerId: "cust-002", amount: 84, appliedAmount: 84, overpaymentAmount: 0, cycleStatus: "archived", createdAt: "2026-03-02", notes: "February 2026 cycle payment" },
+      { id: "payment-003", customerId: "cust-003", amount: 118, appliedAmount: 118, overpaymentAmount: 0, cycleStatus: "archived", createdAt: "2026-02-01", notes: "January 2026 cycle payment" },
     ],
     archivedInvoices: [
       {
@@ -2167,10 +2172,12 @@ export async function applyPaymentToDatabase(paymentAmount: number, creditAmount
     };
   }
 
+  const balanceAfterCredit = Math.max(amountDue - creditAmount, 0);
+  const paymentBreakdown = getPaymentBreakdown(balanceAfterCredit, paymentAmount);
   const preview = applyPaymentToBalance(amountDue, paymentAmount, creditAmount);
   const paymentDate = recordedAt?.trim() || new Date().toISOString().slice(0, 10);
 
-  db.balanceCycle.paymentsApplied += paymentAmount;
+  db.balanceCycle.paymentsApplied += paymentBreakdown.appliedAmount;
   db.balanceCycle.creditsApplied += creditAmount;
   db.paymentDefaults = { paymentAmount, creditAmount };
   if (paymentAmount > 0) {
@@ -2178,45 +2185,68 @@ export async function applyPaymentToDatabase(paymentAmount: number, creditAmount
       id: `payment-${Date.now()}`,
       customerId: customer.id,
       amount: paymentAmount,
+      appliedAmount: paymentBreakdown.appliedAmount,
+      overpaymentAmount: paymentBreakdown.overpaymentAmount,
+      cycleStatus: "active",
       createdAt: paymentDate,
       notes: "Admin-applied payment",
     });
   }
-
-  if (shouldArchiveBalance(preview.remaining)) {
-    const cycleTotal = db.balanceCycle.subtotal + db.balanceCycle.shipping + db.balanceCycle.adjustments;
-
-    db.archivedInvoices.unshift({
-      id: `inv-${Date.now()}`,
-      cycleLabel: formatCycleLabel(new Date(`${paymentDate}T12:00:00.000Z`)),
-      paidAt: paymentDate,
-      total: cycleTotal,
-      paymentTotal: db.balanceCycle.paymentsApplied,
-      creditApplied: db.balanceCycle.creditsApplied,
-    });
-
-    customer.creditBalance += preview.overpayment;
-    db.balanceCycle = {
-      id: `cycle-${Date.now()}`,
-      status: "active",
-      dueDate: nextDueDateFromToday(),
-      subtotal: 0,
-      shipping: 0,
-      adjustments: 0,
-      paymentsApplied: 0,
-      creditsApplied: 0,
-    };
-  }
+  customer.creditBalance += paymentBreakdown.overpaymentAmount;
 
   await writeDatabase(db);
 
   return {
     ok: true,
-    message: shouldArchiveBalance(preview.remaining)
-      ? "Payment applied and the balance cycle was archived."
-      : "Payment applied to the active balance cycle.",
+    message: "Payment applied to the active balance cycle.",
     remainingBalance: Math.max(preview.remaining, 0),
-    overpayment: preview.overpayment,
+    overpayment: paymentBreakdown.overpaymentAmount,
+  };
+}
+
+export async function updatePaymentInDatabase(paymentId: string, paymentAmount: number, recordedAt?: string) {
+  const db = await readDatabase();
+  const payment = db.paymentHistory.find((entry) => entry.id === paymentId);
+  const customer = findCurrentCustomer(db);
+
+  if (!payment) {
+    return { ok: false, message: "Payment not found." };
+  }
+  if ((payment.cycleStatus ?? "active") !== "active") {
+    return { ok: false, message: "Only payments on an active balance cycle can be edited right now." };
+  }
+  if (paymentAmount < 0) {
+    return { ok: false, message: "Payment amount must be zero or higher." };
+  }
+
+  const previousAppliedAmount = Number(payment.appliedAmount ?? payment.amount ?? 0);
+  const previousOverpaymentAmount = Number(payment.overpaymentAmount ?? 0);
+  if (previousOverpaymentAmount > 0 && customer.creditBalance < previousOverpaymentAmount) {
+    return { ok: false, message: "This payment's overpayment credit has already been used, so it can't be edited safely." };
+  }
+
+  const otherAppliedPayments = Math.max(0, db.balanceCycle.paymentsApplied - previousAppliedAmount);
+  const balanceDueBeforeThisPayment = Math.max(
+    db.balanceCycle.subtotal + db.balanceCycle.shipping + db.balanceCycle.adjustments - otherAppliedPayments - db.balanceCycle.creditsApplied,
+    0,
+  );
+  const paymentBreakdown = getPaymentBreakdown(balanceDueBeforeThisPayment, paymentAmount);
+  const paymentDate = recordedAt?.trim() || payment.createdAt;
+
+  db.balanceCycle.paymentsApplied = otherAppliedPayments + paymentBreakdown.appliedAmount;
+  customer.creditBalance = Math.max(customer.creditBalance - previousOverpaymentAmount, 0) + paymentBreakdown.overpaymentAmount;
+  payment.amount = paymentAmount;
+  payment.appliedAmount = paymentBreakdown.appliedAmount;
+  payment.overpaymentAmount = paymentBreakdown.overpaymentAmount;
+  payment.createdAt = paymentDate;
+
+  await writeDatabase(db);
+
+  return {
+    ok: true,
+    message: "Payment updated.",
+    remainingBalance: Math.max(balanceDueBeforeThisPayment - paymentAmount, 0),
+    overpayment: paymentBreakdown.overpaymentAmount,
   };
 }
 

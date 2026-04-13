@@ -171,8 +171,12 @@ export function toArchivedInvoice(row: Record<string, any>): ArchivedInvoice {
 export function toPaymentHistoryRecord(row: Record<string, any>): PaymentHistoryRecord {
   return {
     id: row.id,
+    cycleId: row.cycle_id ?? row.balance_cycles?.id ?? "",
     customerId: row.balance_cycles?.customer_id ?? "",
     amount: Number(row.amount ?? 0),
+    appliedAmount: Number(row.applied_amount ?? row.appliedAmount ?? row.amount ?? 0),
+    overpaymentAmount: Number(row.overpayment_amount ?? row.overpaymentAmount ?? 0),
+    cycleStatus: row.balance_cycles?.status ?? undefined,
     createdAt: row.created_at ?? new Date().toISOString(),
     notes: row.notes ?? "",
   };
@@ -258,7 +262,7 @@ export async function getSupabaseCycleRow(customerId?: string, options?: { dueDa
     const admin = await getAdminClient();
     let query = admin.from("balance_cycles").select("*").eq("customer_id", customerId).eq("status", "active");
     if (dueDate) query = query.eq("due_date", dueDate);
-    const { data } = await query.order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    const { data } = await query.order("due_date", { ascending: true }).order("updated_at", { ascending: false }).limit(1).maybeSingle();
     return data;
   }
 
@@ -266,7 +270,7 @@ export async function getSupabaseCycleRow(customerId?: string, options?: { dueDa
     const admin = await getAdminClient();
     let query = admin.from("balance_cycles").select("*").eq("customer_id", actor.id).eq("status", "active");
     if (dueDate) query = query.eq("due_date", dueDate);
-    const { data } = await query.order("updated_at", { ascending: false }).limit(1).maybeSingle();
+    const { data } = await query.order("due_date", { ascending: true }).order("updated_at", { ascending: false }).limit(1).maybeSingle();
     return data;
   }
 

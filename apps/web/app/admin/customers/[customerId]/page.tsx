@@ -8,6 +8,7 @@ import { CustomerMessageReplyForm } from "../../../../components/forms/customer-
 import { MessageContent } from "../../../../components/messages/message-content";
 import { CustomerNoteForm } from "../../../../components/forms/customer-note-form";
 import { ManualBalanceItemForm } from "../../../../components/forms/manual-balance-item-form";
+import { PaymentHistoryEditForm } from "../../../../components/forms/payment-history-edit-form";
 import { PaymentPreviewForm } from "../../../../components/forms/payment-preview-form";
 import { PromoteAdminForm } from "../../../../components/forms/promote-admin-form";
 import { ensureAdminAccess } from "../../../../lib/auth/guards";
@@ -333,12 +334,26 @@ export default async function AdminCustomerDetailPage({
           <h2 style={{ marginTop: 0 }}>Payment history</h2>
           <div style={{ display: "grid", gap: 12 }}>
             {paymentHistory.length > 0 ? paymentHistory.map((payment) => (
-              <div key={payment.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12, display: "flex", justifyContent: "space-between", gap: 12 }}>
-                <div>
+              <div key={payment.id} style={{ borderTop: "1px solid #eedfce", paddingTop: 12, display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   <strong>{payment.notes || "Payment recorded"}</strong>
                   <p style={{ margin: "4px 0 0", color: "var(--muted)" }}>{payment.createdAt}</p>
+                  {(payment.cycleStatus ?? "active") === "active" ? (
+                    <PaymentHistoryEditForm
+                      paymentId={payment.id}
+                      defaultAmount={payment.amount}
+                      defaultRecordedAt={payment.createdAt.slice(0, 10)}
+                    />
+                  ) : null}
                 </div>
-                <strong>{currency.format(payment.amount)}</strong>
+                <div style={{ textAlign: "right", minWidth: 120 }}>
+                  <strong>{currency.format(payment.amount)}</strong>
+                  {(payment.overpaymentAmount ?? 0) > 0 ? (
+                    <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: 13 }}>
+                      Credit created: {currency.format(payment.overpaymentAmount ?? 0)}
+                    </p>
+                  ) : null}
+                </div>
               </div>
             )) : <p style={{ margin: 0, color: "var(--muted)" }}>No payments recorded yet.</p>}
           </div>

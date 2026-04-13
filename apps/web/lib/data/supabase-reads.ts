@@ -234,7 +234,7 @@ export async function listPaymentHistoryForCustomerSupabase(customerId: string):
   const admin = await getAdminClient();
   const { data, error } = await admin
     .from("payments")
-    .select("id, amount, created_at, notes, balance_cycles!inner(customer_id)")
+    .select("id, cycle_id, amount, applied_amount, overpayment_amount, created_at, notes, balance_cycles!inner(id, customer_id, status)")
     .eq("balance_cycles.customer_id", customerId)
     .order("created_at", { ascending: false });
 

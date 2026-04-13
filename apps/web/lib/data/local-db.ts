@@ -58,6 +58,7 @@ import {
   submitCustomerMessageToDatabaseSupabase,
   submitRestockRequestToDatabaseSupabase,
   submitShipmentRequestToDatabaseSupabase,
+  updatePaymentInDatabaseSupabase,
   updateCustomerProfileByAdminSupabase,
   updateHomepageFeaturedInDatabaseSupabase,
   updateProductSaleInDatabaseSupabase,
@@ -406,6 +407,12 @@ export async function applyPaymentToDatabase(paymentAmount: number, creditAmount
   return shouldUseSupabase()
     ? applyPaymentToDatabaseSupabase(paymentAmount, creditAmount, recordedAt, customerId)
     : fallback.applyPaymentToDatabase(paymentAmount, creditAmount, recordedAt);
+}
+
+export async function updatePaymentInDatabase(paymentId: string, paymentAmount: number, recordedAt?: string) {
+  return shouldUseSupabase()
+    ? updatePaymentInDatabaseSupabase(paymentId, paymentAmount, recordedAt)
+    : fallback.updatePaymentInDatabase(paymentId, paymentAmount, recordedAt);
 }
 
 export async function createEventInDatabase(input: {

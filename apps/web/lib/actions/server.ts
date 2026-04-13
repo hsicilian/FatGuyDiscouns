@@ -37,6 +37,7 @@ import {
   updateCustomerAccountState,
   updateCustomerRoleInDatabase,
   updateCurrentCustomerProfile,
+  updatePaymentInDatabase,
   updateCustomerProfileByAdmin,
   updateEventInDatabase,
   updateHomepageFeaturedInDatabase,
@@ -906,6 +907,34 @@ export async function previewPaymentSubmission(paymentAmount: number, creditAmou
 
   return {
     ...(result.ok ? result : await previewPaymentAction(paymentAmount, creditAmount)),
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updatePaymentSubmission(paymentId: string, paymentAmount: number, recordedAt?: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updatePaymentInDatabase(paymentId, paymentAmount, recordedAt);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "payment.update",
+    entityType: "payment",
+    entityId: paymentId,
+    summary: `Updated payment ${paymentId} to ${paymentAmount.toFixed(2)}${recordedAt ? ` dated ${recordedAt}` : ""}.`,
+  });
+  revalidatePath("/account");
+  revalidatePath("/account/history");
+  revalidatePath("/admin");
+  revalidatePath("/admin/reports");
+  revalidatePath("/admin/customers");
+
+  return {
+    ...result,
     submittedAt: new Date().toISOString(),
   };
 }

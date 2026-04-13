@@ -104,7 +104,11 @@ export interface ArchivedInvoice {
 export interface PaymentHistoryRecord {
   id: string;
   customerId: string;
+  cycleId?: string;
   amount: number;
+  appliedAmount?: number;
+  overpaymentAmount?: number;
+  cycleStatus?: "active" | "archived";
   createdAt: string;
   notes: string;
 }
