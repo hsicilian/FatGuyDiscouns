@@ -8,6 +8,17 @@ const easternTimestampFormatter = new Intl.DateTimeFormat("en-US", {
   hour12: true,
 });
 
+const easternDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/New_York",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+export function getEasternDateInputValue(date = new Date()) {
+  return easternDateFormatter.format(date);
+}
+
 export function formatEasternTimestamp(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {

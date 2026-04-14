@@ -17,11 +17,12 @@ import type {
 } from "@fatguydiscounts/types";
 import { getCurrentSessionUser } from "../auth/session";
 import { createServerSupabaseClient, createSupabaseAdminClient } from "../supabase";
+import { getEasternDateInputValue } from "../date-format";
 
 export const ZERO_CYCLE: BalanceCycleSummary = {
   id: "no-active-cycle",
   status: "active",
-  dueDate: getScheduledDueDateForDate(new Date().toISOString().slice(0, 10)),
+  dueDate: getScheduledDueDateForDate(getEasternDateInputValue()),
   subtotal: 0,
   shipping: 0,
   adjustments: 0,
@@ -30,7 +31,7 @@ export const ZERO_CYCLE: BalanceCycleSummary = {
 };
 
 export function siteToday() {
-  return new Date().toISOString().slice(0, 10);
+  return getEasternDateInputValue();
 }
 
 export function nextDueDateFromToday() {

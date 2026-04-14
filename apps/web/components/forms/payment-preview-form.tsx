@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { FormActionState } from "@fatguydiscounts/types";
 import { previewPaymentAction } from "../../app/actions/payments/preview";
+import { getEasternDateInputValue } from "../../lib/date-format";
 
 const initialState: FormActionState = {
   ok: true,
@@ -19,7 +20,7 @@ export function PaymentPreviewForm({
   customerId?: string;
 }) {
   const [state, formAction, isPending] = useActionState(previewPaymentAction, initialState);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getEasternDateInputValue();
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 12, width: "100%" }}>

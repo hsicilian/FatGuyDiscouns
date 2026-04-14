@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { FormActionState } from "@fatguydiscounts/types";
 import { addManualBalanceItemAction } from "../../app/actions/balances/manual-item";
+import { getEasternDateInputValue } from "../../lib/date-format";
 
 const initialState: FormActionState = {
   ok: true,
@@ -11,7 +12,7 @@ const initialState: FormActionState = {
 
 export function ManualBalanceItemForm({ customerId }: { customerId?: string }) {
   const [state, formAction, isPending] = useActionState(addManualBalanceItemAction, initialState);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getEasternDateInputValue();
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 10 }}>
