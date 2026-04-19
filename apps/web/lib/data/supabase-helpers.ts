@@ -43,6 +43,20 @@ export function dueDateForReferenceDate(referenceDate?: string) {
   return getScheduledDueDateForDate(normalized || siteToday());
 }
 
+export function getOutstandingBalanceSplit(summary: BalanceCycleSummary) {
+  const invoiceBase = summary.subtotal + summary.adjustments;
+  const appliedOffsets = summary.paymentsApplied + summary.creditsApplied;
+  const invoiceAmount = Math.max(invoiceBase - appliedOffsets, 0);
+  const totalAmount = Math.max(calculateBalanceDue(summary), 0);
+  const shippingAmount = Math.max(totalAmount - invoiceAmount, 0);
+
+  return {
+    totalAmount,
+    invoiceAmount,
+    shippingAmount,
+  };
+}
+
 export function formatCycleLabel(date: Date) {
   return `${date.toLocaleString("en-US", { month: "long" })} ${date.getFullYear()} cycle`;
 }
@@ -377,15 +391,11 @@ export async function getFinancialSummaryFromCycles() {
 
     const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
     const summary = context.summary;
-    const invoiceAmount = Math.max(
-      summary.subtotal + summary.adjustments - summary.paymentsApplied - summary.creditsApplied,
-      0,
-    );
-    const shippingAmount = Math.max(summary.shipping, 0);
+    const { totalAmount, invoiceAmount, shippingAmount } = getOutstandingBalanceSplit(summary);
     return {
       customer: customer.displayName,
       customerId: customer.id,
-      amount: invoiceAmount + shippingAmount,
+      amount: totalAmount,
       invoiceAmount,
       shippingAmount,
       overdue: isBalanceOverdue(summary, siteToday()),
