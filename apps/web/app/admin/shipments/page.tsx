@@ -70,6 +70,7 @@ export default async function AdminShipmentsPage() {
                 <ShipmentUpdateForm
                   shipmentId={shipment.id}
                   customerId={shipment.customerId}
+                  requestedAt={shipment.requestedAt}
                   defaultStatus={shipment.status}
                   defaultTrackingNumber={shipment.trackingNumber}
                   defaultShippingInvoice={shipment.shippingInvoice}

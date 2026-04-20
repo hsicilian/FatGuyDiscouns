@@ -1176,21 +1176,34 @@ export async function updateShipmentInDatabaseSupabase(
   trackingNumber: string,
   shippingInvoice: string,
   customerId?: string,
+  requestedAt?: string,
 ) {
   const admin = await getAdminClient();
   const trimmedShipmentId = shipmentId.trim();
   const trimmedCustomerId = customerId?.trim() ?? "";
+  const trimmedRequestedAt = requestedAt?.trim() ?? "";
   let shipmentQuery = admin
     .from("shipments")
-    .select("id, customer_id, cycle_id, billing_cycle_id, shipping_invoice")
+    .select("id, customer_id, cycle_id, billing_cycle_id, shipping_invoice, requested_at")
     .eq("id", trimmedShipmentId)
     .maybeSingle();
   let { data: shipment, error } = await shipmentQuery;
 
+  if ((!shipment || error) && trimmedCustomerId && trimmedRequestedAt) {
+    const timestampLookup = await admin
+      .from("shipments")
+      .select("id, customer_id, cycle_id, billing_cycle_id, shipping_invoice, requested_at")
+      .eq("customer_id", trimmedCustomerId)
+      .eq("requested_at", trimmedRequestedAt)
+      .maybeSingle();
+    shipment = timestampLookup.data;
+    error = timestampLookup.error;
+  }
+
   if ((!shipment || error) && trimmedCustomerId) {
     const fallbackLookup = await admin
       .from("shipments")
-      .select("id, customer_id, cycle_id, billing_cycle_id, shipping_invoice")
+      .select("id, customer_id, cycle_id, billing_cycle_id, shipping_invoice, requested_at")
       .eq("customer_id", trimmedCustomerId)
       .neq("status", "completed")
       .order("requested_at", { ascending: false })

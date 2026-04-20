@@ -1963,11 +1963,16 @@ export async function updateShipmentInDatabase(
   trackingNumber: string,
   shippingInvoice: string,
   customerId?: string,
+  requestedAt?: string,
 ) {
   const db = await readDatabase();
   const trimmedShipmentId = shipmentId.trim();
   const trimmedCustomerId = customerId?.trim() ?? "";
+  const trimmedRequestedAt = requestedAt?.trim() ?? "";
   const shipment = db.shipmentRecords.find((entry) => entry.id === trimmedShipmentId)
+    ?? (trimmedCustomerId && trimmedRequestedAt
+      ? db.shipmentRecords.find((entry) => entry.customerId === trimmedCustomerId && entry.requestedAt === trimmedRequestedAt)
+      : undefined)
     ?? (trimmedCustomerId
       ? db.shipmentRecords.find((entry) => entry.customerId === trimmedCustomerId && entry.status !== "completed")
       : undefined);

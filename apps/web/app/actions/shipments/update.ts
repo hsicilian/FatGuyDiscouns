@@ -9,8 +9,9 @@ export async function updateShipmentAction(
 ): Promise<FormActionState> {
   const shipmentId = String(formData.get("shipmentId") ?? "");
   const customerId = String(formData.get("customerId") ?? "");
+  const requestedAt = String(formData.get("requestedAt") ?? "");
   const nextStatus = String(formData.get("nextStatus") ?? "requested") as ShipmentStatus;
   const trackingNumber = String(formData.get("trackingNumber") ?? "");
   const shippingInvoice = String(formData.get("shippingInvoice") ?? "");
-  return updateShipment(shipmentId, nextStatus, trackingNumber, shippingInvoice, customerId);
+  return updateShipment(shipmentId, nextStatus, trackingNumber, shippingInvoice, customerId, requestedAt);
 }
