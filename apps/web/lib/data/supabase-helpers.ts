@@ -306,8 +306,7 @@ export async function getCycleSubtotal(cycleId: string, options?: { admin?: bool
   const { data, error } = await client
     .from("balance_line_items")
     .select("quantity, unit_price")
-    .eq("cycle_id", cycleId)
-    .neq("status", "archived");
+    .eq("cycle_id", cycleId);
 
   if (error) {
     throw error;
