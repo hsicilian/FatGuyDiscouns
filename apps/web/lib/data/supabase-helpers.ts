@@ -252,6 +252,7 @@ export function mapBalanceCycle(
   row: Record<string, any>,
   subtotal: number,
   customer?: { id?: string; displayName?: string },
+  overrides?: { paymentsApplied?: number; creditsApplied?: number },
 ): BalanceCycleSummary {
   return {
     id: row.id,
@@ -260,11 +261,28 @@ export function mapBalanceCycle(
     subtotal,
     shipping: Number(row.shipping_total ?? 0),
     adjustments: Number(row.adjustments_total ?? 0),
-    paymentsApplied: Number(row.payments_applied ?? 0),
-    creditsApplied: Number(row.credits_applied ?? 0),
+    paymentsApplied: Number(overrides?.paymentsApplied ?? row.payments_applied ?? 0),
+    creditsApplied: Number(overrides?.creditsApplied ?? row.credits_applied ?? 0),
     customerId: customer?.id ?? row.customer_id ?? undefined,
     customerName: customer?.displayName ?? undefined,
   };
+}
+
+async function getCycleAppliedPaymentTotal(cycleId: string) {
+  const admin = await getAdminClient();
+  const { data, error } = await admin
+    .from("payments")
+    .select("applied_amount, amount")
+    .eq("cycle_id", cycleId);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).reduce(
+    (sum, payment) => sum + Number(payment.applied_amount ?? payment.amount ?? 0),
+    0,
+  );
 }
 
 export async function getCurrentActor() {
@@ -315,9 +333,12 @@ export async function listActiveCycleContexts(customerId: string) {
   const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
   return Promise.all((cycles ?? []).map(async (cycle) => {
     const subtotal = await getCycleSubtotal(cycle.id, { admin: true });
+    const paymentsApplied = await getCycleAppliedPaymentTotal(cycle.id);
     const summary = mapBalanceCycle(cycle as Record<string, any>, subtotal, {
       id: customer.id,
       displayName: customer.displayName,
+    }, {
+      paymentsApplied,
     });
     return {
       cycle,
@@ -432,7 +453,16 @@ export async function getTargetCycleContext(customerId?: string, options?: { due
 
   const customer = await getCustomerSummaryByUserId(cycle.customer_id, { admin: true });
   const subtotal = await getCycleSubtotal(cycle.id, { admin: true });
-  return { cycle, summary: mapBalanceCycle(cycle as Record<string, any>, subtotal, { id: customer.id, displayName: customer.displayName }) };
+  const paymentsApplied = await getCycleAppliedPaymentTotal(cycle.id);
+  return {
+    cycle,
+    summary: mapBalanceCycle(
+      cycle as Record<string, any>,
+      subtotal,
+      { id: customer.id, displayName: customer.displayName },
+      { paymentsApplied },
+    ),
+  };
 }
 
 export async function getCustomerSummaryByUserId(userId: string, options?: { admin?: boolean }) {
