@@ -25,6 +25,7 @@ import {
   getCurrentActor,
   getCustomerSummaryByUserId,
   getFinancialSummaryFromCycles,
+  getOutstandingBalanceSplitFromSummaries,
   getSessionClient,
   getTargetCycleContext,
   listActiveCycleContexts,
@@ -550,6 +551,11 @@ export async function getPaymentDefaultsSupabase(customerId?: string) {
     paymentAmount: 0,
     creditAmount: Math.min(customer.creditBalance, Math.max(due, 0)),
   };
+}
+
+export async function getOutstandingBalanceForCustomerSupabase(customerId: string) {
+  const contexts = await listActiveCycleContexts(customerId);
+  return getOutstandingBalanceSplitFromSummaries(contexts.map((context) => context.summary));
 }
 
 export async function getFinancialSummarySupabase(): Promise<FinancialSummary> {

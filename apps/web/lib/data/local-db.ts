@@ -17,6 +17,7 @@ import {
   getEventByIdSupabase,
   getProductByIdSupabase,
   getPaymentDefaultsSupabase,
+  getOutstandingBalanceForCustomerSupabase,
   getPlatformSummarySupabase,
   listArchivedInvoicesSupabase,
   listArchivedInvoicesForCustomerSupabase,
@@ -226,6 +227,14 @@ export async function getEventById(eventId: string) {
 
 export async function getPaymentDefaults(customerId?: string) {
   return shouldUseSupabase() ? getPaymentDefaultsSupabase(customerId) : fallback.getPaymentDefaults();
+}
+
+export async function getOutstandingBalanceForCustomer(customerId?: string) {
+  return shouldUseSupabase()
+    ? customerId
+      ? getOutstandingBalanceForCustomerSupabase(customerId)
+      : { totalAmount: 0, invoiceAmount: 0, shippingAmount: 0 }
+    : fallback.getOutstandingBalanceForCustomer();
 }
 
 export async function getFinancialSummary() {

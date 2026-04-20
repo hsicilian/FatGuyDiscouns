@@ -874,6 +874,21 @@ export async function getPaymentDefaults() {
   return db.paymentDefaults;
 }
 
+export async function getOutstandingBalanceForCustomer() {
+  const balanceCycle = await getBalanceCycle();
+  const totalAmount = Math.max(calculateBalanceDue(balanceCycle), 0);
+  const invoiceAmount = Math.max(
+    balanceCycle.subtotal + balanceCycle.adjustments - balanceCycle.paymentsApplied - balanceCycle.creditsApplied,
+    0,
+  );
+  const shippingAmount = Math.max(totalAmount - invoiceAmount, 0);
+  return {
+    totalAmount,
+    invoiceAmount,
+    shippingAmount,
+  };
+}
+
 export async function getFinancialSummary(): Promise<FinancialSummary> {
   const db = await readDatabase();
   const currentCustomer = findCurrentCustomer(db);

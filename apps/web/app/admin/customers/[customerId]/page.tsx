@@ -1,4 +1,4 @@
-import { accountStateLabel, calculateBalanceDue, shipmentStatusLabel } from "@fatguydiscounts/core";
+import { accountStateLabel, shipmentStatusLabel } from "@fatguydiscounts/core";
 import { ApprovalActionForm } from "../../../../components/forms/approval-action-form";
 import { AdminShipmentRequestForm } from "../../../../components/forms/admin-shipment-request-form";
 import { BalanceAdjustmentForm } from "../../../../components/forms/balance-adjustment-form";
@@ -16,6 +16,7 @@ import { getCurrentSessionAccount } from "../../../../lib/auth/session";
 import { formatEasternTimestamp } from "../../../../lib/date-format";
 import {
   getBalanceCycle,
+  getOutstandingBalanceForCustomer,
   getPaymentDefaults,
   listArchivedInvoicesForCustomer,
   listClaimHistoryForCustomer,
@@ -45,6 +46,7 @@ export default async function AdminCustomerDetailPage({
   const [
     customers,
     balanceCycle,
+    outstandingBalance,
     paymentDefaults,
     notes,
     customerMessages,
@@ -59,6 +61,7 @@ export default async function AdminCustomerDetailPage({
   ] = await Promise.all([
     listCustomers(),
     getBalanceCycle(customerId),
+    getOutstandingBalanceForCustomer(customerId),
     getPaymentDefaults(customerId),
     listCustomerNotes(customerId),
     listCustomerMessagesForCustomer(customerId, { limit: 5 }),
@@ -86,7 +89,7 @@ export default async function AdminCustomerDetailPage({
   const isMasterAdmin = currentSession?.role === "master_admin";
   const canPromote = isMasterAdmin && customer.role === "customer";
   const canManageAccountState = customer.role === "customer";
-  const currentBalance = calculateBalanceDue(balanceCycle);
+  const currentBalance = outstandingBalance.totalAmount;
   const customerMessagesForDisplay = [...customerMessages].reverse();
 
   return (

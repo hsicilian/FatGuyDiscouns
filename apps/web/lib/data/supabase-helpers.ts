@@ -57,6 +57,24 @@ export function getOutstandingBalanceSplit(summary: BalanceCycleSummary) {
   };
 }
 
+export function getOutstandingBalanceSplitFromSummaries(summaries: BalanceCycleSummary[]) {
+  return summaries.reduce(
+    (totals, summary) => {
+      const split = getOutstandingBalanceSplit(summary);
+      return {
+        totalAmount: totals.totalAmount + split.totalAmount,
+        invoiceAmount: totals.invoiceAmount + split.invoiceAmount,
+        shippingAmount: totals.shippingAmount + split.shippingAmount,
+      };
+    },
+    {
+      totalAmount: 0,
+      invoiceAmount: 0,
+      shippingAmount: 0,
+    },
+  );
+}
+
 export function formatCycleLabel(date: Date) {
   return `${date.toLocaleString("en-US", { month: "long" })} ${date.getFullYear()} cycle`;
 }
@@ -472,15 +490,15 @@ export async function getFinancialSummaryFromCycles() {
     }
 
     const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
-    const summary = aggregateBalanceCycleSummaries(contexts.map((context) => context.summary));
-    const { totalAmount, invoiceAmount, shippingAmount } = getOutstandingBalanceSplit(summary);
+    const summaries = contexts.map((context) => context.summary);
+    const { totalAmount, invoiceAmount, shippingAmount } = getOutstandingBalanceSplitFromSummaries(summaries);
     return {
       customer: customer.displayName,
       customerId: customer.id,
       amount: totalAmount,
       invoiceAmount,
       shippingAmount,
-      overdue: isBalanceOverdue(summary, siteToday()),
+      overdue: contexts.some((context) => context.overdue),
     };
   }))).filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
 
