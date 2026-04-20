@@ -21,11 +21,13 @@ import {
   ZERO_CYCLE,
   formatNotificationLabel,
   getAdminClient,
+  aggregateBalanceCycleSummaries,
   getCurrentActor,
   getCustomerSummaryByUserId,
   getFinancialSummaryFromCycles,
   getSessionClient,
   getTargetCycleContext,
+  listActiveCycleContexts,
   toArchivedInvoice,
   toProduct,
   toClaimedItem,
@@ -171,6 +173,14 @@ export async function listCustomersSupabase() {
 }
 
 export async function getBalanceCycleSupabase(customerId?: string) {
+  const actor = await getCurrentActor().catch(() => null);
+  const targetCustomerId = customerId ?? (actor?.role === "customer" ? actor.id : undefined);
+
+  if (targetCustomerId) {
+    const contexts = await listActiveCycleContexts(targetCustomerId);
+    return aggregateBalanceCycleSummaries(contexts.map((context) => context.summary));
+  }
+
   const context = await getTargetCycleContext(customerId);
   return context?.summary ?? ZERO_CYCLE;
 }
@@ -512,13 +522,30 @@ export async function getEventByIdSupabase(eventId: string) {
 }
 
 export async function getPaymentDefaultsSupabase(customerId?: string) {
-  const context = await getTargetCycleContext(customerId);
-  if (!context) {
+  const actor = await getCurrentActor().catch(() => null);
+  const targetCustomerId = customerId ?? (actor?.role === "customer" ? actor.id : undefined);
+
+  if (!targetCustomerId) {
+    const context = await getTargetCycleContext(customerId);
+    if (!context) {
+      return { paymentAmount: 0, creditAmount: 0 };
+    }
+
+    const customer = await getCustomerSummaryByUserId(context.cycle.customer_id, { admin: true });
+    const due = context.summary.subtotal + context.summary.shipping + context.summary.adjustments - context.summary.paymentsApplied - context.summary.creditsApplied;
+    return {
+      paymentAmount: 0,
+      creditAmount: Math.min(customer.creditBalance, Math.max(due, 0)),
+    };
+  }
+
+  const contexts = await listActiveCycleContexts(targetCustomerId);
+  if (contexts.length === 0) {
     return { paymentAmount: 0, creditAmount: 0 };
   }
 
-  const customer = await getCustomerSummaryByUserId(context.cycle.customer_id, { admin: true });
-  const due = context.summary.subtotal + context.summary.shipping + context.summary.adjustments - context.summary.paymentsApplied - context.summary.creditsApplied;
+  const customer = await getCustomerSummaryByUserId(targetCustomerId, { admin: true });
+  const due = contexts.reduce((sum, context) => sum + Math.max(context.due, 0), 0);
   return {
     paymentAmount: 0,
     creditAmount: Math.min(customer.creditBalance, Math.max(due, 0)),

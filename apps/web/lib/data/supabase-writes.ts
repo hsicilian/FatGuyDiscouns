@@ -9,6 +9,8 @@ import {
   mapBalanceCycle,
   getCurrentActor,
   getCustomerSummaryByUserId,
+  listActiveCycleContexts,
+  pickPrimaryCycleContext,
   getTargetCycleContext,
   getCycleSubtotal,
   siteToday,
@@ -1346,10 +1348,15 @@ export async function addManualBalanceItemToDatabaseSupabase(title: string, quan
 
   const normalizedRecordedAt = normalizeRecordedAt(recordedAt);
   if (recordedAt && !normalizedRecordedAt) return { ok: false, message: "Enter a valid record date." };
-  const context = await getTargetCycleContext(customerId, {
-    dueDate: dueDateForReferenceDate(normalizedRecordedAt?.date),
-    ensureIfMissing: Boolean(customerId),
-  });
+  let context: Awaited<ReturnType<typeof getTargetCycleContext>> = customerId
+    ? pickPrimaryCycleContext(await listActiveCycleContexts(customerId))
+    : null;
+  if (!context) {
+    context = await getTargetCycleContext(customerId, {
+      dueDate: dueDateForReferenceDate(normalizedRecordedAt?.date),
+      ensureIfMissing: Boolean(customerId),
+    });
+  }
   if (!context) return { ok: false, message: "No active balance cycle is available for admin adjustments yet." };
 
   const admin = await getAdminClient();
@@ -1406,7 +1413,12 @@ export async function removeClaimedItemFromDatabaseSupabase(claimId: string) {
 }
 
 export async function applyBalanceAdjustmentsToDatabaseSupabase(shippingChange: number, adjustmentChange: number, customerId?: string) {
-  const context = await getTargetCycleContext(customerId, { ensureIfMissing: Boolean(customerId) });
+  let context: Awaited<ReturnType<typeof getTargetCycleContext>> = customerId
+    ? pickPrimaryCycleContext(await listActiveCycleContexts(customerId))
+    : null;
+  if (!context) {
+    context = await getTargetCycleContext(customerId, { ensureIfMissing: Boolean(customerId) });
+  }
   if (!context) return { ok: false, message: "No active balance cycle is available for admin adjustments yet." };
 
   const nextShipping = Number(context.cycle.shipping_total ?? 0) + shippingChange;

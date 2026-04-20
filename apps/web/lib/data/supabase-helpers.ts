@@ -280,6 +280,80 @@ export async function getCycleSubtotal(cycleId: string, options?: { admin?: bool
   return (data ?? []).reduce((sum, item) => sum + Number(item.quantity ?? 0) * Number(item.unit_price ?? 0), 0);
 }
 
+export async function listActiveCycleContexts(customerId: string) {
+  const admin = await getAdminClient();
+  const { data: cycles, error } = await admin
+    .from("balance_cycles")
+    .select("*")
+    .eq("customer_id", customerId)
+    .eq("status", "active")
+    .order("due_date", { ascending: true })
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
+  return Promise.all((cycles ?? []).map(async (cycle) => {
+    const subtotal = await getCycleSubtotal(cycle.id, { admin: true });
+    const summary = mapBalanceCycle(cycle as Record<string, any>, subtotal, {
+      id: customer.id,
+      displayName: customer.displayName,
+    });
+    return {
+      cycle,
+      summary,
+      due: calculateBalanceDue(summary),
+      overdue: isBalanceOverdue(summary, siteToday()),
+    };
+  }));
+}
+
+export function pickPrimaryCycleContext<T extends {
+  summary: BalanceCycleSummary;
+  due: number;
+  overdue: boolean;
+}>(contexts: T[]) {
+  if (contexts.length === 0) {
+    return null;
+  }
+
+  return [...contexts].sort((left, right) => {
+    if (left.overdue !== right.overdue) {
+      return left.overdue ? -1 : 1;
+    }
+    const leftDue = left.due > 0;
+    const rightDue = right.due > 0;
+    if (leftDue !== rightDue) {
+      return leftDue ? -1 : 1;
+    }
+    return String(left.summary.dueDate).localeCompare(String(right.summary.dueDate));
+  })[0];
+}
+
+export function aggregateBalanceCycleSummaries(summaries: BalanceCycleSummary[]): BalanceCycleSummary {
+  if (summaries.length === 0) {
+    return ZERO_CYCLE;
+  }
+
+  const ordered = [...summaries].sort((left, right) => String(left.dueDate).localeCompare(String(right.dueDate)));
+  const primary = ordered[0];
+
+  return {
+    id: primary.id,
+    status: primary.status,
+    dueDate: primary.dueDate,
+    subtotal: ordered.reduce((sum, summary) => sum + Number(summary.subtotal ?? 0), 0),
+    shipping: ordered.reduce((sum, summary) => sum + Number(summary.shipping ?? 0), 0),
+    adjustments: ordered.reduce((sum, summary) => sum + Number(summary.adjustments ?? 0), 0),
+    paymentsApplied: ordered.reduce((sum, summary) => sum + Number(summary.paymentsApplied ?? 0), 0),
+    creditsApplied: ordered.reduce((sum, summary) => sum + Number(summary.creditsApplied ?? 0), 0),
+    customerId: primary.customerId,
+    customerName: primary.customerName,
+  };
+}
+
 export async function getSupabaseCycleRow(customerId?: string, options?: { dueDate?: string }) {
   const actor = await getCurrentActor();
   const dueDate = options?.dueDate?.trim();
@@ -322,6 +396,14 @@ export async function ensureActiveCycle(customerId: string, dueDate = nextDueDat
 }
 
 export async function getTargetCycleContext(customerId?: string, options?: { dueDate?: string; ensureIfMissing?: boolean }) {
+  if (customerId && !options?.dueDate) {
+    const activeContexts = await listActiveCycleContexts(customerId);
+    const primary = pickPrimaryCycleContext(activeContexts);
+    if (primary) {
+      return primary;
+    }
+  }
+
   let cycle = await getSupabaseCycleRow(customerId, { dueDate: options?.dueDate });
   if (!cycle && options?.ensureIfMissing && customerId) {
     cycle = await ensureActiveCycle(customerId, options.dueDate || nextDueDateFromToday());
@@ -384,13 +466,13 @@ export async function getFinancialSummaryFromCycles() {
   const activeCustomerIds = [...new Set((cycles ?? []).map((cycle) => cycle.customer_id).filter(Boolean))];
 
   const customerBalances = (await Promise.all(activeCustomerIds.map(async (customerId) => {
-    const context = await getTargetCycleContext(customerId);
-    if (!context) {
+    const contexts = await listActiveCycleContexts(customerId);
+    if (contexts.length === 0) {
       return null;
     }
 
     const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
-    const summary = context.summary;
+    const summary = aggregateBalanceCycleSummaries(contexts.map((context) => context.summary));
     const { totalAmount, invoiceAmount, shippingAmount } = getOutstandingBalanceSplit(summary);
     return {
       customer: customer.displayName,
