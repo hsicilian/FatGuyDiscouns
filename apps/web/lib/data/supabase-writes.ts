@@ -1175,13 +1175,31 @@ export async function updateShipmentInDatabaseSupabase(
   nextStatus: ShipmentStatus,
   trackingNumber: string,
   shippingInvoice: string,
+  customerId?: string,
 ) {
   const admin = await getAdminClient();
-  const { data: shipment, error } = await admin
+  const trimmedShipmentId = shipmentId.trim();
+  const trimmedCustomerId = customerId?.trim() ?? "";
+  let shipmentQuery = admin
     .from("shipments")
     .select("id, customer_id, cycle_id, billing_cycle_id, shipping_invoice")
-    .eq("id", shipmentId)
-    .single();
+    .eq("id", trimmedShipmentId)
+    .maybeSingle();
+  let { data: shipment, error } = await shipmentQuery;
+
+  if ((!shipment || error) && trimmedCustomerId) {
+    const fallbackLookup = await admin
+      .from("shipments")
+      .select("id, customer_id, cycle_id, billing_cycle_id, shipping_invoice")
+      .eq("customer_id", trimmedCustomerId)
+      .neq("status", "completed")
+      .order("requested_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    shipment = fallbackLookup.data;
+    error = fallbackLookup.error;
+  }
+
   if (error || !shipment) return { ok: false, message: "Shipment record not found." };
 
   const trimmedShippingInvoice = shippingInvoice.trim();
@@ -1226,7 +1244,7 @@ export async function updateShipmentInDatabaseSupabase(
     shipment_date: shipmentDate,
     completed_at: nextStatus === "completed" ? new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
-  }).eq("id", shipmentId);
+  }).eq("id", shipment.id);
   if (updateResult.error) return { ok: false, message: updateResult.error.message };
 
   if (nextStatus === "completed" && shipment.cycle_id) {

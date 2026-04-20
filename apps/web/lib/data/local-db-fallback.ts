@@ -1962,9 +1962,15 @@ export async function updateShipmentInDatabase(
   nextStatus: ShipmentStatus,
   trackingNumber: string,
   shippingInvoice: string,
+  customerId?: string,
 ) {
   const db = await readDatabase();
-  const shipment = db.shipmentRecords.find((entry) => entry.id === shipmentId);
+  const trimmedShipmentId = shipmentId.trim();
+  const trimmedCustomerId = customerId?.trim() ?? "";
+  const shipment = db.shipmentRecords.find((entry) => entry.id === trimmedShipmentId)
+    ?? (trimmedCustomerId
+      ? db.shipmentRecords.find((entry) => entry.customerId === trimmedCustomerId && entry.status !== "completed")
+      : undefined);
 
   if (!shipment) {
     return { ok: false, message: "Shipment record not found." };

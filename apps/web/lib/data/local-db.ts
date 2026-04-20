@@ -363,10 +363,11 @@ export async function updateShipmentInDatabase(
   nextStatus: Parameters<typeof fallback.updateShipmentInDatabase>[1],
   trackingNumber: string,
   shippingInvoice: string,
+  customerId?: string,
 ) {
   return shouldUseSupabase()
-    ? updateShipmentInDatabaseSupabase(shipmentId, nextStatus, trackingNumber, shippingInvoice)
-    : fallback.updateShipmentInDatabase(shipmentId, nextStatus, trackingNumber, shippingInvoice);
+    ? updateShipmentInDatabaseSupabase(shipmentId, nextStatus, trackingNumber, shippingInvoice, customerId)
+    : fallback.updateShipmentInDatabase(shipmentId, nextStatus, trackingNumber, shippingInvoice, customerId);
 }
 
 export async function updateCustomerAccountState(

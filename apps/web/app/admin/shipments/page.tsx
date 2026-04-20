@@ -69,6 +69,7 @@ export default async function AdminShipmentsPage() {
               <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
                 <ShipmentUpdateForm
                   shipmentId={shipment.id}
+                  customerId={shipment.customerId}
                   defaultStatus={shipment.status}
                   defaultTrackingNumber={shipment.trackingNumber}
                   defaultShippingInvoice={shipment.shippingInvoice}

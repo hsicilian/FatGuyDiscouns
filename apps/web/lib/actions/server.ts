@@ -855,13 +855,14 @@ export async function updateShipment(
   nextStatus: ShipmentStatus,
   trackingNumber: string,
   shippingInvoice: string,
+  customerId?: string,
 ): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
     return access;
   }
 
-  const result = await updateShipmentInDatabase(shipmentId, nextStatus, trackingNumber, shippingInvoice);
+  const result = await updateShipmentInDatabase(shipmentId, nextStatus, trackingNumber, shippingInvoice, customerId);
   await recordAuditIfSuccessful(result, {
     actorId: access.currentUser.id,
     actorName: access.currentUser.displayName,
