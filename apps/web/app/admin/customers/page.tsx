@@ -28,12 +28,20 @@ export default async function AdminCustomersPage({ searchParams }: AdminCustomer
     getFinancialSummary(),
   ]);
 
+  const balanceByCustomer = new Map(
+    financialSummary.customerBalances.map((entry) => [entry.customer, entry]),
+  );
+
   const filteredCustomers = customers.filter((customer) => {
     const matchesQuery = query.length === 0
       || customer.displayName.toLowerCase().includes(query)
       || customer.email.toLowerCase().includes(query)
       || customer.address.toLowerCase().includes(query);
-    const matchesState = stateFilter === "all" || customer.accountState === stateFilter;
+    const balanceRow = balanceByCustomer.get(customer.displayName);
+    const matchesState = stateFilter === "all"
+      || (stateFilter === "overdue"
+        ? Boolean(balanceRow?.overdue)
+        : customer.accountState === stateFilter);
     const matchesShipment = shipmentFilter === "all" || customer.shipmentStatus === shipmentFilter;
     return matchesQuery && matchesState && matchesShipment;
   });
@@ -89,9 +97,10 @@ export default async function AdminCustomersPage({ searchParams }: AdminCustomer
             <input name="query" defaultValue={params?.query ?? ""} placeholder="Name, email, address" style={{ padding: 12, borderRadius: 14, border: "1px solid #d9c7b2" }} />
           </label>
           <label style={{ display: "grid", gap: 6 }}>
-            <span style={{ color: "var(--muted)", fontSize: 14 }}>Account state</span>
+            <span style={{ color: "var(--muted)", fontSize: 14 }}>Account / balance state</span>
             <select name="state" defaultValue={stateFilter} style={{ padding: 12, borderRadius: 14, border: "1px solid #d9c7b2" }}>
               <option value="all">All states</option>
+              <option value="overdue">Overdue</option>
               <option value="pending_approval">Pending approval</option>
               <option value="approved">Approved</option>
               <option value="claiming_disabled">Claiming disabled</option>
@@ -119,7 +128,7 @@ export default async function AdminCustomersPage({ searchParams }: AdminCustomer
 
       <div style={{ display: "grid", gap: 16 }}>
         {filteredCustomers.length > 0 ? filteredCustomers.map((customer) => {
-          const balanceRow = financialSummary.customerBalances.find((entry) => entry.customer === customer.displayName);
+          const balanceRow = balanceByCustomer.get(customer.displayName);
 
           return (
             <a key={customer.id} href={`/admin/customers/${customer.id}`} style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)", display: "grid", gap: 12 }}>
