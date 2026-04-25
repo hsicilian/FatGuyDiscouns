@@ -1348,15 +1348,10 @@ export async function addManualBalanceItemToDatabaseSupabase(title: string, quan
 
   const normalizedRecordedAt = normalizeRecordedAt(recordedAt);
   if (recordedAt && !normalizedRecordedAt) return { ok: false, message: "Enter a valid record date." };
-  let context: Awaited<ReturnType<typeof getTargetCycleContext>> = customerId
-    ? pickPrimaryCycleContext(await listActiveCycleContexts(customerId))
-    : null;
-  if (!context) {
-    context = await getTargetCycleContext(customerId, {
-      dueDate: dueDateForReferenceDate(normalizedRecordedAt?.date),
-      ensureIfMissing: Boolean(customerId),
-    });
-  }
+  const context = await getTargetCycleContext(customerId, {
+    dueDate: dueDateForReferenceDate(normalizedRecordedAt?.date),
+    ensureIfMissing: Boolean(customerId),
+  });
   if (!context) return { ok: false, message: "No active balance cycle is available for admin adjustments yet." };
 
   const admin = await getAdminClient();
