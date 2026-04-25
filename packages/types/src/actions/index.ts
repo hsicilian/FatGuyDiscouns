@@ -8,4 +8,5 @@ export interface FormActionState extends ActionResult {
   nextStatus?: string;
   remainingBalance?: number;
   overpayment?: number;
+  suggestedEmail?: string;
 }

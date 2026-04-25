@@ -11,6 +11,13 @@ const loginSchema = z.object({
   redirectTo: z.string().default("/account"),
 });
 
+function isUnconfirmedEmailError(message: string) {
+  const normalized = message.trim().toLowerCase();
+  return normalized.includes("email not confirmed")
+    || normalized.includes("email not verified")
+    || normalized.includes("signup requires a verified email");
+}
+
 export async function loginWithLocalAccountAction(
   _previousState: FormActionState,
   formData: FormData,
@@ -37,10 +44,14 @@ export async function loginWithLocalAccountAction(
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
+    const unconfirmedEmail = isUnconfirmedEmailError(error.message);
     return {
       ok: false,
-      message: error.message,
+      message: unconfirmedEmail
+        ? "This account still needs email confirmation before it can sign in. Use the resend confirmation option below."
+        : error.message,
       submittedAt: new Date().toISOString(),
+      suggestedEmail: unconfirmedEmail ? email : undefined,
     };
   }
 
