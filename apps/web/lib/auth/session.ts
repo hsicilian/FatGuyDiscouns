@@ -1,7 +1,6 @@
 import { cookies } from "next/headers";
 import type { SessionUser } from "@fatguydiscounts/core";
 import { assertProductionSupabaseReady, createServerSupabaseClient, createSupabaseAdminClient, hasSupabaseEnv } from "../supabase";
-import { listStoredAccounts } from "./local-auth-store";
 
 export interface SessionAccount {
   id: string;
@@ -14,58 +13,12 @@ export interface SessionAccount {
 
 export const sessionCookieName = "fatguydiscounts-session";
 
-function shouldUseSupabase() {
-  assertProductionSupabaseReady();
-  return hasSupabaseEnv();
-}
-
-async function listLocalSessionAccounts() {
-  const accounts = await listStoredAccounts();
-  return accounts.map(({ password, ...account }) => account);
-}
-
-async function getLocalSessionAccount(): Promise<SessionAccount | null> {
-  const cookieStore = await cookies();
-  const sessionId = cookieStore.get(sessionCookieName)?.value;
-
-  if (!sessionId) {
-    return null;
-  }
-
-  const accounts = await listStoredAccounts();
-  const account = accounts.find((entry) => entry.id === sessionId);
-  if (!account) {
-    return null;
-  }
-
-  const { password, ...safeAccount } = account;
-  return safeAccount;
-}
-
 export async function listSessionAccounts() {
-  if (shouldUseSupabase()) {
-    return [] as SessionAccount[];
-  }
-
-  return listLocalSessionAccounts();
-}
-
-export async function authenticateLocalAccount(email: string, password: string) {
   assertProductionSupabaseReady();
-  const normalizedEmail = email.trim().toLowerCase();
-  const accounts = await listStoredAccounts();
-  const account = accounts.find((entry) => entry.email.toLowerCase() === normalizedEmail);
-
-  if (!account || account.password !== password) {
-    return { ok: false as const, message: "Email or password did not match a local account." };
+  if (!hasSupabaseEnv()) {
+    throw new Error("Supabase configuration is required for session access.");
   }
-
-  if (account.accountState === "banned") {
-    return { ok: false as const, message: "This account has been banned and cannot sign in." };
-  }
-
-  const { password: _password, ...safeAccount } = account;
-  return { ok: true as const, message: "Signed in successfully.", account: safeAccount };
+  return [] as SessionAccount[];
 }
 
 async function getSupabaseSessionAccount(): Promise<SessionAccount | null> {
@@ -102,10 +55,10 @@ async function getSupabaseSessionAccount(): Promise<SessionAccount | null> {
 }
 
 export async function getCurrentSessionAccount(): Promise<SessionAccount | null> {
-  if (!shouldUseSupabase()) {
-    return getLocalSessionAccount();
+  assertProductionSupabaseReady();
+  if (!hasSupabaseEnv()) {
+    throw new Error("Supabase configuration is required for session access.");
   }
-
   return getSupabaseSessionAccount();
 }
 

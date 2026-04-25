@@ -3,9 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { FormActionState } from "@fatguydiscounts/types";
-import { assertProductionSupabaseReady, createServerSupabaseClient, hasSupabaseEnv, normalizeInternalRedirect } from "../../../lib/supabase";
-import { authenticateLocalAccount } from "../../../lib/auth/session";
-import { setActiveCustomer } from "../../../lib/data/local-db";
+import { assertProductionSupabaseReady, createServerSupabaseClient, normalizeInternalRedirect } from "../../../lib/supabase";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email address.").trim(),
@@ -34,28 +32,6 @@ export async function loginWithLocalAccountAction(
 
   const { email, password, redirectTo } = parsed.data;
   const safeRedirect = normalizeInternalRedirect(redirectTo, "/account");
-
-  if (!hasSupabaseEnv()) {
-    const result = await authenticateLocalAccount(email, password);
-    if (!result.ok) {
-      return {
-        ok: false,
-        message: result.message,
-        submittedAt: new Date().toISOString(),
-      };
-    }
-
-    if (result.account.customerId) {
-      await setActiveCustomer(result.account.customerId);
-    }
-
-    const nextLocation = result.account.role === "customer"
-      ? safeRedirect
-      : result.account.role === "master_admin"
-        ? "/admin/reports"
-        : "/admin";
-    redirect(nextLocation);
-  }
 
   const supabase = await createServerSupabaseClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });

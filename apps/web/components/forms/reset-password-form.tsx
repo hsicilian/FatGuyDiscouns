@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { FormActionState } from "@fatguydiscounts/types";
 import { updatePasswordAction } from "../../app/actions/session/update-password";
+import { PasswordInput } from "./password-input";
 
 const initialState: FormActionState = {
   ok: true,
@@ -14,7 +15,7 @@ export function ResetPasswordForm() {
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 12, marginTop: 20 }}>
-      <input name="password" type="password" placeholder="New password" autoComplete="new-password" style={{ padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
+      <PasswordInput name="password" placeholder="New password" autoComplete="new-password" />
       <button disabled={isPending} style={{ background: "#1f1d1a", color: "#fff", border: 0, borderRadius: 999, padding: "14px 16px", boxShadow: "0 12px 28px rgba(31,29,26,0.16)" }}>
         {isPending ? "Updating password..." : "Update Password"}
       </button>

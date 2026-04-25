@@ -1,8 +1,6 @@
 import { NotificationPanel } from "../../components/admin/notification-panel";
-import { ResetLocalDbForm } from "../../components/forms/reset-local-db-form";
 import { ensureAdminAccess } from "../../lib/auth/guards";
 import { getCurrentSessionUser } from "../../lib/auth/session";
-import { hasSupabaseEnv } from "../../lib/supabase";
 
 const cards = [
   { href: "/admin/approvals", title: "Approvals queue", body: "Review pending accounts, approve customers, disable claiming, and ban users when needed." },
@@ -31,10 +29,7 @@ export default async function AdminPage() {
     <main style={{ maxWidth: 1200, margin: "0 auto", padding: "48px 24px 72px", display: "grid", gap: 24 }}>
       <section style={{ background: "linear-gradient(145deg, rgba(255, 249, 241, 0.95) 0%, rgba(246, 229, 209, 0.92) 100%)", border: "1px solid var(--line)", borderRadius: 30, padding: 30, boxShadow: "var(--shadow)" }}>
         <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0 }}>Admin shell</p>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
-          <h1 style={{ margin: 0 }}>Operations control center</h1>
-          {!hasSupabaseEnv() ? <ResetLocalDbForm /> : null}
-        </div>
+        <h1 style={{ margin: 0 }}>Operations control center</h1>
       </section>
 
       <div style={{ display: "grid", gap: 24, gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>

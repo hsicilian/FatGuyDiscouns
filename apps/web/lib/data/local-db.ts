@@ -3,7 +3,6 @@ import "server-only";
 import { assertProductionSupabaseReady, hasSupabaseEnv } from "../supabase";
 import { recordAdminAuditEntry as recordAdminAuditEntrySupabase } from "../audit";
 import { platformSummary } from "@fatguydiscounts/db";
-import * as fallback from "./local-db-fallback";
 import {
   listCrossListedInventorySupabase,
   listAdminAuditEntriesSupabase,
@@ -48,6 +47,7 @@ import {
   createCategoryInDatabaseSupabase,
   createInventoryItemInDatabaseSupabase,
   createInventoryItemsBulkInDatabaseSupabase,
+  createEventInDatabaseSupabase,
   deleteArchivedProductInDatabaseSupabase,
   deleteCrossListedInventoryFromDatabaseSupabase,
   deleteCategoryInDatabaseSupabase,
@@ -72,197 +72,193 @@ import {
   updateCustomerRoleInDatabaseSupabase,
   updateEventInDatabaseSupabase,
   updateShipmentInDatabaseSupabase,
-  createEventInDatabaseSupabase,
 } from "./supabase-writes";
 
-export type LocalDatabase = fallback.LocalDatabase;
-export const initialDatabase = fallback.initialDatabase;
-
-function shouldUseSupabase() {
+function requireSupabase() {
   assertProductionSupabaseReady();
-  return hasSupabaseEnv();
-}
-
-export async function resetLocalDatabase() {
-  return fallback.resetLocalDatabase();
+  if (!hasSupabaseEnv()) {
+    throw new Error("Supabase configuration is required for this app.");
+  }
 }
 
 export async function getPlatformSummary() {
-  return shouldUseSupabase() ? getPlatformSummarySupabase() : fallback.getPlatformSummary();
+  requireSupabase();
+  return getPlatformSummarySupabase();
 }
 
 export async function listProducts(options?: { includeArchived?: boolean }) {
-  return shouldUseSupabase() ? listProductsSupabase(options) : fallback.listProducts(options);
+  requireSupabase();
+  return listProductsSupabase(options);
 }
 
 export async function listCategories() {
-  return shouldUseSupabase() ? listCategoriesSupabase() : fallback.listCategories();
+  requireSupabase();
+  return listCategoriesSupabase();
 }
 
 export async function getProductById(productId: string) {
-  return shouldUseSupabase() ? getProductByIdSupabase(productId) : fallback.getProductById(productId);
+  requireSupabase();
+  return getProductByIdSupabase(productId);
 }
 
 export async function getCurrentCustomer() {
-  return shouldUseSupabase() ? getCurrentCustomerSupabase() : fallback.getCurrentCustomer();
-}
-
-export async function setActiveCustomer(customerId: string) {
-  return fallback.setActiveCustomer(customerId);
+  requireSupabase();
+  return getCurrentCustomerSupabase();
 }
 
 export async function listCustomers() {
-  return shouldUseSupabase() ? listCustomersSupabase() : fallback.listCustomers();
-}
-
-export async function createPendingCustomerProfile(input: {
-  displayName: string;
-  email: string;
-}) {
-  return fallback.createPendingCustomerProfile(input);
-}
-
-export async function removeCustomerProfileById(customerId: string) {
-  return fallback.removeCustomerProfileById(customerId);
+  requireSupabase();
+  return listCustomersSupabase();
 }
 
 export async function updateCurrentCustomerProfile(input: { street: string; city: string; region: string; postalCode: string; timezone: string }) {
-  return shouldUseSupabase()
-    ? updateCurrentCustomerProfileSupabase(input)
-    : fallback.updateCurrentCustomerProfile(input);
+  requireSupabase();
+  return updateCurrentCustomerProfileSupabase(input);
 }
 
 export async function updateCustomerProfileByAdmin(
   customerId: string,
   input: { street: string; city: string; region: string; postalCode: string; timezone: string },
 ) {
-  return shouldUseSupabase()
-    ? updateCustomerProfileByAdminSupabase(customerId, input)
-    : fallback.updateCustomerProfileByAdmin(customerId, input);
+  requireSupabase();
+  return updateCustomerProfileByAdminSupabase(customerId, input);
 }
 
 export async function getBalanceCycle(customerId?: string) {
-  return shouldUseSupabase() ? getBalanceCycleSupabase(customerId) : fallback.getBalanceCycle();
+  requireSupabase();
+  return getBalanceCycleSupabase(customerId);
 }
 
 export async function listClaimedItems() {
-  return shouldUseSupabase() ? listClaimedItemsSupabase() : fallback.listClaimedItems();
+  requireSupabase();
+  return listClaimedItemsSupabase();
 }
 
 export async function listClaimedItemsForCustomer(customerId: string) {
-  return shouldUseSupabase() ? listClaimedItemsForCustomerSupabase(customerId) : fallback.listClaimedItemsForCustomer(customerId);
+  requireSupabase();
+  return listClaimedItemsForCustomerSupabase(customerId);
 }
 
 export async function listArchivedInvoices() {
-  return shouldUseSupabase() ? listArchivedInvoicesSupabase() : fallback.listArchivedInvoices();
+  requireSupabase();
+  return listArchivedInvoicesSupabase();
 }
 
 export async function listArchivedInvoicesForCustomer(customerId: string) {
-  return shouldUseSupabase() ? listArchivedInvoicesForCustomerSupabase(customerId) : fallback.listArchivedInvoicesForCustomer(customerId);
+  requireSupabase();
+  return listArchivedInvoicesForCustomerSupabase(customerId);
 }
 
 export async function listShipmentRecords() {
-  return shouldUseSupabase() ? listShipmentRecordsSupabase() : fallback.listShipmentRecords();
+  requireSupabase();
+  return listShipmentRecordsSupabase();
 }
 
 export async function listShipmentRecordsForCustomer(customerId: string) {
-  return shouldUseSupabase() ? listShipmentRecordsForCustomerSupabase(customerId) : fallback.listShipmentRecordsForCustomer(customerId);
+  requireSupabase();
+  return listShipmentRecordsForCustomerSupabase(customerId);
 }
 
 export async function listPaymentHistoryForCustomer(customerId: string) {
-  return shouldUseSupabase() ? listPaymentHistoryForCustomerSupabase(customerId) : fallback.listPaymentHistoryForCustomer(customerId);
+  requireSupabase();
+  return listPaymentHistoryForCustomerSupabase(customerId);
 }
 
 export async function listPaymentHistory() {
-  return shouldUseSupabase() ? listPaymentHistorySupabase() : fallback.listPaymentHistory();
+  requireSupabase();
+  return listPaymentHistorySupabase();
 }
 
 export async function listCreditHistory() {
-  return shouldUseSupabase() ? listCreditHistorySupabase() : fallback.listCreditHistory();
+  requireSupabase();
+  return listCreditHistorySupabase();
 }
 
 export async function listClaimHistoryForCustomer(customerId: string) {
-  return shouldUseSupabase() ? listClaimHistoryForCustomerSupabase(customerId) : fallback.listClaimHistoryForCustomer(customerId);
+  requireSupabase();
+  return listClaimHistoryForCustomerSupabase(customerId);
 }
 
 export async function listCustomerNotes(customerId?: string) {
-  return shouldUseSupabase() ? listCustomerNotesSupabase(customerId) : fallback.listCustomerNotes(customerId);
+  requireSupabase();
+  return listCustomerNotesSupabase(customerId);
 }
 
 export async function listCustomerMessagesForCustomer(customerId: string, options?: { limit?: number }) {
-  return shouldUseSupabase()
-    ? listCustomerMessagesForCustomerSupabase(customerId, options)
-    : fallback.listCustomerMessagesForCustomer(customerId, options);
+  requireSupabase();
+  return listCustomerMessagesForCustomerSupabase(customerId, options);
 }
 
 export async function listCustomerItemRequests(customerId?: string, options?: { limit?: number }) {
-  return shouldUseSupabase()
-    ? listCustomerItemRequestsSupabase(customerId, options)
-    : fallback.listCustomerItemRequests(customerId, options);
+  requireSupabase();
+  return listCustomerItemRequestsSupabase(customerId, options);
 }
 
 export async function listRestockRequests(customerId?: string) {
-  return shouldUseSupabase() ? listRestockRequestsSupabase(customerId) : fallback.listRestockRequests(customerId);
+  requireSupabase();
+  return listRestockRequestsSupabase(customerId);
 }
 
 export async function listNotifications(options?: { includeRead?: boolean }) {
-  return shouldUseSupabase() ? listNotificationsSupabase(options) : fallback.listNotifications(options);
+  requireSupabase();
+  return listNotificationsSupabase(options);
 }
 
 export async function listAdminAuditEntries(limit?: number) {
-  return shouldUseSupabase() ? listAdminAuditEntriesSupabase(limit) : fallback.listAdminAuditEntries(limit);
+  requireSupabase();
+  return listAdminAuditEntriesSupabase(limit);
 }
 
 export async function listCrossListedInventory(search?: string) {
-  return shouldUseSupabase() ? listCrossListedInventorySupabase(search) : fallback.listCrossListedInventory(search);
+  requireSupabase();
+  return listCrossListedInventorySupabase(search);
 }
 
 export async function listEvents() {
-  return shouldUseSupabase() ? listEventsSupabase() : fallback.listEvents();
+  requireSupabase();
+  return listEventsSupabase();
 }
 
 export async function getEventById(eventId: string) {
-  return shouldUseSupabase() ? getEventByIdSupabase(eventId) : fallback.getEventById(eventId);
+  requireSupabase();
+  return getEventByIdSupabase(eventId);
 }
 
 export async function getPaymentDefaults(customerId?: string) {
-  return shouldUseSupabase() ? getPaymentDefaultsSupabase(customerId) : fallback.getPaymentDefaults();
+  requireSupabase();
+  return getPaymentDefaultsSupabase(customerId);
 }
 
 export async function getOutstandingBalanceForCustomer(customerId?: string) {
-  return shouldUseSupabase()
-    ? customerId
-      ? getOutstandingBalanceForCustomerSupabase(customerId)
-      : { totalAmount: 0, invoiceAmount: 0, shippingAmount: 0 }
-    : fallback.getOutstandingBalanceForCustomer();
+  requireSupabase();
+  return customerId
+    ? getOutstandingBalanceForCustomerSupabase(customerId)
+    : { totalAmount: 0, invoiceAmount: 0, shippingAmount: 0 };
 }
 
 export async function getFinancialSummary() {
-  return shouldUseSupabase() ? getFinancialSummarySupabase() : fallback.getFinancialSummary();
+  requireSupabase();
+  return getFinancialSummarySupabase();
 }
 
 export async function submitClaimToDatabase(productId: string, requestedQuantity: number) {
-  return shouldUseSupabase()
-    ? submitClaimToDatabaseSupabase(productId, requestedQuantity)
-    : fallback.submitClaimToDatabase(productId, requestedQuantity);
+  requireSupabase();
+  return submitClaimToDatabaseSupabase(productId, requestedQuantity);
 }
 
 export async function adjustInventoryInDatabase(productId: string, quantityChange: number) {
-  return shouldUseSupabase()
-    ? adjustInventoryInDatabaseSupabase(productId, quantityChange)
-    : fallback.adjustInventoryInDatabase(productId, quantityChange);
+  requireSupabase();
+  return adjustInventoryInDatabaseSupabase(productId, quantityChange);
 }
 
 export async function archiveProductInDatabase(productId: string) {
-  return shouldUseSupabase()
-    ? archiveProductInDatabaseSupabase(productId)
-    : fallback.archiveProductInDatabase(productId);
+  requireSupabase();
+  return archiveProductInDatabaseSupabase(productId);
 }
 
 export async function deleteArchivedProductInDatabase(productId: string) {
-  return shouldUseSupabase()
-    ? deleteArchivedProductInDatabaseSupabase(productId)
-    : fallback.deleteArchivedProductInDatabase(productId);
+  requireSupabase();
+  return deleteArchivedProductInDatabaseSupabase(productId);
 }
 
 export async function createInventoryItemInDatabase(input: {
@@ -276,9 +272,8 @@ export async function createInventoryItemInDatabase(input: {
   location: string;
   images: File[];
 }) {
-  return shouldUseSupabase()
-    ? createInventoryItemInDatabaseSupabase(input)
-    : fallback.createInventoryItemInDatabase(input);
+  requireSupabase();
+  return createInventoryItemInDatabaseSupabase(input);
 }
 
 export async function createInventoryItemsBulkInDatabase(input: Array<{
@@ -290,157 +285,133 @@ export async function createInventoryItemsBulkInDatabase(input: Array<{
   sku: string;
   location: string;
 }>) {
-  return shouldUseSupabase()
-    ? createInventoryItemsBulkInDatabaseSupabase(input)
-    : fallback.createInventoryItemsBulkInDatabase(input);
+  requireSupabase();
+  return createInventoryItemsBulkInDatabaseSupabase(input);
 }
 
 export async function createCategoryInDatabase(name: string) {
-  return shouldUseSupabase()
-    ? createCategoryInDatabaseSupabase(name)
-    : fallback.createCategoryInDatabase(name);
+  requireSupabase();
+  return createCategoryInDatabaseSupabase(name);
 }
 
 export async function deleteCategoryInDatabase(categoryId: string) {
-  return shouldUseSupabase()
-    ? deleteCategoryInDatabaseSupabase(categoryId)
-    : fallback.deleteCategoryInDatabase(categoryId);
+  requireSupabase();
+  return deleteCategoryInDatabaseSupabase(categoryId);
 }
 
 export async function updateProductSaleInDatabase(productId: string, salePercentage: number, saleEndsAt: string) {
-  return shouldUseSupabase()
-    ? updateProductSaleInDatabaseSupabase(productId, salePercentage, saleEndsAt)
-    : fallback.updateProductSaleInDatabase(productId, salePercentage, saleEndsAt);
+  requireSupabase();
+  return updateProductSaleInDatabaseSupabase(productId, salePercentage, saleEndsAt);
 }
 
 export async function clearProductSaleInDatabase(productId: string) {
-  return shouldUseSupabase()
-    ? clearProductSaleInDatabaseSupabase(productId)
-    : fallback.clearProductSaleInDatabase(productId);
+  requireSupabase();
+  return clearProductSaleInDatabaseSupabase(productId);
 }
 
 export async function updateHomepageFeaturedInDatabase(productId: string, featured: boolean) {
-  return shouldUseSupabase()
-    ? updateHomepageFeaturedInDatabaseSupabase(productId, featured)
-    : fallback.updateHomepageFeaturedInDatabase(productId, featured);
+  requireSupabase();
+  return updateHomepageFeaturedInDatabaseSupabase(productId, featured);
 }
 
 export async function submitRestockRequestToDatabase(productId: string) {
-  return shouldUseSupabase()
-    ? submitRestockRequestToDatabaseSupabase(productId)
-    : fallback.submitRestockRequestToDatabase(productId);
+  requireSupabase();
+  return submitRestockRequestToDatabaseSupabase(productId);
 }
 
 export async function submitCustomerMessageToDatabase(message: string) {
-  return shouldUseSupabase()
-    ? submitCustomerMessageToDatabaseSupabase(message)
-    : fallback.submitCustomerMessageToDatabase(message);
+  requireSupabase();
+  return submitCustomerMessageToDatabaseSupabase(message);
 }
 
 export async function submitCustomerItemRequestToDatabase(request: string) {
-  return shouldUseSupabase()
-    ? submitCustomerItemRequestToDatabaseSupabase(request)
-    : fallback.submitCustomerItemRequestToDatabase(request);
+  requireSupabase();
+  return submitCustomerItemRequestToDatabaseSupabase(request);
 }
 
 export async function replyToCustomerMessage(customerId: string, message: string) {
-  return shouldUseSupabase()
-    ? replyToCustomerMessageSupabase(customerId, message)
-    : fallback.replyToCustomerMessage(customerId, message);
+  requireSupabase();
+  return replyToCustomerMessageSupabase(customerId, message);
 }
 
 export async function submitShipmentRequestToDatabase() {
-  return shouldUseSupabase()
-    ? submitShipmentRequestToDatabaseSupabase()
-    : fallback.submitShipmentRequestToDatabase();
+  requireSupabase();
+  return submitShipmentRequestToDatabaseSupabase();
 }
 
 export async function addCustomerToShipmentQueueInDatabase(customerId: string) {
-  return shouldUseSupabase()
-    ? addCustomerToShipmentQueueSupabase(customerId)
-    : fallback.addCustomerToShipmentQueue(customerId);
+  requireSupabase();
+  return addCustomerToShipmentQueueSupabase(customerId);
 }
 
 export async function cancelShipmentRequestInDatabase(shipmentId?: string) {
-  return shouldUseSupabase()
-    ? cancelShipmentRequestInDatabaseSupabase(shipmentId)
-    : fallback.cancelShipmentRequestInDatabase(shipmentId);
+  requireSupabase();
+  return cancelShipmentRequestInDatabaseSupabase(shipmentId);
 }
 
 export async function updateShipmentInDatabase(
   shipmentId: string,
-  nextStatus: Parameters<typeof fallback.updateShipmentInDatabase>[1],
+  nextStatus: "none" | "requested" | "in_progress" | "completed",
   trackingNumber: string,
   shippingInvoice: string,
   customerId?: string,
   requestedAt?: string,
 ) {
-  return shouldUseSupabase()
-    ? updateShipmentInDatabaseSupabase(shipmentId, nextStatus, trackingNumber, shippingInvoice, customerId, requestedAt)
-    : fallback.updateShipmentInDatabase(shipmentId, nextStatus, trackingNumber, shippingInvoice, customerId, requestedAt);
+  requireSupabase();
+  return updateShipmentInDatabaseSupabase(shipmentId, nextStatus, trackingNumber, shippingInvoice, customerId, requestedAt);
 }
 
 export async function updateCustomerAccountState(
   customerId: string,
-  nextState: Parameters<typeof fallback.updateCustomerAccountState>[1],
+  nextState: "pending_approval" | "approved" | "claiming_disabled" | "banned",
 ) {
-  return shouldUseSupabase()
-    ? updateCustomerAccountStateSupabase(customerId, nextState)
-    : fallback.updateCustomerAccountState(customerId, nextState);
+  requireSupabase();
+  return updateCustomerAccountStateSupabase(customerId, nextState);
 }
 
 export async function updateCustomerRoleInDatabase(customerId: string, nextRole: "admin") {
-  return shouldUseSupabase()
-    ? updateCustomerRoleInDatabaseSupabase(customerId, nextRole)
-    : fallback.updateCustomerRoleInDatabase(customerId, nextRole);
+  requireSupabase();
+  return updateCustomerRoleInDatabaseSupabase(customerId, nextRole);
 }
 
 export async function addCustomerNoteToDatabase(customerId: string, note: string) {
-  return shouldUseSupabase()
-    ? addCustomerNoteToDatabaseSupabase(customerId, note)
-    : fallback.addCustomerNoteToDatabase(customerId, note);
+  requireSupabase();
+  return addCustomerNoteToDatabaseSupabase(customerId, note);
 }
 
 export async function addManualBalanceItemToDatabase(title: string, quantity: number, unitPrice: number, recordedAt?: string, customerId?: string) {
-  return shouldUseSupabase()
-    ? addManualBalanceItemToDatabaseSupabase(title, quantity, unitPrice, recordedAt, customerId)
-    : fallback.addManualBalanceItemToDatabase(title, quantity, unitPrice, recordedAt);
+  requireSupabase();
+  return addManualBalanceItemToDatabaseSupabase(title, quantity, unitPrice, recordedAt, customerId);
 }
 
 export async function updateClaimedItemInDatabase(claimId: string, quantity: number, unitPrice: number) {
-  return shouldUseSupabase()
-    ? updateClaimedItemInDatabaseSupabase(claimId, quantity, unitPrice)
-    : fallback.updateClaimedItemInDatabase(claimId, quantity, unitPrice);
+  requireSupabase();
+  return updateClaimedItemInDatabaseSupabase(claimId, quantity, unitPrice);
 }
 
 export async function removeClaimedItemFromDatabase(claimId: string) {
-  return shouldUseSupabase()
-    ? removeClaimedItemFromDatabaseSupabase(claimId)
-    : fallback.removeClaimedItemFromDatabase(claimId);
+  requireSupabase();
+  return removeClaimedItemFromDatabaseSupabase(claimId);
 }
 
 export async function applyBalanceAdjustmentsToDatabase(shippingChange: number, adjustmentChange: number, customerId?: string) {
-  return shouldUseSupabase()
-    ? applyBalanceAdjustmentsToDatabaseSupabase(shippingChange, adjustmentChange, customerId)
-    : fallback.applyBalanceAdjustmentsToDatabase(shippingChange, adjustmentChange);
+  requireSupabase();
+  return applyBalanceAdjustmentsToDatabaseSupabase(shippingChange, adjustmentChange, customerId);
 }
 
 export async function applyPaymentToDatabase(paymentAmount: number, creditAmount: number, recordedAt?: string, customerId?: string) {
-  return shouldUseSupabase()
-    ? applyPaymentToDatabaseSupabase(paymentAmount, creditAmount, recordedAt, customerId)
-    : fallback.applyPaymentToDatabase(paymentAmount, creditAmount, recordedAt);
+  requireSupabase();
+  return applyPaymentToDatabaseSupabase(paymentAmount, creditAmount, recordedAt, customerId);
 }
 
 export async function updatePaymentInDatabase(paymentId: string, paymentAmount: number, recordedAt?: string) {
-  return shouldUseSupabase()
-    ? updatePaymentInDatabaseSupabase(paymentId, paymentAmount, recordedAt)
-    : fallback.updatePaymentInDatabase(paymentId, paymentAmount, recordedAt);
+  requireSupabase();
+  return updatePaymentInDatabaseSupabase(paymentId, paymentAmount, recordedAt);
 }
 
 export async function updateCreditInDatabase(creditId: string, creditAmount: number, recordedAt?: string, reason?: string) {
-  return shouldUseSupabase()
-    ? updateCreditInDatabaseSupabase(creditId, creditAmount, recordedAt, reason)
-    : fallback.updateCreditInDatabase(creditId, creditAmount, recordedAt, reason);
+  requireSupabase();
+  return updateCreditInDatabaseSupabase(creditId, creditAmount, recordedAt, reason);
 }
 
 export async function createEventInDatabase(input: {
@@ -453,9 +424,8 @@ export async function createEventInDatabase(input: {
   repeatWeekly?: boolean;
   repeatUntilLocal?: string;
 }) {
-  return shouldUseSupabase()
-    ? createEventInDatabaseSupabase(input)
-    : fallback.createEventInDatabase(input);
+  requireSupabase();
+  return createEventInDatabaseSupabase(input);
 }
 
 export async function updateEventInDatabase(input: {
@@ -467,21 +437,18 @@ export async function updateEventInDatabase(input: {
   platform: string;
   timeZone: string;
 }) {
-  return shouldUseSupabase()
-    ? updateEventInDatabaseSupabase(input)
-    : fallback.updateEventInDatabase(input);
+  requireSupabase();
+  return updateEventInDatabaseSupabase(input);
 }
 
 export async function deleteEventInDatabase(eventId: string) {
-  return shouldUseSupabase()
-    ? deleteEventInDatabaseSupabase(eventId)
-    : fallback.deleteEventInDatabase(eventId);
+  requireSupabase();
+  return deleteEventInDatabaseSupabase(eventId);
 }
 
 export async function markNotificationReadInDatabase(notificationId: string) {
-  return shouldUseSupabase()
-    ? markNotificationReadInDatabaseSupabase(notificationId)
-    : fallback.markNotificationReadInDatabase(notificationId);
+  requireSupabase();
+  return markNotificationReadInDatabaseSupabase(notificationId);
 }
 
 export async function saveCrossListedInventoryToDatabase(input: {
@@ -490,15 +457,13 @@ export async function saveCrossListedInventoryToDatabase(input: {
   cost?: number | null;
   platforms: string[];
 }) {
-  return shouldUseSupabase()
-    ? saveCrossListedInventoryToDatabaseSupabase(input)
-    : fallback.saveCrossListedInventoryToDatabase(input);
+  requireSupabase();
+  return saveCrossListedInventoryToDatabaseSupabase(input);
 }
 
 export async function deleteCrossListedInventoryFromDatabase(recordId: string) {
-  return shouldUseSupabase()
-    ? deleteCrossListedInventoryFromDatabaseSupabase(recordId)
-    : fallback.deleteCrossListedInventoryFromDatabase(recordId);
+  requireSupabase();
+  return deleteCrossListedInventoryFromDatabaseSupabase(recordId);
 }
 
 export async function recordAdminAuditEntryInDatabase(input: {
@@ -511,9 +476,8 @@ export async function recordAdminAuditEntryInDatabase(input: {
   actorName?: string;
   actorRole?: "customer" | "admin" | "master_admin";
 }) {
-  return shouldUseSupabase()
-    ? recordAdminAuditEntrySupabase(input)
-    : fallback.recordAdminAuditEntry(input);
+  requireSupabase();
+  return recordAdminAuditEntrySupabase(input);
 }
 
 export { platformSummary };

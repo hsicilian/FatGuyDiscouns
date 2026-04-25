@@ -3,9 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { FormActionState } from "@fatguydiscounts/types";
-import { assertProductionSupabaseReady, createServerSupabaseClient, getSiteUrl, hasSupabaseEnv } from "../../../lib/supabase";
-import { createStoredCustomerAccount, hasStoredAccountWithEmail } from "../../../lib/auth/local-auth-store";
-import { createPendingCustomerProfile, removeCustomerProfileById, setActiveCustomer } from "../../../lib/data/local-db";
+import { assertProductionSupabaseReady, createServerSupabaseClient, getSiteUrl } from "../../../lib/supabase";
 import { createSupabaseAdminClient } from "../../../lib/supabase";
 import { sendAdminEmailNotification } from "../../../lib/admin-email";
 
@@ -35,48 +33,6 @@ export async function signUpLocalCustomerAction(
   }
 
   const { displayName, email, password } = parsed.data;
-
-  if (!hasSupabaseEnv()) {
-    if (await hasStoredAccountWithEmail(email)) {
-      return {
-        ok: false,
-        message: "An account with that email already exists.",
-        submittedAt: new Date().toISOString(),
-      };
-    }
-
-    const customerResult = await createPendingCustomerProfile({
-      displayName,
-      email,
-    });
-
-    if (!customerResult.ok) {
-      return {
-        ok: false,
-        message: customerResult.message,
-        submittedAt: new Date().toISOString(),
-      };
-    }
-
-    const accountResult = await createStoredCustomerAccount({
-      displayName,
-      email,
-      password,
-      customerId: customerResult.customer.id,
-    });
-
-    if (!accountResult.ok) {
-      await removeCustomerProfileById(customerResult.customer.id);
-      return {
-        ok: false,
-        message: accountResult.message,
-        submittedAt: new Date().toISOString(),
-      };
-    }
-
-    await setActiveCustomer(customerResult.customer.id);
-    redirect("/account");
-  }
 
   const supabase = await createServerSupabaseClient();
   const callbackUrl = `${getSiteUrl()}/auth/callback`;

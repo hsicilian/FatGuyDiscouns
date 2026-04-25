@@ -5,7 +5,6 @@ import { previewClaimAction } from "./claims";
 import { previewPaymentAction } from "./payments";
 import { previewShipmentRequest } from "./shipments";
 import { getCurrentSessionUser } from "../auth/session";
-import { updateStoredAccountRole, updateStoredAccountState } from "../auth/local-auth-store";
 import {
   addCustomerToShipmentQueueInDatabase,
   addCustomerNoteToDatabase,
@@ -46,7 +45,6 @@ import {
   updateShipmentInDatabase,
   recordAdminAuditEntryInDatabase,
 } from "../data/local-db";
-import { hasSupabaseEnv } from "../supabase";
 
 async function requireCustomerMutationAccess() {
   const currentUser = await getCurrentSessionUser();
@@ -561,9 +559,6 @@ export async function updateApprovalState(
   }
 
   const result = await updateCustomerAccountState(customerId, nextState);
-  if (result.ok && !hasSupabaseEnv()) {
-    await updateStoredAccountState(customerId, nextState);
-  }
   await recordAuditIfSuccessful(result, {
     actorId: access.currentUser.id,
     actorName: access.currentUser.displayName,
@@ -618,9 +613,6 @@ export async function promoteCustomerToAdmin(customerId: string): Promise<FormAc
   }
 
   const result = await updateCustomerRoleInDatabase(customerId, "admin");
-  if (result.ok && !hasSupabaseEnv()) {
-    await updateStoredAccountRole(customerId, "admin");
-  }
   await recordAuditIfSuccessful(result, {
     actorId: access.currentUser.id,
     actorName: access.currentUser.displayName,

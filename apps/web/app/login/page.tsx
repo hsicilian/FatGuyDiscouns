@@ -1,4 +1,5 @@
 import { LoginForm } from "../../components/forms/login-form";
+import { ResendConfirmationForm } from "../../components/forms/resend-confirmation-form";
 import { SignOutForm } from "../../components/forms/sign-out-form";
 import { getCurrentSessionAccount } from "../../lib/auth/session";
 
@@ -41,18 +42,32 @@ export default async function LoginPage() {
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
             <a href="/signup" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Create account</a>
             <a href="/forgot-password" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Forgot password?</a>
+            <a href="/resend-confirmation" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Resend confirmation</a>
           </div>
         </section>
 
-        <aside style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 28, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
-          <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 700 }}>Before you claim</p>
-          <h2 style={{ marginTop: 0 }}>What to expect</h2>
-          <div style={{ display: "grid", gap: 12, color: "var(--muted)", lineHeight: 1.7 }}>
-            <p style={{ margin: 0 }}>New accounts enter a short approval step before claims are enabled.</p>
-            <p style={{ margin: 0 }}>Once approved, you can claim items, track balances, and request shipment from your dashboard.</p>
-            <p style={{ margin: 0 }}>If your account is disabled or banned, claim access stays blocked until the admin team updates it.</p>
-          </div>
-        </aside>
+        <div style={{ display: "grid", gap: 24 }}>
+          <aside style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 28, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
+            <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 700 }}>Before you claim</p>
+            <h2 style={{ marginTop: 0 }}>What to expect</h2>
+            <div style={{ display: "grid", gap: 12, color: "var(--muted)", lineHeight: 1.7 }}>
+              <p style={{ margin: 0 }}>New accounts enter a short approval step before claims are enabled.</p>
+              <p style={{ margin: 0 }}>Once approved, you can claim items, track balances, and request shipment from your dashboard.</p>
+              <p style={{ margin: 0 }}>If your account is disabled or banned, claim access stays blocked until the admin team updates it.</p>
+            </div>
+          </aside>
+
+          {!currentUser ? (
+            <aside style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 28, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
+              <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 700 }}>Missing email?</p>
+              <h2 style={{ marginTop: 0 }}>Resend confirmation</h2>
+              <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
+                If you created an account but never got the confirmation email, resend it here before trying to log in again.
+              </p>
+              <ResendConfirmationForm />
+            </aside>
+          ) : null}
+        </div>
       </div>
     </main>
   );

@@ -8,7 +8,8 @@ export async function GET() {
     {
       ok: healthy,
       service: "fatguydiscounts-web",
-      mode: supabaseConfigured ? "supabase" : "local-fallback",
+      mode: "supabase",
+      supabaseConfigured,
       timestamp: new Date().toISOString(),
     },
     { status: healthy ? 200 : 503 },

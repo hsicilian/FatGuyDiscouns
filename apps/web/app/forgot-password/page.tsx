@@ -1,4 +1,5 @@
 import { ForgotPasswordForm } from "../../components/forms/forgot-password-form";
+import { ResendConfirmationForm } from "../../components/forms/resend-confirmation-form";
 
 export default function ForgotPasswordPage() {
   return (
@@ -11,13 +12,23 @@ export default function ForgotPasswordPage() {
         </p>
       </section>
 
-      <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 28, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
-        <h2 style={{ marginTop: 0 }}>Send reset email</h2>
-        <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
-          Use the same email you use to sign in to Fatguydiscounts.
-        </p>
-        <ForgotPasswordForm />
-      </section>
+      <div style={{ display: "grid", gap: 24, gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
+        <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 28, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
+          <h2 style={{ marginTop: 0 }}>Send reset email</h2>
+          <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
+            Use the same email you use to sign in to Fatguydiscounts.
+          </p>
+          <ForgotPasswordForm />
+        </section>
+
+        <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 28, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
+          <h2 style={{ marginTop: 0 }}>Never got the first email?</h2>
+          <p style={{ color: "var(--muted)", lineHeight: 1.7 }}>
+            If the account was created but never confirmed, resend the signup confirmation email here instead of doing a password reset.
+          </p>
+          <ResendConfirmationForm />
+        </section>
+      </div>
     </main>
   );
 }
