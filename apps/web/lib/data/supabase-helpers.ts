@@ -254,10 +254,14 @@ export function mapBalanceCycle(
   customer?: { id?: string; displayName?: string },
   overrides?: { paymentsApplied?: number; creditsApplied?: number },
 ): BalanceCycleSummary {
+  const storedDueDate = typeof row.due_date === "string" && row.due_date.trim().length > 0
+    ? row.due_date.trim().slice(0, 10)
+    : null;
+
   return {
     id: row.id,
     status: row.status,
-    dueDate: getScheduledDueDateForDate((row.created_at ?? row.updated_at ?? siteToday()).slice(0, 10)),
+    dueDate: storedDueDate ?? getScheduledDueDateForDate((row.created_at ?? row.updated_at ?? siteToday()).slice(0, 10)),
     subtotal,
     shipping: Number(row.shipping_total ?? 0),
     adjustments: Number(row.adjustments_total ?? 0),
