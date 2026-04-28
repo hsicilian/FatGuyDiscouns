@@ -11,6 +11,7 @@ import {
   listCategoriesSupabase,
   listClaimHistoryForCustomerSupabase,
   getFinancialSummarySupabase,
+  getOpenBalanceSummarySupabase,
   listCustomerItemRequestsSupabase,
   listCustomerMessagesForCustomerSupabase,
   getEventByIdSupabase,
@@ -127,6 +128,11 @@ export async function updateCustomerProfileByAdmin(
 export async function getBalanceCycle(customerId?: string) {
   requireSupabase();
   return getBalanceCycleSupabase(customerId);
+}
+
+export async function getOpenBalanceSummary(customerId?: string) {
+  requireSupabase();
+  return getOpenBalanceSummarySupabase(customerId);
 }
 
 export async function listClaimedItems() {

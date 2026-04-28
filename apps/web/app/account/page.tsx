@@ -1,9 +1,6 @@
 import {
   accountStateLabel,
-  calculateBalanceDue,
   customerGreeting,
-  getNextScheduledDueDate,
-  isBalanceOverdue,
   shipmentStatusLabel,
 } from "@fatguydiscounts/core";
 import { CustomerMessageForm } from "../../components/forms/customer-message-form";
@@ -13,7 +10,7 @@ import { ProfileForm } from "../../components/forms/profile-form";
 import { ShipmentRequestForm } from "../../components/forms/shipment-request-form";
 import { previewShipmentRequest } from "../../lib/actions/shipments";
 import { ensureCustomerAccess } from "../../lib/auth/guards";
-import { getBalanceCycle, getCurrentCustomer, listClaimedItems, listCustomerItemRequests, listCustomerMessagesForCustomer, listShipmentRecordsForCustomer } from "../../lib/data/local-db";
+import { getCurrentCustomer, getOpenBalanceSummary, listClaimedItems, listCustomerItemRequests, listCustomerMessagesForCustomer, listShipmentRecordsForCustomer } from "../../lib/data/local-db";
 import { formatEasternTimestamp } from "../../lib/date-format";
 
 const currency = new Intl.NumberFormat("en-US", {
@@ -33,8 +30,8 @@ function StatCard({ label, value }: { label: string; value: string }) {
 export default async function AccountPage() {
   await ensureCustomerAccess();
 
-  const [balanceCycle, currentCustomer, claimedItems, shipmentPreview] = await Promise.all([
-    getBalanceCycle(),
+  const [openBalance, currentCustomer, claimedItems, shipmentPreview] = await Promise.all([
+    getOpenBalanceSummary(),
     getCurrentCustomer(),
     listClaimedItems(),
     previewShipmentRequest(),
@@ -44,10 +41,7 @@ export default async function AccountPage() {
   const recentItemRequests = await listCustomerItemRequests(currentCustomer.id, { limit: 3 });
   const recentMessagesForDisplay = [...recentMessages].reverse();
   const latestShipment = shipmentHistory[0] ?? null;
-  const amountDue = calculateBalanceDue(balanceCycle);
-  const today = new Date().toISOString().slice(0, 10);
-  const overdue = isBalanceOverdue(balanceCycle, today);
-  const nextRegularDueDate = getNextScheduledDueDate(today);
+  const overdue = openBalance.overdueAmount > 0;
 
   return (
     <main style={{ maxWidth: 1120, margin: "0 auto", padding: "36px 24px 72px" }}>
@@ -63,13 +57,22 @@ export default async function AccountPage() {
           <a href="/account/history" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>View paid history</a>
         </div>
         <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginTop: 24 }}>
-          <StatCard label={overdue ? "Overdue amount" : "Current balance"} value={currency.format(amountDue)} />
-          <StatCard label={overdue ? "Payment status" : "Due date"} value={overdue ? "Due immediately" : balanceCycle.dueDate} />
-          <StatCard label={overdue ? "Next regular due date" : "Credit on file"} value={overdue ? nextRegularDueDate : currency.format(currentCustomer.creditBalance)} />
+          <StatCard label="Total balance" value={currency.format(openBalance.totalAmount)} />
+          <StatCard label="Overdue amount" value={currency.format(openBalance.overdueAmount)} />
+          <StatCard label="Current cycle amount" value={currency.format(openBalance.currentAmount)} />
+          <StatCard label="Current cycle due date" value={openBalance.currentDueDate ?? openBalance.displayDueDate} />
+          <StatCard label="Credit on file" value={currency.format(currentCustomer.creditBalance)} />
         </div>
         {overdue ? (
           <div style={{ marginTop: 20, padding: 16, borderRadius: 18, background: "#3d1f12", color: "#fff4df", boxShadow: "var(--shadow)" }}>
-            <strong>{currency.format(amountDue)}</strong> is overdue and due immediately. Any new claims you make now should be planned around the next regular due date of <strong>{nextRegularDueDate}</strong>.
+            <strong>{currency.format(openBalance.overdueAmount)}</strong> is overdue and due immediately.
+            {openBalance.currentAmount > 0 ? (
+              <>
+                {" "}
+                Your current-cycle balance is <strong>{currency.format(openBalance.currentAmount)}</strong> due on{" "}
+                <strong>{openBalance.currentDueDate ?? openBalance.displayDueDate}</strong>.
+              </>
+            ) : null}
           </div>
         ) : null}
       </section>

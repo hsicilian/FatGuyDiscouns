@@ -19,12 +19,13 @@ import type {
 } from "@fatguydiscounts/types";
 import {
   ZERO_CYCLE,
+  aggregateBalanceCycleSummaries,
   formatNotificationLabel,
   getAdminClient,
-  aggregateBalanceCycleSummaries,
   getCurrentActor,
   getCustomerSummaryByUserId,
   getFinancialSummaryFromCycles,
+  getOpenBalanceSummaryFromSummaries,
   getOutstandingBalanceSplitFromSummaries,
   getSessionClient,
   getTargetCycleContext,
@@ -184,6 +185,18 @@ export async function getBalanceCycleSupabase(customerId?: string) {
 
   const context = await getTargetCycleContext(customerId);
   return context?.summary ?? ZERO_CYCLE;
+}
+
+export async function getOpenBalanceSummarySupabase(customerId?: string) {
+  const actor = await getCurrentActor().catch(() => null);
+  const targetCustomerId = customerId ?? (actor?.role === "customer" ? actor.id : undefined);
+
+  if (targetCustomerId) {
+    const contexts = await listActiveCycleContexts(targetCustomerId);
+    return getOpenBalanceSummaryFromSummaries(contexts.map((context) => context.summary));
+  }
+
+  return getOpenBalanceSummaryFromSummaries([]);
 }
 
 export async function listClaimedItemsSupabase() {

@@ -10,6 +10,7 @@ import type {
   CustomerMessageRecord,
   CustomerSummary,
   FinancialSummary,
+  OpenBalanceSummary,
   PaymentHistoryRecord,
   Product,
   ProductImageRecord,
@@ -73,6 +74,75 @@ export function getOutstandingBalanceSplitFromSummaries(summaries: BalanceCycleS
       shippingAmount: 0,
     },
   );
+}
+
+function isPositiveBalance(value: number) {
+  return value > 0.00001;
+}
+
+function sortBalanceSummariesByDueDate(summaries: BalanceCycleSummary[]) {
+  return [...summaries].sort((left, right) => String(left.dueDate).localeCompare(String(right.dueDate)));
+}
+
+export function getOpenBalanceSummaryFromSummaries(
+  summaries: BalanceCycleSummary[],
+  today = siteToday(),
+): OpenBalanceSummary {
+  const openSummaries = sortBalanceSummariesByDueDate(
+    summaries.filter((summary) => isPositiveBalance(calculateBalanceDue(summary))),
+  );
+
+  const overdueSummaries = openSummaries.filter((summary) => summary.dueDate < today);
+  const currentSummaries = openSummaries.filter((summary) => summary.dueDate >= today);
+  const { totalAmount, invoiceAmount, shippingAmount } = getOutstandingBalanceSplitFromSummaries(openSummaries);
+  const overdueAmount = overdueSummaries.reduce((sum, summary) => sum + Math.max(calculateBalanceDue(summary), 0), 0);
+  const currentAmount = currentSummaries.reduce((sum, summary) => sum + Math.max(calculateBalanceDue(summary), 0), 0);
+  const overdueDueDate = overdueSummaries[0]?.dueDate ?? null;
+  const currentDueDate = currentSummaries[0]?.dueDate ?? null;
+
+  return {
+    totalAmount,
+    invoiceAmount,
+    shippingAmount,
+    overdueAmount,
+    currentAmount,
+    status: overdueAmount > 0 ? "overdue" : "current",
+    displayDueDate: overdueDueDate ?? currentDueDate ?? nextDueDateFromToday(),
+    overdueDueDate,
+    currentDueDate,
+  };
+}
+
+export function buildOpenBalanceCycleSummary(
+  summaries: BalanceCycleSummary[],
+  today = siteToday(),
+): BalanceCycleSummary {
+  const openSummaries = sortBalanceSummariesByDueDate(
+    summaries.filter((summary) => isPositiveBalance(calculateBalanceDue(summary))),
+  );
+
+  if (openSummaries.length === 0) {
+    return ZERO_CYCLE;
+  }
+
+  const openBalance = getOpenBalanceSummaryFromSummaries(openSummaries, today);
+  const primary =
+    openSummaries.find((summary) => summary.dueDate === openBalance.overdueDueDate)
+    ?? openSummaries.find((summary) => summary.dueDate === openBalance.currentDueDate)
+    ?? openSummaries[0];
+
+  return {
+    id: primary.id,
+    status: primary.status,
+    dueDate: openBalance.displayDueDate,
+    subtotal: openSummaries.reduce((sum, summary) => sum + Number(summary.subtotal ?? 0), 0),
+    shipping: openSummaries.reduce((sum, summary) => sum + Number(summary.shipping ?? 0), 0),
+    adjustments: openSummaries.reduce((sum, summary) => sum + Number(summary.adjustments ?? 0), 0),
+    paymentsApplied: openSummaries.reduce((sum, summary) => sum + Number(summary.paymentsApplied ?? 0), 0),
+    creditsApplied: openSummaries.reduce((sum, summary) => sum + Number(summary.creditsApplied ?? 0), 0),
+    customerId: primary.customerId,
+    customerName: primary.customerName,
+  };
 }
 
 export function formatCycleLabel(date: Date) {
@@ -375,25 +445,7 @@ export function pickPrimaryCycleContext<T extends {
 }
 
 export function aggregateBalanceCycleSummaries(summaries: BalanceCycleSummary[]): BalanceCycleSummary {
-  if (summaries.length === 0) {
-    return ZERO_CYCLE;
-  }
-
-  const ordered = [...summaries].sort((left, right) => String(left.dueDate).localeCompare(String(right.dueDate)));
-  const primary = ordered[0];
-
-  return {
-    id: primary.id,
-    status: primary.status,
-    dueDate: primary.dueDate,
-    subtotal: ordered.reduce((sum, summary) => sum + Number(summary.subtotal ?? 0), 0),
-    shipping: ordered.reduce((sum, summary) => sum + Number(summary.shipping ?? 0), 0),
-    adjustments: ordered.reduce((sum, summary) => sum + Number(summary.adjustments ?? 0), 0),
-    paymentsApplied: ordered.reduce((sum, summary) => sum + Number(summary.paymentsApplied ?? 0), 0),
-    creditsApplied: ordered.reduce((sum, summary) => sum + Number(summary.creditsApplied ?? 0), 0),
-    customerId: primary.customerId,
-    customerName: primary.customerName,
-  };
+  return buildOpenBalanceCycleSummary(summaries);
 }
 
 export async function getSupabaseCycleRow(customerId?: string, options?: { dueDate?: string }) {

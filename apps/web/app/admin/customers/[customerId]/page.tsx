@@ -1,4 +1,4 @@
-import { accountStateLabel, isBalanceOverdue, shipmentStatusLabel } from "@fatguydiscounts/core";
+import { accountStateLabel, shipmentStatusLabel } from "@fatguydiscounts/core";
 import { ApprovalActionForm } from "../../../../components/forms/approval-action-form";
 import { AdminShipmentRequestForm } from "../../../../components/forms/admin-shipment-request-form";
 import { BalanceAdjustmentForm } from "../../../../components/forms/balance-adjustment-form";
@@ -13,9 +13,10 @@ import { PaymentPreviewForm } from "../../../../components/forms/payment-preview
 import { PromoteAdminForm } from "../../../../components/forms/promote-admin-form";
 import { ensureAdminAccess } from "../../../../lib/auth/guards";
 import { getCurrentSessionAccount } from "../../../../lib/auth/session";
-import { formatEasternTimestamp, getEasternDateInputValue } from "../../../../lib/date-format";
+import { formatEasternTimestamp } from "../../../../lib/date-format";
 import {
   getBalanceCycle,
+  getOpenBalanceSummary,
   getOutstandingBalanceForCustomer,
   getPaymentDefaults,
   listArchivedInvoicesForCustomer,
@@ -46,6 +47,7 @@ export default async function AdminCustomerDetailPage({
   const [
     customers,
     balanceCycle,
+    openBalance,
     outstandingBalance,
     paymentDefaults,
     notes,
@@ -61,6 +63,7 @@ export default async function AdminCustomerDetailPage({
   ] = await Promise.all([
     listCustomers(),
     getBalanceCycle(customerId),
+    getOpenBalanceSummary(customerId),
     getOutstandingBalanceForCustomer(customerId),
     getPaymentDefaults(customerId),
     listCustomerNotes(customerId),
@@ -91,7 +94,8 @@ export default async function AdminCustomerDetailPage({
   const canManageAccountState = customer.role === "customer";
   const currentBalance = outstandingBalance.totalAmount;
   const customerMessagesForDisplay = [...customerMessages].reverse();
-  const overdue = isBalanceOverdue(balanceCycle, getEasternDateInputValue());
+  const overdue = openBalance.status === "overdue";
+  const currentCycleDueDate = openBalance.currentDueDate ?? openBalance.displayDueDate;
 
   return (
     <main style={{ maxWidth: 1120, margin: "0 auto", padding: "48px 24px 72px", display: "grid", gap: 24 }}>
@@ -121,12 +125,20 @@ export default async function AdminCustomerDetailPage({
           <strong>{currency.format(currentBalance)}</strong>
         </div>
         <div style={{ background: overdue ? "rgba(142,50,0,0.1)" : "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 20, boxShadow: "var(--shadow)" }}>
+          <p style={{ marginTop: 0, color: "var(--muted)" }}>Overdue amount</p>
+          <strong style={{ color: overdue ? "#8e3200" : "#1f1d1a" }}>{currency.format(openBalance.overdueAmount)}</strong>
+        </div>
+        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 20, boxShadow: "var(--shadow)" }}>
+          <p style={{ marginTop: 0, color: "var(--muted)" }}>Current cycle amount</p>
+          <strong>{currency.format(openBalance.currentAmount)}</strong>
+        </div>
+        <div style={{ background: overdue ? "rgba(142,50,0,0.1)" : "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 20, boxShadow: "var(--shadow)" }}>
           <p style={{ marginTop: 0, color: "var(--muted)" }}>Balance status</p>
           <strong style={{ color: overdue ? "#8e3200" : "#1f1d1a" }}>{overdue ? "Overdue" : "Current"}</strong>
         </div>
         <div style={{ background: overdue ? "rgba(142,50,0,0.1)" : "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 20, boxShadow: "var(--shadow)" }}>
-          <p style={{ marginTop: 0, color: "var(--muted)" }}>Cycle due date</p>
-          <strong style={{ color: overdue ? "#8e3200" : "#1f1d1a" }}>{balanceCycle.dueDate}</strong>
+          <p style={{ marginTop: 0, color: "var(--muted)" }}>Current cycle due date</p>
+          <strong style={{ color: overdue ? "#8e3200" : "#1f1d1a" }}>{currentCycleDueDate}</strong>
         </div>
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 20, boxShadow: "var(--shadow)" }}>
           <p style={{ marginTop: 0, color: "var(--muted)" }}>Credit on file</p>

@@ -5,6 +5,7 @@ import type { AccountState, NotificationType, ShipmentStatus } from "@fatguydisc
 import {
   dueDateForReferenceDate,
   ensureActiveCycle,
+  formatCycleLabel,
   getAdminClient,
   mapBalanceCycle,
   getCurrentActor,
@@ -90,6 +91,105 @@ async function listOpenCycleContextsForPayment(customerId: string, recordedDueDa
       }
       return String(left.summary.dueDate).localeCompare(String(right.summary.dueDate));
     });
+}
+
+async function getAppliedPaymentTotalForCycle(
+  admin: Awaited<ReturnType<typeof getAdminClient>>,
+  cycleId: string,
+) {
+  const { data, error } = await admin
+    .from("payments")
+    .select("applied_amount, amount")
+    .eq("cycle_id", cycleId);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).reduce(
+    (sum, payment) => sum + Number(payment.applied_amount ?? payment.amount ?? 0),
+    0,
+  );
+}
+
+async function finalizeCycleIfSettled(
+  admin: Awaited<ReturnType<typeof getAdminClient>>,
+  cycleId: string,
+  settledAt = siteToday(),
+) {
+  const { data: cycle, error: cycleError } = await admin
+    .from("balance_cycles")
+    .select("id, customer_id, status, due_date, shipping_total, adjustments_total, payments_applied, credits_applied")
+    .eq("id", cycleId)
+    .single();
+
+  if (cycleError || !cycle) {
+    throw cycleError ?? new Error("Balance cycle not found.");
+  }
+
+  const subtotal = await getCycleSubtotal(cycleId, { admin: true });
+  const paymentsApplied = await getAppliedPaymentTotalForCycle(admin, cycleId);
+  const creditsApplied = Number(cycle.credits_applied ?? 0);
+  const summary = mapBalanceCycle(cycle as Record<string, any>, subtotal, undefined, {
+    paymentsApplied,
+    creditsApplied,
+  });
+  const remainingDue = getBalanceDueAmount(summary);
+  const updatedAt = new Date().toISOString();
+
+  if (remainingDue > 0) {
+    const { error: syncError } = await admin
+      .from("balance_cycles")
+      .update({
+        payments_applied: paymentsApplied,
+        updated_at: updatedAt,
+      })
+      .eq("id", cycleId);
+
+    if (syncError) {
+      throw syncError;
+    }
+
+    return { archived: false as const, remainingDue };
+  }
+
+  const cycleDueDate = String(cycle.due_date ?? settledAt).slice(0, 10);
+  const cycleLabel = formatCycleLabel(new Date(`${cycleDueDate}T12:00:00.000Z`));
+  const total = Number(summary.subtotal ?? 0) + Number(summary.shipping ?? 0) + Number(summary.adjustments ?? 0);
+
+  const { error: cycleUpdateError } = await admin
+    .from("balance_cycles")
+    .update({
+      status: "archived",
+      payments_applied: paymentsApplied,
+      updated_at: updatedAt,
+    })
+    .eq("id", cycleId);
+
+  if (cycleUpdateError) {
+    throw cycleUpdateError;
+  }
+
+  const { error: invoiceError } = await admin
+    .from("archived_invoices")
+    .upsert({
+      cycle_id: cycleId,
+      customer_id: cycle.customer_id,
+      cycle_label: cycleLabel,
+      paid_at: settledAt,
+      total,
+      shipping_total: Number(summary.shipping ?? 0),
+      payment_total: paymentsApplied,
+      credit_applied: creditsApplied,
+      status: "archived",
+      updated_at: updatedAt,
+    }, { onConflict: "cycle_id" });
+
+  if (invoiceError) {
+    throw invoiceError;
+  }
+
+  return { archived: true as const, remainingDue: 0 };
 }
 
 function parseShippingInvoiceAmount(value: string | null | undefined) {
@@ -1373,7 +1473,7 @@ export async function updateClaimedItemInDatabaseSupabase(claimId: string, quant
   if (quantity < 1 || unitPrice < 0) return { ok: false, message: "Quantity must be at least 1 and price cannot be negative." };
 
   const admin = await getAdminClient();
-  const { data: item, error } = await admin.from("balance_line_items").select("id, description, quantity, item_type, product_id").eq("id", claimId).single();
+  const { data: item, error } = await admin.from("balance_line_items").select("id, cycle_id, description, quantity, item_type, product_id").eq("id", claimId).single();
   if (error || !item) return { ok: false, message: "Claimed item not found." };
 
   if (item.item_type === "claim" && item.product_id) {
@@ -1388,12 +1488,13 @@ export async function updateClaimedItemInDatabaseSupabase(claimId: string, quant
 
   const updateResult = await admin.from("balance_line_items").update({ quantity, unit_price: unitPrice, updated_at: new Date().toISOString() }).eq("id", claimId);
   if (updateResult.error) return { ok: false, message: updateResult.error.message };
+  await finalizeCycleIfSettled(admin, item.cycle_id);
   return { ok: true, message: `${item.description} was updated.` };
 }
 
 export async function removeClaimedItemFromDatabaseSupabase(claimId: string) {
   const admin = await getAdminClient();
-  const { data: item, error } = await admin.from("balance_line_items").select("id, description, quantity, item_type, product_id").eq("id", claimId).single();
+  const { data: item, error } = await admin.from("balance_line_items").select("id, cycle_id, description, quantity, item_type, product_id").eq("id", claimId).single();
   if (error || !item) return { ok: false, message: "Claimed item not found." };
 
   if (item.item_type === "claim" && item.product_id) {
@@ -1404,6 +1505,7 @@ export async function removeClaimedItemFromDatabaseSupabase(claimId: string) {
 
   const removeResult = await admin.from("balance_line_items").delete().eq("id", claimId);
   if (removeResult.error) return { ok: false, message: removeResult.error.message };
+  await finalizeCycleIfSettled(admin, item.cycle_id);
   return { ok: true, message: `${item.description} was removed from the active balance.` };
 }
 
@@ -1423,6 +1525,7 @@ export async function applyBalanceAdjustmentsToDatabaseSupabase(shippingChange: 
   const admin = await getAdminClient();
   const { error } = await admin.from("balance_cycles").update({ shipping_total: nextShipping, adjustments_total: nextAdjustments, updated_at: new Date().toISOString() }).eq("id", context.cycle.id);
   if (error) return { ok: false, message: error.message };
+  await finalizeCycleIfSettled(admin, context.cycle.id);
   return { ok: true, message: "Balance charges were updated." };
 }
 
@@ -1481,6 +1584,8 @@ export async function applyPaymentToDatabaseSupabase(paymentAmount: number, cred
       });
       if (creditInsert.error) return { ok: false, message: creditInsert.error.message };
     }
+
+    await finalizeCycleIfSettled(admin, context.cycle.id, normalizedRecordedAt?.date ?? siteToday());
   }
 
   const totalOverpayment = Math.max(remainingPayment, 0);
@@ -1626,6 +1731,8 @@ export async function updatePaymentInDatabaseSupabase(paymentId: string, payment
     .update({ credit_balance: nextCreditBalance })
     .eq("user_id", cycleRow.customer_id);
   if (profileUpdate.error) return { ok: false, message: profileUpdate.error.message };
+
+  await finalizeCycleIfSettled(admin, cycleRow.id, normalizedRecordedAt?.date ?? siteToday());
 
   return {
     ok: true,

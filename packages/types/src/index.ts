@@ -91,6 +91,18 @@ export interface BalanceCycleSummary {
   customerName?: string;
 }
 
+export interface OpenBalanceSummary {
+  totalAmount: number;
+  invoiceAmount: number;
+  shippingAmount: number;
+  overdueAmount: number;
+  currentAmount: number;
+  status: "current" | "overdue";
+  displayDueDate: string;
+  overdueDueDate: string | null;
+  currentDueDate: string | null;
+}
+
 export interface ArchivedInvoice {
   id: string;
   cycleLabel: string;
