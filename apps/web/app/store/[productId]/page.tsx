@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PRODUCT_STATUS_LABELS, canClaim } from "@fatguydiscounts/core";
+import { formatSalePercentage, PRODUCT_STATUS_LABELS, canClaim } from "@fatguydiscounts/core";
 import { ClaimSubmitForm } from "../../../components/forms/claim-submit-form";
 import { RestockRequestForm } from "../../../components/forms/restock-request-form";
 import { ShareProductButton } from "../../../components/store/share-product-button";
@@ -196,7 +196,7 @@ export default async function ProductDetailPage({
                 <p style={{ margin: 0, color: "var(--muted)", textDecoration: "line-through", fontSize: "1.04rem" }}>{money(product.originalPrice)}</p>
                 <p style={{ margin: 0, fontSize: "2rem", fontWeight: 800, color: "#b42318" }}>{money(product.salePrice)}</p>
                 <p style={{ margin: 0, color: "#b42318", fontSize: 13, fontWeight: 700 }}>
-                  {product.salePercentage}% off through {product.saleEndsAt?.slice(0, 10)}
+                  {formatSalePercentage(product.salePercentage)}% off through {product.saleEndsAt?.slice(0, 10)}
                 </p>
               </>
             ) : (

@@ -114,6 +114,15 @@ export function getSalePrice(originalPrice: number, salePercentage: number | nul
   return Math.round(discounted * 100) / 100;
 }
 
+export function formatSalePercentage(value: number | null | undefined) {
+  if (value == null || !Number.isFinite(value)) {
+    return "";
+  }
+
+  const rounded = Math.round(value * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+}
+
 export function canDeleteArchivedProduct(archivedAt: string | null | undefined, nowIso = new Date().toISOString()) {
   void nowIso;
   return Boolean(archivedAt);

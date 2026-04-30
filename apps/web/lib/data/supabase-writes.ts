@@ -466,7 +466,7 @@ export async function updateProductSaleInDatabaseSupabase(productId: string, sal
   if (error || !product) return { ok: false, message: "Product not found." };
 
   if (!Number.isFinite(salePercentage) || salePercentage <= 0 || salePercentage >= 100) {
-    return { ok: false, message: "Sale percentage must be between 1 and 99." };
+    return { ok: false, message: "Sale percentage must be greater than 0 and less than 100." };
   }
 
   if (!saleEndsAt) {
@@ -517,7 +517,7 @@ export async function updateProductSalesBulkInDatabaseSupabase(
   }
 
   if (!Number.isFinite(salePercentage) || salePercentage <= 0 || salePercentage >= 100) {
-    return { ok: false, message: "Sale percentage must be between 1 and 99." };
+    return { ok: false, message: "Sale percentage must be greater than 0 and less than 100." };
   }
 
   if (!saleEndsAt) {
@@ -585,7 +585,7 @@ export async function updateProductSaleByTargetPriceInDatabaseSupabase(
     return { ok: false, message: "Sale price must be lower than the current price." };
   }
 
-  const salePercentage = Math.round(((originalPrice - salePrice) / originalPrice) * 100);
+  const salePercentage = ((originalPrice - salePrice) / originalPrice) * 100;
   return updateProductSaleInDatabaseSupabase(productId, salePercentage, saleEndsAt);
 }
 
@@ -636,7 +636,7 @@ export async function updateProductSalesBulkByTargetPriceInDatabaseSupabase(
   const endsAtIso = `${saleEndsAt}T23:59:59.000Z`;
   for (const product of matchedProducts) {
     const originalPrice = Number(product.price ?? 0);
-    const salePercentage = Math.round(((originalPrice - salePrice) / originalPrice) * 100);
+    const salePercentage = ((originalPrice - salePrice) / originalPrice) * 100;
     const updateResult = await admin
       .from("products")
       .update({

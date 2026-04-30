@@ -30,9 +30,9 @@ export function InventorySaleForm({
           <input
             name="salePercentage"
             type="number"
-            min="1"
-            max="99"
-            step="1"
+            min="0.01"
+            max="99.99"
+            step="0.01"
             defaultValue={currentSalePercentage ?? 10}
             style={{ padding: 10, borderRadius: 12, border: "1px solid #d9c7b2" }}
           />

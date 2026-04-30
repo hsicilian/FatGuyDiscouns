@@ -1,4 +1,4 @@
-import { PRODUCT_STATUS_LABELS, canClaim } from "@fatguydiscounts/core";
+import { formatSalePercentage, PRODUCT_STATUS_LABELS, canClaim } from "@fatguydiscounts/core";
 import { Panel } from "@fatguydiscounts/ui";
 import type { Product } from "@fatguydiscounts/types";
 import { ClaimSubmitForm } from "../../components/forms/claim-submit-form";
@@ -205,7 +205,7 @@ function ProductCard({
                 <p style={{ margin: 0, color: "var(--muted)", textDecoration: "line-through" }}>{money(product.originalPrice)}</p>
                 <p style={{ margin: 0, fontSize: "1.24rem", fontWeight: 700, color: "#b42318" }}>{money(product.salePrice)}</p>
                 <p style={{ margin: 0, color: "#b42318", fontSize: 13, fontWeight: 700 }}>
-                  {product.salePercentage}% off through {product.saleEndsAt?.slice(0, 10)}
+                  {formatSalePercentage(product.salePercentage)}% off through {product.saleEndsAt?.slice(0, 10)}
                 </p>
               </div>
             ) : (

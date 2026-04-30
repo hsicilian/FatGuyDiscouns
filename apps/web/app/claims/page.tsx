@@ -1,3 +1,4 @@
+import { formatSalePercentage } from "@fatguydiscounts/core";
 import { ClaimSubmitForm } from "../../components/forms/claim-submit-form";
 import { ensureClaimAccess } from "../../lib/auth/guards";
 import { previewClaimAction } from "../../lib/actions/claims";
@@ -42,7 +43,7 @@ export default async function ClaimsPage() {
                       <p style={{ margin: 0, color: "#6d655d", textDecoration: "line-through" }}>${product.originalPrice.toFixed(2)}</p>
                       <p style={{ fontSize: 22, fontWeight: 700, margin: 0, color: "#b42318" }}>${product.salePrice.toFixed(2)}</p>
                       <p style={{ margin: 0, color: "#b42318", fontSize: 13, fontWeight: 700 }}>
-                        {product.salePercentage}% off through {product.saleEndsAt?.slice(0, 10)}
+                        {formatSalePercentage(product.salePercentage)}% off through {product.saleEndsAt?.slice(0, 10)}
                       </p>
                     </div>
                   ) : (
