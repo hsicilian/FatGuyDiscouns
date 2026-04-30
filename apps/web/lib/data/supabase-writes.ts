@@ -700,6 +700,31 @@ export async function archiveProductInDatabaseSupabase(productId: string) {
   return { ok: true, message: `${product.title} was moved to archived items.` };
 }
 
+export async function restoreArchivedProductInDatabaseSupabase(productId: string) {
+  const admin = await getAdminClient();
+  const { data: product, error } = await admin
+    .from("products")
+    .select("id, title, status, inventory_quantity")
+    .eq("id", productId)
+    .single();
+
+  if (error || !product) return { ok: false, message: "Product not found." };
+  if (product.status !== "archived") return { ok: false, message: "Only archived items can be restored." };
+
+  const restoredStatus = deriveProductStatus(Number(product.inventory_quantity ?? 0), "active");
+  const updateResult = await admin
+    .from("products")
+    .update({
+      status: restoredStatus,
+      archived_at: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", productId);
+
+  if (updateResult.error) return { ok: false, message: updateResult.error.message };
+  return { ok: true, message: `${product.title} was restored to inventory.` };
+}
+
 export async function deleteArchivedProductInDatabaseSupabase(productId: string) {
   const admin = await getAdminClient();
   const { data: product, error } = await admin

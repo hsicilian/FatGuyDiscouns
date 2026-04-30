@@ -26,6 +26,7 @@ import {
   markNotificationReadInDatabase,
   replyToCustomerMessage,
   removeClaimedItemFromDatabase,
+  restoreArchivedProductInDatabase,
   saveCrossListedInventoryToDatabase,
   submitClaimToDatabase,
   submitCustomerItemRequestToDatabase,
@@ -634,6 +635,35 @@ export async function archiveProduct(productId: string): Promise<FormActionState
     entityType: "product",
     entityId: productId,
     summary: `Archived product ${productId}.`,
+  });
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin/inventory/archived");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function restoreArchivedProduct(productId: string): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await restoreArchivedProductInDatabase(productId);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.restore",
+    entityType: "product",
+    entityId: productId,
+    summary: "Restored archived inventory item.",
   });
   revalidatePath("/");
   revalidatePath("/store");

@@ -6,6 +6,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Fatguydiscounts",
   description: "Claim-based live-sale platform for customers and admins.",
+  manifest: "/manifest.webmanifest",
 };
 
 export default async function RootLayout({

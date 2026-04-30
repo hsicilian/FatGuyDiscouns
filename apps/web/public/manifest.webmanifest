@@ -1,0 +1,21 @@
+{
+  "name": "Fatguydiscounts",
+  "short_name": "FGD",
+  "description": "Claim-based live-sale platform for customers and admins.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffb353",
+  "theme_color": "#ffb353",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

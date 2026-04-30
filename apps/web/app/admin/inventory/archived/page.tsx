@@ -1,6 +1,7 @@
 import { canDeleteArchivedProduct } from "@fatguydiscounts/core";
 import { Panel } from "@fatguydiscounts/ui";
 import { DeleteArchivedProductForm } from "../../../../components/forms/delete-archived-product-form";
+import { RestoreArchivedProductForm } from "../../../../components/forms/restore-archived-product-form";
 import { ensureAdminAccess } from "../../../../lib/auth/guards";
 import { listProducts } from "../../../../lib/data/local-db";
 
@@ -36,7 +37,8 @@ export default async function ArchivedInventoryPage() {
                   <p style={{ color: "var(--muted)", lineHeight: 1.7, marginTop: 0 }}>{product.description}</p>
                   <p style={{ margin: 0, color: "var(--muted)" }}>Archived on: {product.archivedAt ? product.archivedAt.slice(0, 10) : "Unknown"}</p>
                 </div>
-                <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)", display: "grid", gap: 14 }}>
+                  <RestoreArchivedProductForm productId={product.id} />
                   <DeleteArchivedProductForm productId={product.id} disabled={!canDelete} helperText={helperText} />
                 </div>
               </div>

@@ -56,6 +56,7 @@ import {
   markNotificationReadInDatabaseSupabase,
   replyToCustomerMessageSupabase,
   removeClaimedItemFromDatabaseSupabase,
+  restoreArchivedProductInDatabaseSupabase,
   saveCrossListedInventoryToDatabaseSupabase,
   submitClaimToDatabaseSupabase,
   submitCustomerItemRequestToDatabaseSupabase,
@@ -264,6 +265,11 @@ export async function adjustInventoryInDatabase(productId: string, quantityChang
 export async function archiveProductInDatabase(productId: string) {
   requireSupabase();
   return archiveProductInDatabaseSupabase(productId);
+}
+
+export async function restoreArchivedProductInDatabase(productId: string) {
+  requireSupabase();
+  return restoreArchivedProductInDatabaseSupabase(productId);
 }
 
 export async function deleteArchivedProductInDatabase(productId: string) {
