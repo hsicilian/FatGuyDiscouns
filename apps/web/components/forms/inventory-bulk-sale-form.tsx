@@ -6,7 +6,7 @@ import { updateProductSalesBulkAction } from "../../app/actions/inventory/bulk-s
 
 const initialState: FormActionState = {
   ok: true,
-  message: "Choose the items for the sale, then apply one sale percent and end date to all of them at once.",
+  message: "Choose the items for the sale, then apply either one sale percent or one target sale price and end date to all of them at once.",
 };
 
 export function InventoryBulkSaleForm({
@@ -79,6 +79,17 @@ export function InventoryBulkSaleForm({
           />
         </label>
         <label style={{ display: "grid", gap: 4 }}>
+          <span style={{ color: "#6d655d", fontSize: 14 }}>Target sale price</span>
+          <input
+            name="salePrice"
+            type="number"
+            min="0.01"
+            step="0.01"
+            placeholder="Example: 10.00"
+            style={{ padding: 10, borderRadius: 12, border: "1px solid #d9c7b2" }}
+          />
+        </label>
+        <label style={{ display: "grid", gap: 4 }}>
           <span style={{ color: "#6d655d", fontSize: 14 }}>Sale ends</span>
           <input
             name="saleEndsAt"
@@ -87,6 +98,10 @@ export function InventoryBulkSaleForm({
           />
         </label>
       </div>
+
+      <p style={{ margin: 0, color: "#6d655d", fontSize: 13 }}>
+        If you enter a target sale price, each selected item will get its own matching discount percentage automatically.
+      </p>
 
       <div style={{ maxHeight: 280, overflowY: "auto", display: "grid", gap: 8, paddingRight: 4 }}>
         {products.map((product) => {

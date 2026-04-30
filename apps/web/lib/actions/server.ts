@@ -43,7 +43,9 @@ import {
   updateHomepageFeaturedInDatabase,
   updateInventoryItemInDatabase,
   updateProductSaleInDatabase,
+  updateProductSaleByTargetPriceInDatabase,
   updateProductSalesBulkInDatabase,
+  updateProductSalesBulkByTargetPriceInDatabase,
   updateShipmentInDatabase,
   recordAdminAuditEntryInDatabase,
 } from "../data/local-db";
@@ -469,6 +471,38 @@ export async function updateProductSale(
   };
 }
 
+export async function updateProductSaleByTargetPrice(
+  productId: string,
+  salePrice: number,
+  saleEndsAt: string,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateProductSaleByTargetPriceInDatabase(productId, salePrice, saleEndsAt);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.sale_set_price",
+    entityType: "product",
+    entityId: productId,
+    summary: `Set product sale price to $${salePrice.toFixed(2)} through ${saleEndsAt}.`,
+  });
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
 export async function updateProductSalesBulk(
   productIds: string[],
   salePercentage: number,
@@ -487,6 +521,37 @@ export async function updateProductSalesBulk(
     actionType: "inventory.sale_set_bulk",
     entityType: "product",
     summary: `Started a ${salePercentage}% sale through ${saleEndsAt} for ${productIds.length} inventory items.`,
+  });
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateProductSalesBulkByTargetPrice(
+  productIds: string[],
+  salePrice: number,
+  saleEndsAt: string,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateProductSalesBulkByTargetPriceInDatabase(productIds, salePrice, saleEndsAt);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.sale_set_bulk_price",
+    entityType: "product",
+    summary: `Started a sale price of $${salePrice.toFixed(2)} through ${saleEndsAt} for ${productIds.length} inventory items.`,
   });
   revalidatePath("/");
   revalidatePath("/store");

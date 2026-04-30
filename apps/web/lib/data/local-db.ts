@@ -68,7 +68,9 @@ import {
   updateHomepageFeaturedInDatabaseSupabase,
   updateInventoryItemInDatabaseSupabase,
   updateProductSaleInDatabaseSupabase,
+  updateProductSaleByTargetPriceInDatabaseSupabase,
   updateProductSalesBulkInDatabaseSupabase,
+  updateProductSalesBulkByTargetPriceInDatabaseSupabase,
   updateClaimedItemInDatabaseSupabase,
   updateCurrentCustomerProfileSupabase,
   updateCustomerAccountStateSupabase,
@@ -326,9 +328,19 @@ export async function updateProductSaleInDatabase(productId: string, salePercent
   return updateProductSaleInDatabaseSupabase(productId, salePercentage, saleEndsAt);
 }
 
+export async function updateProductSaleByTargetPriceInDatabase(productId: string, salePrice: number, saleEndsAt: string) {
+  requireSupabase();
+  return updateProductSaleByTargetPriceInDatabaseSupabase(productId, salePrice, saleEndsAt);
+}
+
 export async function updateProductSalesBulkInDatabase(productIds: string[], salePercentage: number, saleEndsAt: string) {
   requireSupabase();
   return updateProductSalesBulkInDatabaseSupabase(productIds, salePercentage, saleEndsAt);
+}
+
+export async function updateProductSalesBulkByTargetPriceInDatabase(productIds: string[], salePrice: number, saleEndsAt: string) {
+  requireSupabase();
+  return updateProductSalesBulkByTargetPriceInDatabaseSupabase(productIds, salePrice, saleEndsAt);
 }
 
 export async function clearProductSaleInDatabase(productId: string) {

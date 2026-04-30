@@ -1,7 +1,7 @@
 "use server";
 
 import type { FormActionState } from "@fatguydiscounts/types";
-import { updateProductSalesBulk } from "../../../lib/actions/server";
+import { updateProductSalesBulk, updateProductSalesBulkByTargetPrice } from "../../../lib/actions/server";
 
 export async function updateProductSalesBulkAction(
   _previousState: FormActionState,
@@ -13,7 +13,12 @@ export async function updateProductSalesBulkAction(
     .filter(Boolean);
 
   const salePercentage = Number(formData.get("salePercentage") ?? 0);
+  const salePrice = Number(formData.get("salePrice") ?? 0);
   const saleEndsAt = String(formData.get("saleEndsAt") ?? "");
+
+  if (Number.isFinite(salePrice) && salePrice > 0) {
+    return updateProductSalesBulkByTargetPrice(productIds, salePrice, saleEndsAt);
+  }
 
   return updateProductSalesBulk(productIds, salePercentage, saleEndsAt);
 }

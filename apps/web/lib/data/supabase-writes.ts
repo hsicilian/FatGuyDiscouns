@@ -558,6 +558,105 @@ export async function updateProductSalesBulkInDatabaseSupabase(
   };
 }
 
+export async function updateProductSaleByTargetPriceInDatabaseSupabase(
+  productId: string,
+  salePrice: number,
+  saleEndsAt: string,
+) {
+  const admin = await getAdminClient();
+  const { data: product, error } = await admin
+    .from("products")
+    .select("id, title, price")
+    .eq("id", productId)
+    .single();
+
+  if (error || !product) {
+    return { ok: false, message: error?.message ?? "Product not found." };
+  }
+
+  const originalPrice = Number(product.price ?? 0);
+  if (!Number.isFinite(salePrice) || salePrice <= 0) {
+    return { ok: false, message: "Sale price must be above zero." };
+  }
+  if (!Number.isFinite(originalPrice) || originalPrice <= 0) {
+    return { ok: false, message: "This item needs a normal price before you can set a sale price." };
+  }
+  if (salePrice >= originalPrice) {
+    return { ok: false, message: "Sale price must be lower than the current price." };
+  }
+
+  const salePercentage = Math.round(((originalPrice - salePrice) / originalPrice) * 100);
+  return updateProductSaleInDatabaseSupabase(productId, salePercentage, saleEndsAt);
+}
+
+export async function updateProductSalesBulkByTargetPriceInDatabaseSupabase(
+  productIds: string[],
+  salePrice: number,
+  saleEndsAt: string,
+) {
+  const uniqueProductIds = [...new Set(productIds.map((value) => value.trim()).filter(Boolean))];
+
+  if (uniqueProductIds.length === 0) {
+    return { ok: false, message: "Select at least one inventory item for the sale." };
+  }
+
+  if (!Number.isFinite(salePrice) || salePrice <= 0) {
+    return { ok: false, message: "Sale price must be above zero." };
+  }
+
+  if (!saleEndsAt) {
+    return { ok: false, message: "Sale end date is required." };
+  }
+
+  const admin = await getAdminClient();
+  const { data: products, error } = await admin
+    .from("products")
+    .select("id, title, price")
+    .in("id", uniqueProductIds);
+
+  if (error) {
+    return { ok: false, message: error.message };
+  }
+
+  const matchedProducts = products ?? [];
+  if (matchedProducts.length === 0) {
+    return { ok: false, message: "No matching inventory items were found for the selected sale." };
+  }
+
+  for (const product of matchedProducts) {
+    const originalPrice = Number(product.price ?? 0);
+    if (!Number.isFinite(originalPrice) || originalPrice <= 0) {
+      return { ok: false, message: `${product.title} needs a normal price before you can set a dollar sale price.` };
+    }
+    if (salePrice >= originalPrice) {
+      return { ok: false, message: `Sale price must be lower than the current price for ${product.title}.` };
+    }
+  }
+
+  const endsAtIso = `${saleEndsAt}T23:59:59.000Z`;
+  for (const product of matchedProducts) {
+    const originalPrice = Number(product.price ?? 0);
+    const salePercentage = Math.round(((originalPrice - salePrice) / originalPrice) * 100);
+    const updateResult = await admin
+      .from("products")
+      .update({
+        sale_percentage: salePercentage,
+        sale_ends_at: endsAtIso,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", product.id);
+
+    if (updateResult.error) {
+      return { ok: false, message: updateResult.error.message };
+    }
+  }
+
+  return {
+    ok: true,
+    message: `Started a sale price of $${salePrice.toFixed(2)} on ${matchedProducts.length} item${matchedProducts.length === 1 ? "" : "s"} through ${saleEndsAt}.`,
+  };
+}
+
 export async function updateHomepageFeaturedInDatabaseSupabase(productId: string, featured: boolean) {
   const admin = await getAdminClient();
   const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
