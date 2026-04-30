@@ -3,11 +3,7 @@ import { EventDeleteForm } from "../../../components/forms/event-delete-form";
 import { EventUpdateForm } from "../../../components/forms/event-update-form";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
 import { listEvents } from "../../../lib/data/local-db";
-
-const eventDate = new Intl.DateTimeFormat("en-US", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+import { formatEventLabel } from "../../../lib/events";
 
 export default async function AdminEventsPage() {
   await ensureAdminAccess();
@@ -44,7 +40,7 @@ export default async function AdminEventsPage() {
                 <strong>{event.title}</strong>
                 <a href={`/events/${event.id}`} style={{ color: "var(--accent-strong)", fontWeight: 700 }}>View page</a>
               </div>
-              <p style={{ margin: 0, color: "var(--muted)" }}>{eventDate.format(new Date(event.startsAt))}</p>
+              <p style={{ margin: 0, color: "var(--muted)" }}>{formatEventLabel(event.startsAt, event.timeZone ?? "America/New_York")}</p>
               <p style={{ margin: 0, color: "var(--muted)" }}>{event.platform ?? "Live sale"}</p>
               <EventUpdateForm event={event} />
               <EventDeleteForm eventId={event.id} />

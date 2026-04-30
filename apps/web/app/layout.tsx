@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Fatguydiscounts",
-  description: "Claim-based live-sale platform for customers and admins.",
+  description: "Shop claim-first deals on everyday finds, collectibles, and live-sale favorites at Fat Guy Discounts.",
   manifest: "/manifest.webmanifest",
 };
 

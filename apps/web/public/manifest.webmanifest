@@ -1,7 +1,7 @@
 {
   "name": "Fatguydiscounts",
   "short_name": "FGD",
-  "description": "Claim-based live-sale platform for customers and admins.",
+  "description": "Shop claim-first deals on everyday finds, collectibles, and live-sale favorites at Fat Guy Discounts.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffb353",

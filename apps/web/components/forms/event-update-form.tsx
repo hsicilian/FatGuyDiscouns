@@ -12,7 +12,7 @@ const initialState: FormActionState = {
 
 export function EventUpdateForm({ event }: { event: ShowEvent }) {
   const [state, formAction, isPending] = useActionState(updateEventAction, initialState);
-  const defaultTimeZone = "America/New_York";
+  const defaultTimeZone = event.timeZone ?? "America/New_York";
 
   return (
     <form action={formAction} style={{ display: "grid", gap: 10, padding: 16, borderRadius: 18, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>

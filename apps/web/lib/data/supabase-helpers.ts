@@ -317,6 +317,7 @@ export function toShowEvent(row: Record<string, any>): ShowEvent {
     description: row.description ?? "",
     externalLink: row.external_link ?? "",
     platform: row.platform ?? undefined,
+    timeZone: row.time_zone ?? "America/New_York",
   };
 }
 

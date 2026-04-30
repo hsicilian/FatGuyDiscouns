@@ -226,6 +226,7 @@ export interface ShowEvent {
   description: string;
   externalLink: string;
   platform?: string;
+  timeZone?: string;
 }
 
 export interface FinancialSummary {
