@@ -505,6 +505,59 @@ export async function clearProductSaleInDatabaseSupabase(productId: string) {
   return { ok: true, message: `${product.title} sale pricing was cleared.` };
 }
 
+export async function updateProductSalesBulkInDatabaseSupabase(
+  productIds: string[],
+  salePercentage: number,
+  saleEndsAt: string,
+) {
+  const uniqueProductIds = [...new Set(productIds.map((value) => value.trim()).filter(Boolean))];
+
+  if (uniqueProductIds.length === 0) {
+    return { ok: false, message: "Select at least one inventory item for the sale." };
+  }
+
+  if (!Number.isFinite(salePercentage) || salePercentage <= 0 || salePercentage >= 100) {
+    return { ok: false, message: "Sale percentage must be between 1 and 99." };
+  }
+
+  if (!saleEndsAt) {
+    return { ok: false, message: "Sale end date is required." };
+  }
+
+  const admin = await getAdminClient();
+  const { data: products, error: productsError } = await admin
+    .from("products")
+    .select("id, title")
+    .in("id", uniqueProductIds);
+
+  if (productsError) {
+    return { ok: false, message: productsError.message };
+  }
+
+  if ((products ?? []).length === 0) {
+    return { ok: false, message: "No matching inventory items were found for the selected sale." };
+  }
+
+  const endsAtIso = `${saleEndsAt}T23:59:59.000Z`;
+  const updateResult = await admin
+    .from("products")
+    .update({
+      sale_percentage: salePercentage,
+      sale_ends_at: endsAtIso,
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", uniqueProductIds);
+
+  if (updateResult.error) {
+    return { ok: false, message: updateResult.error.message };
+  }
+
+  return {
+    ok: true,
+    message: `Started a ${salePercentage}% sale on ${(products ?? []).length} item${(products ?? []).length === 1 ? "" : "s"} through ${saleEndsAt}.`,
+  };
+}
+
 export async function updateHomepageFeaturedInDatabaseSupabase(productId: string, featured: boolean) {
   const admin = await getAdminClient();
   const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
@@ -850,6 +903,134 @@ export async function createInventoryItemInDatabaseSupabase(input: {
   return {
     ok: true,
     message: `${title} was added with ${images.length} photo${images.length === 1 ? "" : "s"}, ${quantity} item${quantity === 1 ? "" : "s"} on hand, and a Website entry in cross-listed inventory.`,
+  };
+}
+
+export async function updateInventoryItemInDatabaseSupabase(input: {
+  productId: string;
+  title: string;
+  description: string;
+  price: number;
+  cost: number;
+  category: string;
+  sku: string;
+  location: string;
+}) {
+  const productId = input.productId.trim();
+  const title = input.title.trim();
+  const description = input.description.trim();
+  const categoryName = input.category.trim();
+  const sku = input.sku.trim();
+  const location = input.location.trim();
+  const price = Number(input.price);
+  const cost = Number(input.cost);
+
+  if (!productId) return { ok: false, message: "Product record is missing." };
+  if (!title) return { ok: false, message: "Item title is required." };
+  if (!categoryName) return { ok: false, message: "Category is required." };
+  if (!Number.isFinite(price) || price < 0) return { ok: false, message: "Price must be zero or higher." };
+  if (!Number.isFinite(cost) || cost < 0) return { ok: false, message: "Cost must be zero or higher." };
+  if (!sku) return { ok: false, message: "SKU is required so the item can be tracked in cross-listed inventory." };
+
+  const admin = await getAdminClient();
+  const { data: existingProduct, error: existingProductError } = await admin
+    .from("products")
+    .select("id, sku")
+    .eq("id", productId)
+    .single();
+
+  if (existingProductError || !existingProduct) {
+    return { ok: false, message: existingProductError?.message ?? "Product not found." };
+  }
+
+  const normalizedSlug = slugifyCategoryName(categoryName);
+  let categoryId: string | null = null;
+  const existingCategory = await admin
+    .from("categories")
+    .select("id")
+    .or(`name.eq.${categoryName},slug.eq.${normalizedSlug}`)
+    .maybeSingle();
+
+  if (existingCategory.error) {
+    return { ok: false, message: existingCategory.error.message };
+  }
+
+  if (existingCategory.data?.id) {
+    categoryId = existingCategory.data.id;
+  } else {
+    const insertedCategory = await admin
+      .from("categories")
+      .insert({ name: categoryName, slug: normalizedSlug })
+      .select("id")
+      .single();
+
+    if (insertedCategory.error || !insertedCategory.data) {
+      return { ok: false, message: insertedCategory.error?.message ?? "Could not create category." };
+    }
+
+    categoryId = insertedCategory.data.id;
+  }
+
+  const productUpdate = await admin
+    .from("products")
+    .update({
+      title,
+      description,
+      price,
+      cost,
+      sku,
+      location: location || null,
+      category_id: categoryId,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", productId);
+
+  if (productUpdate.error) {
+    return { ok: false, message: productUpdate.error.message };
+  }
+
+  const previousSku = typeof existingProduct.sku === "string" ? existingProduct.sku.trim() : "";
+  const existingCrossListed = previousSku
+    ? await admin
+      .from("cross_listed_inventory")
+      .select("id")
+      .eq("sku", previousSku)
+      .maybeSingle()
+    : null;
+
+  if (existingCrossListed?.error) {
+    return { ok: false, message: existingCrossListed.error.message };
+  }
+
+  if (existingCrossListed?.data?.id) {
+    const crossListedUpdate = await admin
+      .from("cross_listed_inventory")
+      .update({
+        sku,
+        item_name: title,
+        cost,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existingCrossListed.data.id);
+
+    if (crossListedUpdate.error) {
+      return { ok: false, message: crossListedUpdate.error.message };
+    }
+  } else {
+    const crossListedSave = await saveCrossListedInventoryToDatabaseSupabase({
+      sku,
+      itemName: title,
+      cost,
+      platforms: ["Website"],
+    });
+    if (!crossListedSave.ok) {
+      return { ok: false, message: crossListedSave.message };
+    }
+  }
+
+  return {
+    ok: true,
+    message: `${title} inventory details were updated.`,
   };
 }
 

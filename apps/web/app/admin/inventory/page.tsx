@@ -5,7 +5,9 @@ import { CategoryCreateForm } from "../../../components/forms/category-create-fo
 import { CategoryDeleteForm } from "../../../components/forms/category-delete-form";
 import { InventoryAdjustForm } from "../../../components/forms/inventory-adjust-form";
 import { InventoryBulkImportForm } from "../../../components/forms/inventory-bulk-import-form";
+import { InventoryBulkSaleForm } from "../../../components/forms/inventory-bulk-sale-form";
 import { InventoryCreateForm } from "../../../components/forms/inventory-create-form";
+import { InventoryEditForm } from "../../../components/forms/inventory-edit-form";
 import { HomepageFeatureForm } from "../../../components/forms/homepage-feature-form";
 import { InventoryImageManager } from "../../../components/forms/inventory-image-manager";
 import { InventorySaleForm } from "../../../components/forms/inventory-sale-form";
@@ -145,6 +147,21 @@ export default async function AdminInventoryPage({
         <div style={{ display: "grid", gap: 16 }}>
           <div>
             <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0, marginBottom: 8 }}>
+              Start new sale
+            </p>
+            <h2 style={{ margin: "0 0 8px" }}>Apply one sale to several items at once</h2>
+            <p style={{ color: "var(--muted)", lineHeight: 1.7, margin: 0 }}>
+              Pick the inventory items you want in the sale, then set the sale percent and end date one time for the whole group.
+            </p>
+          </div>
+          <InventoryBulkSaleForm products={sortedProducts} />
+        </div>
+      </Panel>
+
+      <Panel>
+        <div style={{ display: "grid", gap: 16 }}>
+          <div>
+            <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0, marginBottom: 8 }}>
               Bulk import
             </p>
             <h2 style={{ margin: "0 0 8px" }}>Upload several inventory rows at once</h2>
@@ -265,10 +282,37 @@ export default async function AdminInventoryPage({
                       </p>
                     ) : null}
                   </div>
+                  <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                    <p style={{ margin: 0, color: "var(--muted)" }}>SKU</p>
+                    <strong>{product.sku || "None"}</strong>
+                  </div>
+                  <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                    <p style={{ margin: 0, color: "var(--muted)" }}>Location</p>
+                    <strong>{product.location || "Not set"}</strong>
+                  </div>
                 </div>
                 </div>
               </div>
               <div style={{ display: "grid", gap: 14 }}>
+                <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
+                  <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+                    <strong>Edit listing details</strong>
+                    <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.6 }}>
+                      Update the title, description, category, price, cost, SKU, or storage location for this item.
+                    </p>
+                  </div>
+                  <InventoryEditForm
+                    productId={product.id}
+                    title={product.title}
+                    description={product.description}
+                    price={product.originalPrice}
+                    cost={product.cost}
+                    category={product.category}
+                    sku={product.sku}
+                    location={product.location}
+                    categories={categories}
+                  />
+                </div>
                 <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
                   <InventoryImageManager
                     productId={product.id}

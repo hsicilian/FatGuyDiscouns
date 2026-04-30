@@ -102,7 +102,7 @@ export async function listCategoriesSupabase(): Promise<CategoryOption[]> {
 export async function listProductsSupabase(options?: { includeArchived?: boolean }) {
   const actor = await getCurrentActor().catch(() => null);
   const client = await getAdminClient();
-  let query = client.from("products").select("id, title, description, price, cost, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name)");
+  let query = client.from("products").select("id, title, description, price, cost, sku, location, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name)");
 
   if (options?.includeArchived) {
     query = query.eq("status", "archived");
@@ -124,7 +124,7 @@ export async function getProductByIdSupabase(productId: string) {
   if (isUuidLike(productId)) {
     let query = client
         .from("products")
-        .select("id, title, description, price, cost, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name), product_images(id, image_url, position)")
+        .select("id, title, description, price, cost, sku, location, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name), product_images(id, image_url, position)")
       .eq("id", productId);
 
     if (!actor || actor.role === "customer") {
@@ -142,7 +142,7 @@ export async function getProductByIdSupabase(productId: string) {
 
   let fallbackQuery = client
     .from("products")
-    .select("id, title, description, price, cost, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name)")
+    .select("id, title, description, price, cost, sku, location, sale_percentage, sale_ends_at, archived_at, inventory_quantity, status, homepage_featured, categories(name)")
     .order("created_at", { ascending: false });
 
   if (!actor || actor.role === "customer") {

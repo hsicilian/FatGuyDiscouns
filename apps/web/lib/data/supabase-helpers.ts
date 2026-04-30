@@ -223,6 +223,8 @@ export function toProduct(row: Record<string, any>): Product {
     description: row.description ?? "",
     price: salePrice ?? originalPrice,
     cost: row.cost == null ? null : Number(row.cost),
+    sku: typeof row.sku === "string" ? row.sku : null,
+    location: typeof row.location === "string" ? row.location : null,
     originalPrice,
     salePrice,
     salePercentage,

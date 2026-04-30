@@ -39,6 +39,8 @@ export interface Product {
   description: string;
   price: number;
   cost?: number | null;
+  sku?: string | null;
+  location?: string | null;
   originalPrice: number;
   salePrice: number | null;
   salePercentage: number | null;

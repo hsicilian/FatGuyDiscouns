@@ -41,7 +41,9 @@ import {
   updateCustomerProfileByAdmin,
   updateEventInDatabase,
   updateHomepageFeaturedInDatabase,
+  updateInventoryItemInDatabase,
   updateProductSaleInDatabase,
+  updateProductSalesBulkInDatabase,
   updateShipmentInDatabase,
   recordAdminAuditEntryInDatabase,
 } from "../data/local-db";
@@ -357,6 +359,52 @@ export async function createInventoryItemsBulk(
   };
 }
 
+export async function updateInventoryItem(
+  productId: string,
+  title: string,
+  description: string,
+  price: number,
+  cost: number,
+  category: string,
+  sku: string,
+  location: string,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateInventoryItemInDatabase({
+    productId,
+    title,
+    description,
+    price,
+    cost,
+    category,
+    sku,
+    location,
+  });
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.update",
+    entityType: "product",
+    entityId: productId,
+    summary: `Updated inventory item "${title}" in ${category} with SKU ${sku}.`,
+  });
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
 export async function createCategory(name: string): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
@@ -408,6 +456,37 @@ export async function updateProductSale(
     entityType: "product",
     entityId: productId,
     summary: `Set product sale to ${salePercentage}% off through ${saleEndsAt}.`,
+  });
+  revalidatePath("/");
+  revalidatePath("/store");
+  revalidatePath("/claims");
+  revalidatePath("/admin");
+  revalidatePath("/admin/inventory");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function updateProductSalesBulk(
+  productIds: string[],
+  salePercentage: number,
+  saleEndsAt: string,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await updateProductSalesBulkInDatabase(productIds, salePercentage, saleEndsAt);
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "inventory.sale_set_bulk",
+    entityType: "product",
+    summary: `Started a ${salePercentage}% sale through ${saleEndsAt} for ${productIds.length} inventory items.`,
   });
   revalidatePath("/");
   revalidatePath("/store");

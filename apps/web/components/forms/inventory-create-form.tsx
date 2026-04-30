@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import type { CategoryOption, FormActionState } from "@fatguydiscounts/types";
 import { createInventoryItemAction } from "../../app/actions/inventory/create";
 
@@ -17,9 +17,23 @@ const inputStyle: React.CSSProperties = {
 };
 
 export function InventoryCreateForm({ categories }: { categories: CategoryOption[] }) {
+  const formRef = useRef<HTMLFormElement | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [state, formAction, isPending] = useActionState(createInventoryItemAction, initialState);
+
+  useEffect(() => {
+    if (!state.ok || !state.submittedAt) {
+      return;
+    }
+
+    formRef.current?.reset();
+    setSelectedFiles([]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }, [state.ok, state.submittedAt]);
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const nextFiles = Array.from(event.target.files ?? []);
@@ -53,8 +67,27 @@ export function InventoryCreateForm({ categories }: { categories: CategoryOption
     setSelectedFiles((current) => current.filter((_, fileIndex) => fileIndex !== index));
   }
 
+  function handleFormKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    if (target.tagName === "TEXTAREA") {
+      return;
+    }
+
+    event.preventDefault();
+  }
+
   return (
     <form
+      ref={formRef}
+      onKeyDown={handleFormKeyDown}
       action={async (formData) => {
         selectedFiles.forEach((file) => formData.append("images", file));
         await formAction(formData);
@@ -169,6 +202,9 @@ export function InventoryCreateForm({ categories }: { categories: CategoryOption
         </button>
         <p style={{ color: state.ok ? "#2f5d32" : "#8e3200", margin: 0 }}>{state.message}</p>
       </div>
+      <p style={{ margin: 0, color: "#6d655d", fontSize: 13 }}>
+        Scanning a SKU will fill the field without auto-submitting the listing.
+      </p>
     </form>
   );
 }
