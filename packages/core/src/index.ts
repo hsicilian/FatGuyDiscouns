@@ -56,7 +56,7 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
 ];
 
 export const PAYMENT_SCHEDULE_ANCHOR = "2026-04-05";
-export const PAYMENT_SCHEDULE_INTERVAL_DAYS = 14;
+export const PAYMENT_SCHEDULE_INTERVAL_DAYS = 7;
 
 function parseDateOnly(value: string) {
   const [year, month, day] = value.slice(0, 10).split("-").map(Number);
