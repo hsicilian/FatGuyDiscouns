@@ -18,6 +18,10 @@ const currency = new Intl.NumberFormat("en-US", {
   currency: "USD",
 });
 
+function fulfillmentMethodLabel(value: "shipping" | "local_pickup") {
+  return value === "local_pickup" ? "Local pickup" : "Shipping";
+}
+
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ padding: 18, background: "rgba(255,255,255,0.56)", borderRadius: 20, border: "1px solid rgba(232,214,195,0.85)" }}>
@@ -107,6 +111,7 @@ export default async function AccountPage() {
             <h2 style={{ marginTop: 0 }}>Address and shipment status</h2>
             <p style={{ color: "var(--muted)", lineHeight: 1.7, marginBottom: 8 }}>{currentCustomer.address}</p>
             {currentCustomer.phone ? <p style={{ color: "var(--muted)", marginTop: 0 }}>Phone: {currentCustomer.phone}</p> : null}
+            <p style={{ color: "var(--muted)", marginTop: 0 }}>Fulfillment: {fulfillmentMethodLabel(currentCustomer.fulfillmentMethod)}</p>
             {!currentCustomer.street || !currentCustomer.city || !currentCustomer.region || !currentCustomer.postalCode ? (
               <div style={{ marginBottom: 14, padding: 14, borderRadius: 16, background: "rgba(187,77,0,0.08)", border: "1px solid rgba(187,77,0,0.18)", color: "#8e3200" }}>
                 Finish your street address, city, state, zip code, and timezone below before requesting shipment.
@@ -165,6 +170,10 @@ export default async function AccountPage() {
                 </div>
               ) : null}
               <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
+                <p style={{ margin: 0, color: "var(--muted)" }}>Fulfillment method</p>
+                <strong>{fulfillmentMethodLabel(currentCustomer.fulfillmentMethod)}</strong>
+              </div>
+              <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
                 <p style={{ margin: 0, color: "var(--muted)" }}>Timezone on file</p>
                 <strong>{currentCustomer.timezone}</strong>
               </div>
@@ -175,6 +184,7 @@ export default async function AccountPage() {
               defaultRegion={currentCustomer.region}
               defaultPostalCode={currentCustomer.postalCode}
               defaultPhone={currentCustomer.phone}
+              defaultFulfillmentMethod={currentCustomer.fulfillmentMethod}
               defaultTimezone={currentCustomer.timezone}
             />
           </section>

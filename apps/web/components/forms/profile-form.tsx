@@ -15,6 +15,7 @@ export function ProfileForm({
   defaultRegion,
   defaultPostalCode,
   defaultPhone,
+  defaultFulfillmentMethod,
   defaultTimezone,
 }: {
   defaultStreet: string;
@@ -22,6 +23,7 @@ export function ProfileForm({
   defaultRegion: string;
   defaultPostalCode: string;
   defaultPhone: string;
+  defaultFulfillmentMethod: "shipping" | "local_pickup";
   defaultTimezone: string;
 }) {
   const [state, formAction, isPending] = useActionState(updateCustomerProfileAction, initialState);
@@ -51,6 +53,13 @@ export function ProfileForm({
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ color: "var(--muted)", fontSize: 14 }}>Phone number</span>
         <input name="phone" type="tel" defaultValue={defaultPhone} autoComplete="tel" style={{ minWidth: 0, width: "100%", padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
+      </label>
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ color: "var(--muted)", fontSize: 14 }}>Fulfillment method</span>
+        <select name="fulfillmentMethod" defaultValue={defaultFulfillmentMethod} style={{ minWidth: 0, width: "100%", padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }}>
+          <option value="shipping">Shipping</option>
+          <option value="local_pickup">Local pickup</option>
+        </select>
       </label>
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ color: "var(--muted)", fontSize: 14 }}>Timezone</span>

@@ -47,6 +47,10 @@ function sanitizeFilenamePart(value: string) {
   return value.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "customer";
 }
 
+function fulfillmentMethodLabel(value: "shipping" | "local_pickup") {
+  return value === "local_pickup" ? "Local pickup" : "Shipping";
+}
+
 function escapePdfText(value: string) {
   return value
     .replace(/\\/g, "\\\\")
@@ -232,7 +236,7 @@ export async function GET(
   const invoice = await getCurrentInvoiceSnapshotForCustomer(customerId);
   const pdf = new StyledPdfBuilder();
 
-  pdf.addRect(38, 616, 536, 136, COLORS.card, COLORS.line);
+  pdf.addRect(38, 586, 536, 166, COLORS.card, COLORS.line);
   pdf.addText("Fatguydiscounts", 58, 718, { size: 22, color: COLORS.ink });
   pdf.addText("CURRENT CUSTOMER INVOICE", 58, 694, { size: 10, color: COLORS.accent });
   pdf.addWrappedText(`Prepared for ${invoice.customer.displayName}`, 58, 666, 300, {
@@ -240,29 +244,31 @@ export async function GET(
     color: COLORS.ink,
     leading: 26,
   });
-  pdf.addText(`Generated ${formatEasternDateTime(invoice.generatedOn)}`, 58, 628, {
+  pdf.addText(`Generated ${formatEasternDateTime(invoice.generatedOn)}`, 58, 612, {
     size: 11,
     color: COLORS.muted,
   });
 
-  pdf.addRect(388, 618, 166, 110, COLORS.cardAlt, COLORS.line);
-  pdf.addText("Customer info".toUpperCase(), 404, 705, { size: 9, color: COLORS.accent });
-  pdf.addWrappedText(invoice.customer.displayName, 404, 682, 132, { size: 15, color: COLORS.ink, leading: 18 });
-  pdf.addWrappedText(invoice.customer.email || "No email on file", 404, 660, 132, { size: 10, color: COLORS.muted, leading: 12 });
+  pdf.addRect(370, 596, 184, 132, COLORS.cardAlt, COLORS.line);
+  pdf.addText("Customer info".toUpperCase(), 386, 705, { size: 9, color: COLORS.accent });
+  pdf.addWrappedText(invoice.customer.displayName, 386, 682, 148, { size: 15, color: COLORS.ink, leading: 18 });
+  pdf.addWrappedText(invoice.customer.email || "No email on file", 386, 660, 148, { size: 10, color: COLORS.muted, leading: 12 });
   if (invoice.customer.phone) {
-    pdf.addWrappedText(invoice.customer.phone, 404, 646, 132, { size: 10, color: COLORS.muted, leading: 12 });
-    pdf.addWrappedText(invoice.customer.address, 404, 624, 132, { size: 10, color: COLORS.muted, leading: 12 });
+    pdf.addWrappedText(invoice.customer.phone, 386, 646, 148, { size: 10, color: COLORS.muted, leading: 12 });
+    pdf.addWrappedText(`Fulfillment: ${fulfillmentMethodLabel(invoice.customer.fulfillmentMethod)}`, 386, 632, 148, { size: 10, color: COLORS.muted, leading: 12 });
+    pdf.addWrappedText(invoice.customer.address, 386, 616, 148, { size: 10, color: COLORS.muted, leading: 11 });
   } else {
-    pdf.addWrappedText(invoice.customer.address, 404, 646, 132, { size: 10, color: COLORS.muted, leading: 12 });
+    pdf.addWrappedText(`Fulfillment: ${fulfillmentMethodLabel(invoice.customer.fulfillmentMethod)}`, 386, 646, 148, { size: 10, color: COLORS.muted, leading: 12 });
+    pdf.addWrappedText(invoice.customer.address, 386, 628, 148, { size: 10, color: COLORS.muted, leading: 11 });
   }
 
-  const summaryTop = 590;
+  const summaryTop = 556;
   drawSummaryCard(pdf, 38, summaryTop, 124, "Total due", currency.format(invoice.openBalance.totalAmount));
   drawSummaryCard(pdf, 174, summaryTop, 124, "Past due", currency.format(invoice.openBalance.overdueAmount), invoice.openBalance.overdueAmount > 0 ? "danger" : "normal");
   drawSummaryCard(pdf, 310, summaryTop, 124, "Current due", currency.format(invoice.openBalance.currentAmount));
   drawSummaryCard(pdf, 446, summaryTop, 128, "Shipping", currency.format(invoice.openBalance.shippingAmount));
 
-  pdf.advanceTo(498);
+  pdf.advanceTo(464);
 
   if (invoice.cycles.length === 0) {
     pdf.ensureRoom(96);

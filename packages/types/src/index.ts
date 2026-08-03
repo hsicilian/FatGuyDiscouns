@@ -17,6 +17,7 @@ export type ProductStatus =
   | "archived";
 
 export type ShipmentStatus = "none" | "requested" | "in_progress" | "completed";
+export type FulfillmentMethod = "shipping" | "local_pickup";
 
 export type NotificationType =
   | "new_claim"
@@ -171,6 +172,7 @@ export interface CustomerSummary {
   role: UserRole;
   accountState: AccountState;
   timezone: string;
+  fulfillmentMethod: FulfillmentMethod;
   address: string;
   phone: string;
   street: string;

@@ -531,7 +531,7 @@ export async function getCustomerSummaryByUserId(userId: string, options?: { adm
 
   const [{ data: roleRow }, { data: profileRow }, { data: addressRow }, { data: shipmentRow }] = await Promise.all([
     client.from("user_roles").select("role, account_state").eq("user_id", userId).single(),
-    client.from("customer_profiles").select("display_name, timezone, credit_balance, last_shipment_date").eq("user_id", userId).single(),
+    client.from("customer_profiles").select("display_name, timezone, credit_balance, last_shipment_date, fulfillment_method").eq("user_id", userId).single(),
     client
       .from("addresses")
       .select("line1, line2, city, region, postal_code, phone")
@@ -554,6 +554,7 @@ export async function getCustomerSummaryByUserId(userId: string, options?: { adm
     role: roleRow?.role ?? "customer",
     accountState: roleRow?.account_state ?? "pending_approval",
     timezone: profileRow?.timezone ?? "America/New_York",
+    fulfillmentMethod: profileRow?.fulfillment_method === "local_pickup" ? "local_pickup" : "shipping",
     address: formatAddress(addressRow as Record<string, unknown> | null),
     phone: addressParts.phone,
     street: addressParts.street,

@@ -36,6 +36,10 @@ const currency = new Intl.NumberFormat("en-US", {
   currency: "USD",
 });
 
+function fulfillmentMethodLabel(value: "shipping" | "local_pickup") {
+  return value === "local_pickup" ? "Local pickup" : "Shipping";
+}
+
 export default async function AdminCustomerDetailPage({
   params,
 }: {
@@ -106,6 +110,7 @@ export default async function AdminCustomerDetailPage({
         <p style={{ margin: "0 0 8px", color: "var(--muted)" }}>{customer.email}</p>
         <p style={{ margin: 0, color: "var(--muted)" }}>{customer.address}</p>
         {customer.phone ? <p style={{ margin: "8px 0 0", color: "var(--muted)" }}>{customer.phone}</p> : null}
+        <p style={{ margin: "8px 0 0", color: "var(--muted)" }}>Fulfillment: {fulfillmentMethodLabel(customer.fulfillmentMethod)}</p>
         <div style={{ marginTop: 18 }}>
           <a
             href={`/admin/customers/${customer.id}/invoice`}
@@ -194,6 +199,10 @@ export default async function AdminCustomerDetailPage({
               </div>
             ) : null}
             <div style={{ borderTop: "1px solid #eedfce", paddingTop: 10 }}>
+              <p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>Fulfillment method</p>
+              <p style={{ margin: "4px 0 0" }}><strong>{fulfillmentMethodLabel(customer.fulfillmentMethod)}</strong></p>
+            </div>
+            <div style={{ borderTop: "1px solid #eedfce", paddingTop: 10 }}>
               <p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>Timezone on file</p>
               <p style={{ margin: "4px 0 0" }}><strong>{customer.timezone}</strong></p>
             </div>
@@ -205,6 +214,7 @@ export default async function AdminCustomerDetailPage({
             defaultRegion={customer.region}
             defaultPostalCode={customer.postalCode}
             defaultPhone={customer.phone}
+            defaultFulfillmentMethod={customer.fulfillmentMethod}
             defaultTimezone={customer.timezone}
           />
         </div>

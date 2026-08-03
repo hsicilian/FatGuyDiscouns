@@ -56,6 +56,14 @@ export function ManualCustomerCreateForm() {
       </label>
 
       <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ color: "var(--muted)", fontSize: 14 }}>Fulfillment method</span>
+        <select name="fulfillmentMethod" defaultValue="shipping" style={{ minWidth: 0, width: "100%", padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }}>
+          <option value="shipping">Shipping</option>
+          <option value="local_pickup">Local pickup</option>
+        </select>
+      </label>
+
+      <label style={{ display: "grid", gap: 6 }}>
         <span style={{ color: "var(--muted)", fontSize: 14 }}>Timezone</span>
         <select name="timezone" defaultValue="America/New_York" style={{ minWidth: 0, width: "100%", padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }}>
           <option value="America/New_York">Eastern Time</option>

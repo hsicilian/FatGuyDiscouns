@@ -282,6 +282,7 @@ async function saveCustomerProfileAddressSupabase(userId: string, input: {
   region: string;
   postalCode: string;
   phone: string;
+  fulfillmentMethod: "shipping" | "local_pickup";
   timezone: string;
 }) {
   const street = input.street.trim();
@@ -289,6 +290,7 @@ async function saveCustomerProfileAddressSupabase(userId: string, input: {
   const region = input.region.trim();
   const postalCode = input.postalCode.trim();
   const phone = input.phone.trim();
+  const fulfillmentMethod = input.fulfillmentMethod === "local_pickup" ? "local_pickup" : "shipping";
   const timezone = input.timezone.trim();
   if (!street || !city || !region || !postalCode) return { ok: false as const, message: "Street, city, state, and zip code are all required." };
   if (!timezone) return { ok: false as const, message: "Timezone is required." };
@@ -312,6 +314,7 @@ async function saveCustomerProfileAddressSupabase(userId: string, input: {
     .upsert({
       user_id: userId,
       timezone,
+      fulfillment_method: fulfillmentMethod,
       default_address_id: addressId,
     }, { onConflict: "user_id" });
 
@@ -362,6 +365,7 @@ async function saveCustomerProfileAddressSupabase(userId: string, input: {
     .upsert({
       user_id: userId,
       timezone,
+      fulfillment_method: fulfillmentMethod,
       default_address_id: addressId,
     }, { onConflict: "user_id" });
   if (profileUpdate.error) return { ok: false as const, message: profileUpdate.error.message };
@@ -378,6 +382,7 @@ export async function createManualCustomerInDatabaseSupabase(input: {
   region: string;
   postalCode: string;
   phone: string;
+  fulfillmentMethod: "shipping" | "local_pickup";
   timezone: string;
 }) {
   const displayName = input.displayName.trim();
@@ -435,6 +440,7 @@ export async function createManualCustomerInDatabaseSupabase(input: {
         user_id: userId,
         display_name: displayName,
         timezone,
+        fulfillment_method: input.fulfillmentMethod === "local_pickup" ? "local_pickup" : "shipping",
         credit_balance: 0,
         default_address_id: null,
       }, { onConflict: "user_id" });
@@ -449,6 +455,7 @@ export async function createManualCustomerInDatabaseSupabase(input: {
       region: input.region,
       postalCode: input.postalCode,
       phone: input.phone,
+      fulfillmentMethod: input.fulfillmentMethod,
       timezone,
     });
 
@@ -462,6 +469,7 @@ export async function createManualCustomerInDatabaseSupabase(input: {
         user_id: userId,
         display_name: displayName,
         timezone,
+        fulfillment_method: input.fulfillmentMethod === "local_pickup" ? "local_pickup" : "shipping",
       }, { onConflict: "user_id" });
 
     if (profileNameUpdate.error) {
@@ -2213,12 +2221,12 @@ export async function updateCreditInDatabaseSupabase(creditId: string, creditAmo
   };
 }
 
-export async function updateCurrentCustomerProfileSupabase(input: { street: string; city: string; region: string; postalCode: string; phone: string; timezone: string }) {
+export async function updateCurrentCustomerProfileSupabase(input: { street: string; city: string; region: string; postalCode: string; phone: string; fulfillmentMethod: "shipping" | "local_pickup"; timezone: string }) {
   const actor = await getCurrentActor();
   return saveCustomerProfileAddressSupabase(actor.id, input);
 }
 
-export async function updateCustomerProfileByAdminSupabase(customerId: string, input: { street: string; city: string; region: string; postalCode: string; phone: string; timezone: string }) {
+export async function updateCustomerProfileByAdminSupabase(customerId: string, input: { street: string; city: string; region: string; postalCode: string; phone: string; fulfillmentMethod: "shipping" | "local_pickup"; timezone: string }) {
   const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
   const result = await saveCustomerProfileAddressSupabase(customerId, input);
   if (!result.ok) {
