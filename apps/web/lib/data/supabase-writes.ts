@@ -281,12 +281,14 @@ async function saveCustomerProfileAddressSupabase(userId: string, input: {
   city: string;
   region: string;
   postalCode: string;
+  phone: string;
   timezone: string;
 }) {
   const street = input.street.trim();
   const city = input.city.trim();
   const region = input.region.trim();
   const postalCode = input.postalCode.trim();
+  const phone = input.phone.trim();
   const timezone = input.timezone.trim();
   if (!street || !city || !region || !postalCode) return { ok: false as const, message: "Street, city, state, and zip code are all required." };
   if (!timezone) return { ok: false as const, message: "Timezone is required." };
@@ -332,6 +334,7 @@ async function saveCustomerProfileAddressSupabase(userId: string, input: {
         city,
         region,
         postal_code: postalCode,
+        phone: phone || null,
         country: "US",
         is_default: true,
         updated_at: new Date().toISOString(),
@@ -343,7 +346,7 @@ async function saveCustomerProfileAddressSupabase(userId: string, input: {
   } else {
     const insertAddress = await admin
       .from("addresses")
-      .insert({ user_id: userId, line1: street, city, region, postal_code: postalCode, country: "US", is_default: true })
+      .insert({ user_id: userId, line1: street, city, region, postal_code: postalCode, phone: phone || null, country: "US", is_default: true })
       .select("id")
       .single();
 
@@ -374,6 +377,7 @@ export async function createManualCustomerInDatabaseSupabase(input: {
   city: string;
   region: string;
   postalCode: string;
+  phone: string;
   timezone: string;
 }) {
   const displayName = input.displayName.trim();
@@ -444,6 +448,7 @@ export async function createManualCustomerInDatabaseSupabase(input: {
       city: input.city,
       region: input.region,
       postalCode: input.postalCode,
+      phone: input.phone,
       timezone,
     });
 
@@ -2208,12 +2213,12 @@ export async function updateCreditInDatabaseSupabase(creditId: string, creditAmo
   };
 }
 
-export async function updateCurrentCustomerProfileSupabase(input: { street: string; city: string; region: string; postalCode: string; timezone: string }) {
+export async function updateCurrentCustomerProfileSupabase(input: { street: string; city: string; region: string; postalCode: string; phone: string; timezone: string }) {
   const actor = await getCurrentActor();
   return saveCustomerProfileAddressSupabase(actor.id, input);
 }
 
-export async function updateCustomerProfileByAdminSupabase(customerId: string, input: { street: string; city: string; region: string; postalCode: string; timezone: string }) {
+export async function updateCustomerProfileByAdminSupabase(customerId: string, input: { street: string; city: string; region: string; postalCode: string; phone: string; timezone: string }) {
   const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
   const result = await saveCustomerProfileAddressSupabase(customerId, input);
   if (!result.ok) {

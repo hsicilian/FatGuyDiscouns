@@ -51,6 +51,11 @@ export function ManualCustomerCreateForm() {
       </div>
 
       <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ color: "var(--muted)", fontSize: 14 }}>Phone number</span>
+        <input name="phone" type="tel" autoComplete="tel" placeholder="(555) 555-5555" style={{ minWidth: 0, width: "100%", padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
+      </label>
+
+      <label style={{ display: "grid", gap: 6 }}>
         <span style={{ color: "var(--muted)", fontSize: 14 }}>Timezone</span>
         <select name="timezone" defaultValue="America/New_York" style={{ minWidth: 0, width: "100%", padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }}>
           <option value="America/New_York">Eastern Time</option>

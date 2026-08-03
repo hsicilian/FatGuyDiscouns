@@ -14,6 +14,7 @@ export async function createManualCustomerAction(
   const city = String(formData.get("city") ?? "");
   const region = String(formData.get("region") ?? "");
   const postalCode = String(formData.get("postalCode") ?? "");
+  const phone = String(formData.get("phone") ?? "");
   const timezone = String(formData.get("timezone") ?? "");
 
   return createManualCustomer(
@@ -24,6 +25,7 @@ export async function createManualCustomerAction(
     city,
     region,
     postalCode,
+    phone,
     timezone,
   );
 }

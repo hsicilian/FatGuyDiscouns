@@ -191,6 +191,7 @@ export function getAddressParts(address: Record<string, any> | null | undefined)
     city: typeof address?.city === "string" ? address.city : "",
     region: typeof address?.region === "string" ? address.region : "",
     postalCode: typeof address?.postal_code === "string" ? address.postal_code : "",
+    phone: typeof address?.phone === "string" ? address.phone : "",
   };
 }
 
@@ -533,7 +534,7 @@ export async function getCustomerSummaryByUserId(userId: string, options?: { adm
     client.from("customer_profiles").select("display_name, timezone, credit_balance, last_shipment_date").eq("user_id", userId).single(),
     client
       .from("addresses")
-      .select("line1, line2, city, region, postal_code")
+      .select("line1, line2, city, region, postal_code, phone")
       .eq("user_id", userId)
       .eq("is_default", true)
       .order("updated_at", { ascending: false })
@@ -554,6 +555,7 @@ export async function getCustomerSummaryByUserId(userId: string, options?: { adm
     accountState: roleRow?.account_state ?? "pending_approval",
     timezone: profileRow?.timezone ?? "America/New_York",
     address: formatAddress(addressRow as Record<string, unknown> | null),
+    phone: addressParts.phone,
     street: addressParts.street,
     city: addressParts.city,
     region: addressParts.region,

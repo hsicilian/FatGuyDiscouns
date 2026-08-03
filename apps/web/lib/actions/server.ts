@@ -813,6 +813,7 @@ export async function updateCurrentCustomerProfileDetails(
   city: string,
   region: string,
   postalCode: string,
+  phone: string,
   timezone: string,
 ): Promise<FormActionState> {
   const access = await requireCustomerMutationAccess();
@@ -820,7 +821,7 @@ export async function updateCurrentCustomerProfileDetails(
     return access;
   }
 
-  const result = await updateCurrentCustomerProfile({ street, city, region, postalCode, timezone });
+  const result = await updateCurrentCustomerProfile({ street, city, region, postalCode, phone, timezone });
   revalidatePath("/account");
   revalidatePath("/claims");
 
@@ -838,6 +839,7 @@ export async function createManualCustomer(
   city: string,
   region: string,
   postalCode: string,
+  phone: string,
   timezone: string,
 ): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
@@ -853,6 +855,7 @@ export async function createManualCustomer(
     city,
     region,
     postalCode,
+    phone,
     timezone,
   });
   await recordAuditIfSuccessful(result, {
@@ -879,6 +882,7 @@ export async function updateCustomerProfileDetailsByAdmin(
   city: string,
   region: string,
   postalCode: string,
+  phone: string,
   timezone: string,
 ): Promise<FormActionState> {
   const access = await requireAdminMutationAccess();
@@ -886,7 +890,7 @@ export async function updateCustomerProfileDetailsByAdmin(
     return access;
   }
 
-  const result = await updateCustomerProfileByAdmin(customerId, { street, city, region, postalCode, timezone });
+  const result = await updateCustomerProfileByAdmin(customerId, { street, city, region, postalCode, phone, timezone });
   await recordAuditIfSuccessful(result, {
     actorId: access.currentUser.id,
     actorName: access.currentUser.displayName,

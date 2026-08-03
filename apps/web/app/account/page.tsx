@@ -106,6 +106,7 @@ export default async function AccountPage() {
             <p style={{ marginTop: 0, color: "var(--accent-strong)", textTransform: "uppercase", letterSpacing: "0.1em", fontSize: 12, fontWeight: 700 }}>Shipping</p>
             <h2 style={{ marginTop: 0 }}>Address and shipment status</h2>
             <p style={{ color: "var(--muted)", lineHeight: 1.7, marginBottom: 8 }}>{currentCustomer.address}</p>
+            {currentCustomer.phone ? <p style={{ color: "var(--muted)", marginTop: 0 }}>Phone: {currentCustomer.phone}</p> : null}
             {!currentCustomer.street || !currentCustomer.city || !currentCustomer.region || !currentCustomer.postalCode ? (
               <div style={{ marginBottom: 14, padding: 14, borderRadius: 16, background: "rgba(187,77,0,0.08)", border: "1px solid rgba(187,77,0,0.18)", color: "#8e3200" }}>
                 Finish your street address, city, state, zip code, and timezone below before requesting shipment.
@@ -157,6 +158,12 @@ export default async function AccountPage() {
                 <p style={{ margin: 0, color: "var(--muted)" }}>Address on file</p>
                 <strong>{currentCustomer.address}</strong>
               </div>
+              {currentCustomer.phone ? (
+                <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
+                  <p style={{ margin: 0, color: "var(--muted)" }}>Phone on file</p>
+                  <strong>{currentCustomer.phone}</strong>
+                </div>
+              ) : null}
               <div style={{ padding: 14, borderRadius: 16, background: "rgba(255,255,255,0.56)", border: "1px solid rgba(232,214,195,0.85)" }}>
                 <p style={{ margin: 0, color: "var(--muted)" }}>Timezone on file</p>
                 <strong>{currentCustomer.timezone}</strong>
@@ -167,6 +174,7 @@ export default async function AccountPage() {
               defaultCity={currentCustomer.city}
               defaultRegion={currentCustomer.region}
               defaultPostalCode={currentCustomer.postalCode}
+              defaultPhone={currentCustomer.phone}
               defaultTimezone={currentCustomer.timezone}
             />
           </section>

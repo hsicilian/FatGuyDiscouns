@@ -172,6 +172,7 @@ export interface CustomerSummary {
   accountState: AccountState;
   timezone: string;
   address: string;
+  phone: string;
   street: string;
   city: string;
   region: string;

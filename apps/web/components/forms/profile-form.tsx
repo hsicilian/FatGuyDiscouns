@@ -14,12 +14,14 @@ export function ProfileForm({
   defaultCity,
   defaultRegion,
   defaultPostalCode,
+  defaultPhone,
   defaultTimezone,
 }: {
   defaultStreet: string;
   defaultCity: string;
   defaultRegion: string;
   defaultPostalCode: string;
+  defaultPhone: string;
   defaultTimezone: string;
 }) {
   const [state, formAction, isPending] = useActionState(updateCustomerProfileAction, initialState);
@@ -46,6 +48,10 @@ export function ProfileForm({
           <input name="postalCode" defaultValue={defaultPostalCode} autoComplete="postal-code" style={{ minWidth: 0, width: "100%", padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
         </label>
       </div>
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ color: "var(--muted)", fontSize: 14 }}>Phone number</span>
+        <input name="phone" type="tel" defaultValue={defaultPhone} autoComplete="tel" style={{ minWidth: 0, width: "100%", padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
+      </label>
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ color: "var(--muted)", fontSize: 14 }}>Timezone</span>
         <select name="timezone" defaultValue={defaultTimezone} style={{ minWidth: 0, width: "100%", padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }}>

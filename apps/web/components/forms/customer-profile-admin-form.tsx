@@ -15,6 +15,7 @@ export function CustomerProfileAdminForm({
   defaultCity,
   defaultRegion,
   defaultPostalCode,
+  defaultPhone,
   defaultTimezone,
 }: {
   customerId: string;
@@ -22,6 +23,7 @@ export function CustomerProfileAdminForm({
   defaultCity: string;
   defaultRegion: string;
   defaultPostalCode: string;
+  defaultPhone: string;
   defaultTimezone: string;
 }) {
   const [state, formAction, isPending] = useActionState(updateCustomerProfileByAdminAction, initialState);
@@ -46,6 +48,10 @@ export function CustomerProfileAdminForm({
       <label style={{ display: "grid", gap: 6, minWidth: 0 }}>
         <span style={{ color: "var(--muted)", fontSize: 14 }}>Zip code</span>
         <input name="postalCode" defaultValue={defaultPostalCode} autoComplete="postal-code" style={{ minWidth: 0, width: "100%", padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
+      </label>
+      <label style={{ display: "grid", gap: 6 }}>
+        <span style={{ color: "var(--muted)", fontSize: 14 }}>Phone number</span>
+        <input name="phone" type="tel" defaultValue={defaultPhone} autoComplete="tel" style={{ minWidth: 0, width: "100%", padding: 14, borderRadius: 14, border: "1px solid #d9c7b2" }} />
       </label>
       <label style={{ display: "grid", gap: 6 }}>
         <span style={{ color: "var(--muted)", fontSize: 14 }}>Timezone</span>

@@ -105,6 +105,7 @@ export default async function AdminCustomerDetailPage({
         <h1 style={{ margin: "0 0 10px" }}>{customer.displayName}</h1>
         <p style={{ margin: "0 0 8px", color: "var(--muted)" }}>{customer.email}</p>
         <p style={{ margin: 0, color: "var(--muted)" }}>{customer.address}</p>
+        {customer.phone ? <p style={{ margin: "8px 0 0", color: "var(--muted)" }}>{customer.phone}</p> : null}
         <div style={{ marginTop: 18 }}>
           <a
             href={`/admin/customers/${customer.id}/invoice`}
@@ -186,6 +187,12 @@ export default async function AdminCustomerDetailPage({
               <p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>Address on file</p>
               <p style={{ margin: "4px 0 0" }}><strong>{customer.address}</strong></p>
             </div>
+            {customer.phone ? (
+              <div style={{ borderTop: "1px solid #eedfce", paddingTop: 10 }}>
+                <p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>Phone on file</p>
+                <p style={{ margin: "4px 0 0" }}><strong>{customer.phone}</strong></p>
+              </div>
+            ) : null}
             <div style={{ borderTop: "1px solid #eedfce", paddingTop: 10 }}>
               <p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>Timezone on file</p>
               <p style={{ margin: "4px 0 0" }}><strong>{customer.timezone}</strong></p>
@@ -197,6 +204,7 @@ export default async function AdminCustomerDetailPage({
             defaultCity={customer.city}
             defaultRegion={customer.region}
             defaultPostalCode={customer.postalCode}
+            defaultPhone={customer.phone}
             defaultTimezone={customer.timezone}
           />
         </div>

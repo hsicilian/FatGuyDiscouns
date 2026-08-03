@@ -11,6 +11,7 @@ export async function updateCustomerProfileAction(
   const city = String(formData.get("city") ?? "");
   const region = String(formData.get("region") ?? "");
   const postalCode = String(formData.get("postalCode") ?? "");
+  const phone = String(formData.get("phone") ?? "");
   const timezone = String(formData.get("timezone") ?? "");
-  return updateCurrentCustomerProfileDetails(street, city, region, postalCode, timezone);
+  return updateCurrentCustomerProfileDetails(street, city, region, postalCode, phone, timezone);
 }

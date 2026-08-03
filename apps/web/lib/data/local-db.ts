@@ -127,20 +127,21 @@ export async function createManualCustomerInDatabase(input: {
   city: string;
   region: string;
   postalCode: string;
+  phone: string;
   timezone: string;
 }) {
   requireSupabase();
   return createManualCustomerInDatabaseSupabase(input);
 }
 
-export async function updateCurrentCustomerProfile(input: { street: string; city: string; region: string; postalCode: string; timezone: string }) {
+export async function updateCurrentCustomerProfile(input: { street: string; city: string; region: string; postalCode: string; phone: string; timezone: string }) {
   requireSupabase();
   return updateCurrentCustomerProfileSupabase(input);
 }
 
 export async function updateCustomerProfileByAdmin(
   customerId: string,
-  input: { street: string; city: string; region: string; postalCode: string; timezone: string },
+  input: { street: string; city: string; region: string; postalCode: string; phone: string; timezone: string },
 ) {
   requireSupabase();
   return updateCustomerProfileByAdminSupabase(customerId, input);

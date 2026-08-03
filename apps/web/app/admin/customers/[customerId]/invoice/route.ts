@@ -245,11 +245,16 @@ export async function GET(
     color: COLORS.muted,
   });
 
-  pdf.addRect(388, 634, 166, 94, COLORS.cardAlt, COLORS.line);
+  pdf.addRect(388, 618, 166, 110, COLORS.cardAlt, COLORS.line);
   pdf.addText("Customer info".toUpperCase(), 404, 705, { size: 9, color: COLORS.accent });
   pdf.addWrappedText(invoice.customer.displayName, 404, 682, 132, { size: 15, color: COLORS.ink, leading: 18 });
   pdf.addWrappedText(invoice.customer.email || "No email on file", 404, 660, 132, { size: 10, color: COLORS.muted, leading: 12 });
-  pdf.addWrappedText(invoice.customer.address, 404, 634, 132, { size: 10, color: COLORS.muted, leading: 12 });
+  if (invoice.customer.phone) {
+    pdf.addWrappedText(invoice.customer.phone, 404, 646, 132, { size: 10, color: COLORS.muted, leading: 12 });
+    pdf.addWrappedText(invoice.customer.address, 404, 624, 132, { size: 10, color: COLORS.muted, leading: 12 });
+  } else {
+    pdf.addWrappedText(invoice.customer.address, 404, 646, 132, { size: 10, color: COLORS.muted, leading: 12 });
+  }
 
   const summaryTop = 590;
   drawSummaryCard(pdf, 38, summaryTop, 124, "Total due", currency.format(invoice.openBalance.totalAmount));
