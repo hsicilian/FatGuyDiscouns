@@ -221,14 +221,14 @@ function drawSummaryCard(
 
 export async function GET(
   _request: Request,
-  context: { params: { customerId: string } },
+  context: { params: Promise<{ customerId: string }> },
 ) {
   const currentUser = await getCurrentSessionUser();
   if (!currentUser || (currentUser.role !== "admin" && currentUser.role !== "master_admin") || currentUser.accountState === "banned") {
     return NextResponse.json({ message: "Admin access is required." }, { status: 403 });
   }
 
-  const { customerId } = context.params;
+  const { customerId } = await context.params;
   const invoice = await getCurrentInvoiceSnapshotForCustomer(customerId);
   const pdf = new StyledPdfBuilder();
 
