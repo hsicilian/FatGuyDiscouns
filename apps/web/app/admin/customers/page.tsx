@@ -1,4 +1,5 @@
 import { accountStateLabel, shipmentStatusLabel } from "@fatguydiscounts/core";
+import { ManualCustomerCreateForm } from "../../../components/forms/manual-customer-create-form";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
 import { getFinancialSummary, listCustomers } from "../../../lib/data/local-db";
 
@@ -75,6 +76,16 @@ export default async function AdminCustomersPage({ searchParams }: AdminCustomer
             </div>
           </div>
         </div>
+      </section>
+
+      <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)", marginBottom: 24, display: "grid", gap: 12 }}>
+        <div>
+          <h2 style={{ margin: "0 0 8px" }}>Add customer manually</h2>
+          <p style={{ margin: 0, color: "var(--muted)", lineHeight: 1.7 }}>
+            Create a customer directly inside the CRM when you want to set up their login and account without waiting on self-signup.
+          </p>
+        </div>
+        <ManualCustomerCreateForm />
       </section>
 
       <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 20, boxShadow: "var(--shadow)", marginBottom: 24, display: "grid", gap: 16 }}>

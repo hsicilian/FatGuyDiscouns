@@ -17,6 +17,7 @@ import {
   getEventByIdSupabase,
   getProductByIdSupabase,
   getPaymentDefaultsSupabase,
+  getCurrentInvoiceSnapshotForCustomerSupabase,
   getOutstandingBalanceForCustomerSupabase,
   getPlatformSummarySupabase,
   listArchivedInvoicesSupabase,
@@ -46,6 +47,7 @@ import {
   cancelShipmentRequestInDatabaseSupabase,
   clearProductSaleInDatabaseSupabase,
   createCategoryInDatabaseSupabase,
+  createManualCustomerInDatabaseSupabase,
   createInventoryItemInDatabaseSupabase,
   createInventoryItemsBulkInDatabaseSupabase,
   createEventInDatabaseSupabase,
@@ -117,6 +119,20 @@ export async function listCustomers() {
   return listCustomersSupabase();
 }
 
+export async function createManualCustomerInDatabase(input: {
+  displayName: string;
+  email: string;
+  password: string;
+  street: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  timezone: string;
+}) {
+  requireSupabase();
+  return createManualCustomerInDatabaseSupabase(input);
+}
+
 export async function updateCurrentCustomerProfile(input: { street: string; city: string; region: string; postalCode: string; timezone: string }) {
   requireSupabase();
   return updateCurrentCustomerProfileSupabase(input);
@@ -138,6 +154,11 @@ export async function getBalanceCycle(customerId?: string) {
 export async function getOpenBalanceSummary(customerId?: string) {
   requireSupabase();
   return getOpenBalanceSummarySupabase(customerId);
+}
+
+export async function getCurrentInvoiceSnapshotForCustomer(customerId: string) {
+  requireSupabase();
+  return getCurrentInvoiceSnapshotForCustomerSupabase(customerId);
 }
 
 export async function listClaimedItems() {

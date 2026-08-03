@@ -5,6 +5,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
+    "noImplicitAny": false,
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
@@ -15,7 +16,9 @@
       "@fatguydiscounts/types": ["packages/types/src/index.ts"],
       "@fatguydiscounts/core": ["packages/core/src/index.ts"],
       "@fatguydiscounts/db": ["packages/db/src/index.ts"],
-      "@fatguydiscounts/ui": ["packages/ui/src/index.ts"]
+      "@fatguydiscounts/ui": ["packages/ui/src/index.ts"],
+      "@supabase/ssr": ["types/supabase-ssr.d.ts"],
+      "@supabase/supabase-js": ["types/supabase-supabase-js.d.ts"]
     }
   }
 }

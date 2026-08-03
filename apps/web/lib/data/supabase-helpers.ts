@@ -425,6 +425,8 @@ export async function listActiveCycleContexts(customerId: string) {
   }));
 }
 
+export type BalanceCycleContext = Awaited<ReturnType<typeof listActiveCycleContexts>>[number];
+
 export function pickPrimaryCycleContext<T extends {
   summary: BalanceCycleSummary;
   due: number;
@@ -495,7 +497,7 @@ export async function ensureActiveCycle(customerId: string, dueDate = nextDueDat
 export async function getTargetCycleContext(customerId?: string, options?: { dueDate?: string; ensureIfMissing?: boolean }) {
   if (customerId && !options?.dueDate) {
     const activeContexts = await listActiveCycleContexts(customerId);
-    const primary = pickPrimaryCycleContext(activeContexts);
+    const primary = pickPrimaryCycleContext(activeContexts) as BalanceCycleContext | null;
     if (primary) {
       return primary;
     }
@@ -569,7 +571,7 @@ export async function getFinancialSummaryFromCycles() {
     throw error;
   }
 
-  const activeCustomerIds = [...new Set((cycles ?? []).map((cycle) => cycle.customer_id).filter(Boolean))];
+  const activeCustomerIds = [...new Set((cycles ?? []).map((cycle) => cycle.customer_id).filter(Boolean))] as string[];
 
   const customerBalances = (await Promise.all(activeCustomerIds.map(async (customerId) => {
     const contexts = await listActiveCycleContexts(customerId);
@@ -646,10 +648,10 @@ export async function getFinancialSummaryFromCycles() {
     throw productError;
   }
 
-  const invoiceCustomerIds = [...new Set((archivedInvoices ?? []).map((invoice) => invoice.customer_id).filter(Boolean))];
-  const paymentCustomerIds = [...new Set((payments ?? []).map((payment) => (payment as any).balance_cycles?.customer_id).filter(Boolean))];
-  const shipmentCustomerIds = [...new Set((shipments ?? []).map((shipment) => shipment.customer_id).filter(Boolean))];
-  const itemRequestCustomerIds = [...new Set((itemRequests ?? []).map((request) => request.customer_id).filter(Boolean))];
+  const invoiceCustomerIds = [...new Set((archivedInvoices ?? []).map((invoice) => invoice.customer_id).filter(Boolean))] as string[];
+  const paymentCustomerIds = [...new Set((payments ?? []).map((payment) => (payment as any).balance_cycles?.customer_id).filter(Boolean))] as string[];
+  const shipmentCustomerIds = [...new Set((shipments ?? []).map((shipment) => shipment.customer_id).filter(Boolean))] as string[];
+  const itemRequestCustomerIds = [...new Set((itemRequests ?? []).map((request) => request.customer_id).filter(Boolean))] as string[];
   const invoiceCustomerMap = new Map<string, Awaited<ReturnType<typeof getCustomerSummaryByUserId>>>();
   await Promise.all([...new Set([...invoiceCustomerIds, ...paymentCustomerIds, ...shipmentCustomerIds, ...itemRequestCustomerIds])].map(async (customerId) => {
     invoiceCustomerMap.set(customerId, await getCustomerSummaryByUserId(customerId, { admin: true }));

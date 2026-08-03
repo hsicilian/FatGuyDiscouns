@@ -174,6 +174,73 @@ export async function listCustomersSupabase() {
   return Promise.all((data ?? []).map((row) => getCustomerSummaryByUserId(row.user_id, { admin: true })));
 }
 
+export async function getCurrentInvoiceSnapshotForCustomerSupabase(customerId: string) {
+  const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
+  const contexts = await listActiveCycleContexts(customerId);
+  const openContexts = contexts
+    .filter((context) => context.due > 0.00001)
+    .sort((left, right) => String(left.summary.dueDate).localeCompare(String(right.summary.dueDate)));
+  const cycleIds = openContexts.map((context) => context.cycle.id);
+  const admin = await getAdminClient();
+
+  const itemsByCycle = new Map<string, Array<{
+    id: string;
+    description: string;
+    quantity: number;
+    unitPrice: number;
+    total: number;
+    createdAt: string;
+  }>>();
+
+  if (cycleIds.length > 0) {
+    const { data: lineItems, error: lineItemsError } = await admin
+      .from("balance_line_items")
+      .select("id, cycle_id, description, quantity, unit_price, created_at")
+      .in("cycle_id", cycleIds)
+      .order("created_at", { ascending: true });
+
+    if (lineItemsError) {
+      throw lineItemsError;
+    }
+
+    for (const item of lineItems ?? []) {
+      const existing = itemsByCycle.get(item.cycle_id) ?? [];
+      const quantity = Number(item.quantity ?? 0);
+      const unitPrice = Number(item.unit_price ?? 0);
+      existing.push({
+        id: item.id,
+        description: item.description ?? "Line item",
+        quantity,
+        unitPrice,
+        total: quantity * unitPrice,
+        createdAt: item.created_at ?? new Date().toISOString(),
+      });
+      itemsByCycle.set(item.cycle_id, existing);
+    }
+  }
+
+  const summaries = openContexts.map((context) => context.summary);
+  const openBalance = getOpenBalanceSummaryFromSummaries(summaries);
+
+  return {
+    customer,
+    openBalance,
+    generatedOn: new Date().toISOString(),
+    cycles: openContexts.map((context) => ({
+      cycleId: context.cycle.id,
+      dueDate: context.summary.dueDate,
+      overdue: context.overdue,
+      subtotal: Number(context.summary.subtotal ?? 0),
+      shipping: Number(context.summary.shipping ?? 0),
+      adjustments: Number(context.summary.adjustments ?? 0),
+      paymentsApplied: Number(context.summary.paymentsApplied ?? 0),
+      creditsApplied: Number(context.summary.creditsApplied ?? 0),
+      amountDue: Math.max(context.due, 0),
+      items: itemsByCycle.get(context.cycle.id) ?? [],
+    })),
+  };
+}
+
 export async function getBalanceCycleSupabase(customerId?: string) {
   const actor = await getCurrentActor().catch(() => null);
   const targetCustomerId = customerId ?? (actor?.role === "customer" ? actor.id : undefined);
@@ -312,7 +379,7 @@ export async function listShipmentRecordsSupabase() {
 
   if (error) throw error;
 
-  const customerIds = [...new Set((data ?? []).map((shipment) => shipment.customer_id).filter(Boolean))];
+  const customerIds = [...new Set((data ?? []).map((shipment) => shipment.customer_id).filter(Boolean))] as string[];
   const customerMap = new Map<string, Awaited<ReturnType<typeof getCustomerSummaryByUserId>>>();
   await Promise.all(customerIds.map(async (customerId) => {
     customerMap.set(customerId, await getCustomerSummaryByUserId(customerId, { admin: true }));
@@ -392,7 +459,7 @@ export async function listCustomerItemRequestsSupabase(
   const { data, error } = await query;
   if (error) throw error;
 
-  const customerIds = [...new Set((data ?? []).map((row) => row.customer_id).filter(Boolean))];
+  const customerIds = [...new Set((data ?? []).map((row) => row.customer_id).filter(Boolean))] as string[];
   const customerMap = new Map<string, Awaited<ReturnType<typeof getCustomerSummaryByUserId>>>();
   await Promise.all(customerIds.map(async (id) => {
     customerMap.set(id, await getCustomerSummaryByUserId(id, { admin: true }));
@@ -422,7 +489,7 @@ export async function listRestockRequestsSupabase(customerId?: string) {
   const { data, error } = await query;
   if (error) throw error;
 
-  const customerIds = [...new Set((data ?? []).map((row) => row.customer_id).filter(Boolean))];
+  const customerIds = [...new Set((data ?? []).map((row) => row.customer_id).filter(Boolean))] as string[];
   const customerMap = new Map<string, Awaited<ReturnType<typeof getCustomerSummaryByUserId>>>();
   await Promise.all(customerIds.map(async (id) => {
     customerMap.set(id, await getCustomerSummaryByUserId(id, { admin: true }));
@@ -457,7 +524,7 @@ export async function listNotificationsSupabase(options?: { includeRead?: boolea
   const { data, error } = await query;
   if (error) throw error;
 
-  const customerIds = [...new Set((data ?? []).map((row) => row.customer_id).filter(Boolean))];
+  const customerIds = [...new Set((data ?? []).map((row) => row.customer_id).filter(Boolean))] as string[];
   const customerMap = new Map<string, Awaited<ReturnType<typeof getCustomerSummaryByUserId>>>();
   await Promise.all(customerIds.map(async (customerId) => {
     customerMap.set(customerId, await getCustomerSummaryByUserId(customerId, { admin: true }));

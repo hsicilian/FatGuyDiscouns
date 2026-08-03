@@ -105,6 +105,25 @@ export default async function AdminCustomerDetailPage({
         <h1 style={{ margin: "0 0 10px" }}>{customer.displayName}</h1>
         <p style={{ margin: "0 0 8px", color: "var(--muted)" }}>{customer.email}</p>
         <p style={{ margin: 0, color: "var(--muted)" }}>{customer.address}</p>
+        <div style={{ marginTop: 18 }}>
+          <a
+            href={`/admin/customers/${customer.id}/invoice`}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderRadius: 999,
+              padding: "12px 16px",
+              background: "#bb4d00",
+              color: "#fff",
+              fontWeight: 700,
+            }}
+          >
+            Download Current Invoice PDF
+          </a>
+        </div>
       </section>
 
       <section style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>

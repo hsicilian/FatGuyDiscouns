@@ -366,6 +366,117 @@ async function saveCustomerProfileAddressSupabase(userId: string, input: {
   return { ok: true as const, message: "Profile details updated." };
 }
 
+export async function createManualCustomerInDatabaseSupabase(input: {
+  displayName: string;
+  email: string;
+  password: string;
+  street: string;
+  city: string;
+  region: string;
+  postalCode: string;
+  timezone: string;
+}) {
+  const displayName = input.displayName.trim();
+  const email = input.email.trim().toLowerCase();
+  const password = input.password.trim();
+  const timezone = input.timezone.trim() || "America/New_York";
+
+  if (!displayName) {
+    return { ok: false as const, message: "Customer name is required." };
+  }
+
+  if (!email || !email.includes("@")) {
+    return { ok: false as const, message: "A valid email address is required." };
+  }
+
+  if (password.length < 8) {
+    return { ok: false as const, message: "Temporary password must be at least 8 characters." };
+  }
+
+  const admin = await getAdminClient();
+  const createdUser = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      display_name: displayName,
+    },
+  });
+
+  if (createdUser.error || !createdUser.data.user) {
+    return {
+      ok: false as const,
+      message: createdUser.error?.message ?? "Could not create the customer login.",
+    };
+  }
+
+  const userId = createdUser.data.user.id;
+
+  try {
+    const roleUpsert = await admin
+      .from("user_roles")
+      .upsert({
+        user_id: userId,
+        role: "customer",
+        account_state: "approved",
+      }, { onConflict: "user_id" });
+
+    if (roleUpsert.error) {
+      throw roleUpsert.error;
+    }
+
+    const profileUpsert = await admin
+      .from("customer_profiles")
+      .upsert({
+        user_id: userId,
+        display_name: displayName,
+        timezone,
+        credit_balance: 0,
+        default_address_id: null,
+      }, { onConflict: "user_id" });
+
+    if (profileUpsert.error) {
+      throw profileUpsert.error;
+    }
+
+    const addressResult = await saveCustomerProfileAddressSupabase(userId, {
+      street: input.street,
+      city: input.city,
+      region: input.region,
+      postalCode: input.postalCode,
+      timezone,
+    });
+
+    if (!addressResult.ok) {
+      throw new Error(addressResult.message);
+    }
+
+    const profileNameUpdate = await admin
+      .from("customer_profiles")
+      .upsert({
+        user_id: userId,
+        display_name: displayName,
+        timezone,
+      }, { onConflict: "user_id" });
+
+    if (profileNameUpdate.error) {
+      throw profileNameUpdate.error;
+    }
+
+    return {
+      ok: true as const,
+      message: `${displayName} was added to the CRM as an approved customer.`,
+      suggestedEmail: email,
+    };
+  } catch (error) {
+    await admin.auth.admin.deleteUser(userId).catch(() => undefined);
+    return {
+      ok: false as const,
+      message: error instanceof Error ? error.message : "Could not finish creating the customer record.",
+    };
+  }
+}
+
 async function notifyRestockRequestCustomers(
   admin: Awaited<ReturnType<typeof getAdminClient>>,
   product: { id: string; title: string },
@@ -387,7 +498,7 @@ async function notifyRestockRequestCustomers(
   }
 
   const productUrl = `${getSiteUrl().replace(/\/$/, "")}${getProductPath({ id: product.id, title: product.title })}`;
-  const customerMessages = await Promise.all(customerIds.map(async (customerId) => {
+  const customerMessages = await Promise.all((customerIds as string[]).map(async (customerId) => {
     const customer = await getCustomerSummaryByUserId(customerId, { admin: true });
     return {
       customer_id: customerId,

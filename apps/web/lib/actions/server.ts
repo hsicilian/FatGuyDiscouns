@@ -16,6 +16,7 @@ import {
   cancelShipmentRequestInDatabase,
   clearProductSaleInDatabase,
   createCategoryInDatabase,
+  createManualCustomerInDatabase,
   createInventoryItemInDatabase,
   createInventoryItemsBulkInDatabase,
   createEventInDatabase,
@@ -822,6 +823,49 @@ export async function updateCurrentCustomerProfileDetails(
   const result = await updateCurrentCustomerProfile({ street, city, region, postalCode, timezone });
   revalidatePath("/account");
   revalidatePath("/claims");
+
+  return {
+    ...result,
+    submittedAt: new Date().toISOString(),
+  };
+}
+
+export async function createManualCustomer(
+  displayName: string,
+  email: string,
+  password: string,
+  street: string,
+  city: string,
+  region: string,
+  postalCode: string,
+  timezone: string,
+): Promise<FormActionState> {
+  const access = await requireAdminMutationAccess();
+  if (!access.ok) {
+    return access;
+  }
+
+  const result = await createManualCustomerInDatabase({
+    displayName,
+    email,
+    password,
+    street,
+    city,
+    region,
+    postalCode,
+    timezone,
+  });
+  await recordAuditIfSuccessful(result, {
+    actorId: access.currentUser.id,
+    actorName: access.currentUser.displayName,
+    actorRole: access.currentUser.role,
+    actionType: "customer.create_manual",
+    entityType: "customer",
+    summary: `Created manual customer record for ${displayName} (${email}).`,
+  });
+  revalidatePath("/admin");
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/approvals");
 
   return {
     ...result,
