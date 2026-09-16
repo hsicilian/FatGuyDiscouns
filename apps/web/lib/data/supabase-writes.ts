@@ -1151,13 +1151,15 @@ export async function createInventoryItemInDatabaseSupabase(input: {
     });
   }
 
-  const imagesInsert = await admin.from("product_images").insert(imageRows);
-  if (imagesInsert.error) {
-    if (uploadedPaths.length) {
-      await admin.storage.from(bucket).remove(uploadedPaths);
+  if (imageRows.length > 0) {
+    const imagesInsert = await admin.from("product_images").insert(imageRows);
+    if (imagesInsert.error) {
+      if (uploadedPaths.length) {
+        await admin.storage.from(bucket).remove(uploadedPaths);
+      }
+      await admin.from("products").delete().eq("id", productId);
+      return { ok: false, message: imagesInsert.error.message };
     }
-    await admin.from("products").delete().eq("id", productId);
-    return { ok: false, message: imagesInsert.error.message };
   }
 
   const crossListedSave = await saveCrossListedInventoryToDatabaseSupabase({
@@ -1177,7 +1179,8 @@ export async function createInventoryItemInDatabaseSupabase(input: {
 
   return {
     ok: true,
-    message: `${title} was added with ${images.length} photo${images.length === 1 ? "" : "s"}, ${quantity} item${quantity === 1 ? "" : "s"} on hand, and a Website entry in cross-listed inventory.`,
+    productId,
+    message: `${title} was added with ${quantity} item${quantity === 1 ? "" : "s"} on hand and a Website entry in cross-listed inventory.`,
   };
 }
 

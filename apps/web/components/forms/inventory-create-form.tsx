@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState } from "react";
 import type { CategoryOption, FormActionState } from "@fatguydiscounts/types";
 import { createInventoryItemAction } from "../../app/actions/inventory/create";
@@ -17,9 +18,14 @@ const inputStyle: React.CSSProperties = {
 };
 
 export function InventoryCreateForm({ categories }: { categories: CategoryOption[] }) {
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const selectedFilesRef = useRef<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [photoMessage, setPhotoMessage] = useState("");
+  const [photoUploadError, setPhotoUploadError] = useState(false);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
   const [state, formAction, isPending] = useActionState(createInventoryItemAction, initialState);
 
   useEffect(() => {
@@ -27,13 +33,69 @@ export function InventoryCreateForm({ categories }: { categories: CategoryOption
       return;
     }
 
-    formRef.current?.reset();
-    setSelectedFiles([]);
+    const filesToUpload = selectedFilesRef.current;
+    const productId = state.productId;
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    async function uploadPhotos() {
+      if (filesToUpload.length === 0 || !productId) {
+        setPhotoMessage("");
+        setPhotoUploadError(false);
+        formRef.current?.reset();
+        setSelectedFiles([]);
+        selectedFilesRef.current = [];
+
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+
+        router.refresh();
+        return;
+      }
+
+      setIsUploadingPhotos(true);
+      setPhotoMessage(`Uploading ${filesToUpload.length} photo${filesToUpload.length === 1 ? "" : "s"}...`);
+      setPhotoUploadError(false);
+
+      try {
+        for (const [index, file] of filesToUpload.entries()) {
+          const formData = new FormData();
+          formData.append("productId", productId);
+          formData.append("position", String(index));
+          formData.append("file", file);
+
+          const response = await fetch("/api/admin/product-images", {
+            method: "POST",
+            body: formData,
+          });
+          const payload = await response.json();
+
+          if (!response.ok || !payload?.ok) {
+            throw new Error(payload?.message ?? "Photo upload failed.");
+          }
+        }
+
+        setPhotoMessage(`Uploaded ${filesToUpload.length} photo${filesToUpload.length === 1 ? "" : "s"} for the new item.`);
+        setPhotoUploadError(false);
+        formRef.current?.reset();
+        setSelectedFiles([]);
+        selectedFilesRef.current = [];
+
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+
+        router.refresh();
+      } catch (error) {
+        setPhotoMessage(error instanceof Error ? error.message : "Photo upload failed.");
+        setPhotoUploadError(true);
+        router.refresh();
+      } finally {
+        setIsUploadingPhotos(false);
+      }
     }
-  }, [state.ok, state.submittedAt]);
+
+    void uploadPhotos();
+  }, [router, state.ok, state.productId, state.submittedAt]);
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const nextFiles = Array.from(event.target.files ?? []);
@@ -57,14 +119,20 @@ export function InventoryCreateForm({ categories }: { categories: CategoryOption
         }
       }
 
-      return merged.slice(0, 6);
+      const nextSelectedFiles = merged.slice(0, 6);
+      selectedFilesRef.current = nextSelectedFiles;
+      return nextSelectedFiles;
     });
 
     event.target.value = "";
   }
 
   function removeSelectedFile(index: number) {
-    setSelectedFiles((current) => current.filter((_, fileIndex) => fileIndex !== index));
+    setSelectedFiles((current) => {
+      const nextSelectedFiles = current.filter((_, fileIndex) => fileIndex !== index);
+      selectedFilesRef.current = nextSelectedFiles;
+      return nextSelectedFiles;
+    });
   }
 
   function handleFormKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
@@ -88,12 +156,8 @@ export function InventoryCreateForm({ categories }: { categories: CategoryOption
     <form
       ref={formRef}
       onKeyDown={handleFormKeyDown}
-      action={async (formData) => {
-        selectedFiles.forEach((file) => formData.append("images", file));
-        await formAction(formData);
-      }}
+      action={formAction}
       style={{ display: "grid", gap: 14 }}
-      encType="multipart/form-data"
     >
       <div style={{ display: "grid", gap: 14, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
         <label style={{ display: "grid", gap: 6 }}>
@@ -148,7 +212,6 @@ export function InventoryCreateForm({ categories }: { categories: CategoryOption
         <span style={{ color: "#6d655d", fontSize: 14 }}>Item photos</span>
         <input
           ref={fileInputRef}
-          name="images"
           type="file"
           accept="image/*"
           multiple
@@ -197,10 +260,11 @@ export function InventoryCreateForm({ categories }: { categories: CategoryOption
       </label>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <button disabled={isPending} style={{ background: "#bb4d00", color: "#fff", border: 0, borderRadius: 999, padding: "12px 18px", fontWeight: 700 }}>
-          {isPending ? "Saving..." : "Add Inventory Item"}
+        <button disabled={isPending || isUploadingPhotos} style={{ background: "#bb4d00", color: "#fff", border: 0, borderRadius: 999, padding: "12px 18px", fontWeight: 700 }}>
+          {isPending || isUploadingPhotos ? "Saving..." : "Add Inventory Item"}
         </button>
         <p style={{ color: state.ok ? "#2f5d32" : "#8e3200", margin: 0 }}>{state.message}</p>
+        {photoMessage ? <p style={{ color: photoUploadError ? "#8e3200" : "#2f5d32", margin: 0 }}>{photoMessage}</p> : null}
       </div>
       <p style={{ margin: 0, color: "#6d655d", fontSize: 13 }}>
         Scanning a SKU will fill the field without auto-submitting the listing.

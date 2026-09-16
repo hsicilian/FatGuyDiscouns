@@ -5,6 +5,7 @@ export interface ActionResult {
 
 export interface FormActionState extends ActionResult {
   submittedAt?: string;
+  productId?: string;
   nextStatus?: string;
   remainingBalance?: number;
   overpayment?: number;
