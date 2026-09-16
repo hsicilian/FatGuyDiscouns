@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentSessionUser } from "../../../../lib/auth/session";
+import { isUuidLike } from "../../../../lib/products";
 import { createSupabaseAdminClient, getProductImagesBucket, hasSupabaseEnv, isProductionRuntime } from "../../../../lib/supabase";
 
 const MAX_IMAGE_COUNT = 6;
@@ -36,8 +37,8 @@ export async function POST(request: Request) {
   const explicitPosition = Number(formData.get("position") ?? "0");
   const file = formData.get("file");
 
-  if (!productId) {
-    return NextResponse.json({ ok: false, message: "Product id is required." }, { status: 400 });
+  if (!isUuidLike(productId)) {
+    return NextResponse.json({ ok: false, message: "Product id is missing or invalid." }, { status: 400 });
   }
 
   if (!(file instanceof File)) {
@@ -123,8 +124,8 @@ export async function DELETE(request: Request) {
 
   const url = new URL(request.url);
   const imageId = url.searchParams.get("imageId")?.trim();
-  if (!imageId) {
-    return NextResponse.json({ ok: false, message: "Image id is required." }, { status: 400 });
+  if (!imageId || !isUuidLike(imageId)) {
+    return NextResponse.json({ ok: false, message: "Image id is missing or invalid." }, { status: 400 });
   }
 
   const admin = createSupabaseAdminClient();

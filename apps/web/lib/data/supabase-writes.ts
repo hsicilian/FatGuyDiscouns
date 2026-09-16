@@ -19,11 +19,20 @@ import {
 import { getCurrentCustomerSupabase, listProductsSupabase } from "./supabase-reads";
 import { getProductImagesBucket, getSiteUrl } from "../supabase";
 import { buildWeeklyRecurringLocalDateTimes, zonedLocalDateTimeToIso } from "../events";
-import { getProductPath } from "../products";
+import { getProductPath, isUuidLike } from "../products";
 import { sendAdminEmailNotification } from "../admin-email";
 
 const MAX_IMAGE_COUNT = 6;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+function invalidInventoryRecord() {
+  return { ok: false as const, message: "Inventory record is missing or invalid. Refresh the page and try again." };
+}
+
+function uniqueValidUuids(values: string[]) {
+  const normalized = [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+  return normalized.every(isUuidLike) ? normalized : [];
+}
 
 function slugifyFilename(name: string) {
   return name.replace(/[^a-zA-Z0-9.-]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase();
@@ -532,6 +541,8 @@ async function notifyRestockRequestCustomers(
 }
 
 export async function submitClaimToDatabaseSupabase(productId: string, requestedQuantity: number) {
+  if (!isUuidLike(productId.trim())) return invalidInventoryRecord();
+
   const customer = await getCurrentCustomerSupabase();
   const products = await listProductsSupabase();
   const product = products.find((entry) => entry.id === productId);
@@ -556,6 +567,8 @@ export async function submitClaimToDatabaseSupabase(productId: string, requested
 }
 
 export async function adjustInventoryInDatabaseSupabase(productId: string, quantityChange: number) {
+  if (!isUuidLike(productId.trim())) return invalidInventoryRecord();
+
   const admin = await getAdminClient();
   const { data: product, error } = await admin.from("products").select("id, title, inventory_quantity").eq("id", productId).single();
   if (error || !product) return { ok: false, message: "Product not found." };
@@ -585,6 +598,8 @@ export async function adjustInventoryInDatabaseSupabase(productId: string, quant
 }
 
 export async function updateProductSaleInDatabaseSupabase(productId: string, salePercentage: number, saleEndsAt: string) {
+  if (!isUuidLike(productId.trim())) return invalidInventoryRecord();
+
   const admin = await getAdminClient();
   const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
   if (error || !product) return { ok: false, message: "Product not found." };
@@ -612,6 +627,8 @@ export async function updateProductSaleInDatabaseSupabase(productId: string, sal
 }
 
 export async function clearProductSaleInDatabaseSupabase(productId: string) {
+  if (!isUuidLike(productId.trim())) return invalidInventoryRecord();
+
   const admin = await getAdminClient();
   const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
   if (error || !product) return { ok: false, message: "Product not found." };
@@ -634,7 +651,7 @@ export async function updateProductSalesBulkInDatabaseSupabase(
   salePercentage: number,
   saleEndsAt: string,
 ) {
-  const uniqueProductIds = [...new Set(productIds.map((value) => value.trim()).filter(Boolean))];
+  const uniqueProductIds = uniqueValidUuids(productIds);
 
   if (uniqueProductIds.length === 0) {
     return { ok: false, message: "Select at least one inventory item for the sale." };
@@ -687,6 +704,8 @@ export async function updateProductSaleByTargetPriceInDatabaseSupabase(
   salePrice: number,
   saleEndsAt: string,
 ) {
+  if (!isUuidLike(productId.trim())) return invalidInventoryRecord();
+
   const admin = await getAdminClient();
   const { data: product, error } = await admin
     .from("products")
@@ -718,7 +737,7 @@ export async function updateProductSalesBulkByTargetPriceInDatabaseSupabase(
   salePrice: number,
   saleEndsAt: string,
 ) {
-  const uniqueProductIds = [...new Set(productIds.map((value) => value.trim()).filter(Boolean))];
+  const uniqueProductIds = uniqueValidUuids(productIds);
 
   if (uniqueProductIds.length === 0) {
     return { ok: false, message: "Select at least one inventory item for the sale." };
@@ -782,6 +801,8 @@ export async function updateProductSalesBulkByTargetPriceInDatabaseSupabase(
 }
 
 export async function updateHomepageFeaturedInDatabaseSupabase(productId: string, featured: boolean) {
+  if (!isUuidLike(productId.trim())) return invalidInventoryRecord();
+
   const admin = await getAdminClient();
   const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
   if (error || !product) return { ok: false, message: "Product not found." };
@@ -804,6 +825,8 @@ export async function updateHomepageFeaturedInDatabaseSupabase(productId: string
 }
 
 export async function archiveProductInDatabaseSupabase(productId: string) {
+  if (!isUuidLike(productId.trim())) return invalidInventoryRecord();
+
   const admin = await getAdminClient();
   const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();
   if (error || !product) return { ok: false, message: "Product not found." };
@@ -825,6 +848,8 @@ export async function archiveProductInDatabaseSupabase(productId: string) {
 }
 
 export async function restoreArchivedProductInDatabaseSupabase(productId: string) {
+  if (!isUuidLike(productId.trim())) return invalidInventoryRecord();
+
   const admin = await getAdminClient();
   const { data: product, error } = await admin
     .from("products")
@@ -850,6 +875,8 @@ export async function restoreArchivedProductInDatabaseSupabase(productId: string
 }
 
 export async function deleteArchivedProductInDatabaseSupabase(productId: string) {
+  if (!isUuidLike(productId.trim())) return invalidInventoryRecord();
+
   const admin = await getAdminClient();
   const { data: product, error } = await admin
     .from("products")
@@ -1173,7 +1200,7 @@ export async function updateInventoryItemInDatabaseSupabase(input: {
   const price = Number(input.price);
   const cost = Number(input.cost);
 
-  if (!productId) return { ok: false, message: "Product record is missing." };
+  if (!isUuidLike(productId)) return invalidInventoryRecord();
   if (!title) return { ok: false, message: "Item title is required." };
   if (!categoryName) return { ok: false, message: "Category is required." };
   if (!Number.isFinite(price) || price < 0) return { ok: false, message: "Price must be zero or higher." };
@@ -1407,6 +1434,8 @@ export async function createCategoryInDatabaseSupabase(name: string) {
 }
 
 export async function deleteCategoryInDatabaseSupabase(categoryId: string) {
+  if (!isUuidLike(categoryId.trim())) return invalidInventoryRecord();
+
   const admin = await getAdminClient();
   const { data: category, error: categoryError } = await admin
     .from("categories")
@@ -1444,6 +1473,8 @@ export async function deleteCategoryInDatabaseSupabase(categoryId: string) {
 }
 
 export async function submitRestockRequestToDatabaseSupabase(productId: string) {
+  if (!isUuidLike(productId.trim())) return invalidInventoryRecord();
+
   const actor = await getCurrentActor().catch(() => null);
   const admin = await getAdminClient();
   const { data: product, error } = await admin.from("products").select("id, title").eq("id", productId).single();

@@ -5,6 +5,7 @@ import { previewClaimAction } from "./claims";
 import { previewPaymentAction } from "./payments";
 import { previewShipmentRequest } from "./shipments";
 import { getCurrentSessionUser } from "../auth/session";
+import { isUuidLike } from "../products";
 import {
   addCustomerToShipmentQueueInDatabase,
   addCustomerNoteToDatabase,
@@ -111,10 +112,33 @@ async function recordAuditIfSuccessful(
   await recordAdminAuditEntryInDatabase(input);
 }
 
+function invalidInventoryRecordState(): FormActionState {
+  return {
+    ok: false,
+    message: "Inventory record is missing or invalid. Refresh the page and try again.",
+  };
+}
+
+function validateInventoryId(id: string) {
+  return isUuidLike(id.trim()) ? null : invalidInventoryRecordState();
+}
+
+function validateInventoryIds(ids: string[]) {
+  const normalizedIds = ids.map((value) => value.trim()).filter(Boolean);
+  return normalizedIds.length > 0 && normalizedIds.every(isUuidLike)
+    ? null
+    : invalidInventoryRecordState();
+}
+
 export async function submitClaim(productId: string, requestedQuantity: number): Promise<FormActionState> {
   const access = await requireCustomerMutationAccess();
   if (!access.ok) {
     return access;
+  }
+
+  const idError = validateInventoryId(productId);
+  if (idError) {
+    return idError;
   }
 
   const preview = await previewClaimAction(productId, requestedQuantity);
@@ -254,6 +278,11 @@ export async function adjustInventory(productId: string, quantityChange: number)
     return access;
   }
 
+  const idError = validateInventoryId(productId);
+  if (idError) {
+    return idError;
+  }
+
   const result = await adjustInventoryInDatabase(productId, quantityChange);
   await recordAuditIfSuccessful(result, {
     actorId: access.currentUser.id,
@@ -378,6 +407,11 @@ export async function updateInventoryItem(
     return access;
   }
 
+  const idError = validateInventoryId(productId);
+  if (idError) {
+    return idError;
+  }
+
   const result = await updateInventoryItemInDatabase({
     productId,
     title,
@@ -431,6 +465,11 @@ export async function deleteCategory(categoryId: string): Promise<FormActionStat
     return access;
   }
 
+  const idError = validateInventoryId(categoryId);
+  if (idError) {
+    return idError;
+  }
+
   const result = await deleteCategoryInDatabase(categoryId);
   revalidatePath("/admin");
   revalidatePath("/admin/inventory");
@@ -449,6 +488,11 @@ export async function updateProductSale(
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
     return access;
+  }
+
+  const idError = validateInventoryId(productId);
+  if (idError) {
+    return idError;
   }
 
   const result = await updateProductSaleInDatabase(productId, salePercentage, saleEndsAt);
@@ -483,6 +527,11 @@ export async function updateProductSaleByTargetPrice(
     return access;
   }
 
+  const idError = validateInventoryId(productId);
+  if (idError) {
+    return idError;
+  }
+
   const result = await updateProductSaleByTargetPriceInDatabase(productId, salePrice, saleEndsAt);
   await recordAuditIfSuccessful(result, {
     actorId: access.currentUser.id,
@@ -513,6 +562,11 @@ export async function updateProductSalesBulk(
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
     return access;
+  }
+
+  const idError = validateInventoryIds(productIds);
+  if (idError) {
+    return idError;
   }
 
   const result = await updateProductSalesBulkInDatabase(productIds, salePercentage, saleEndsAt);
@@ -546,6 +600,11 @@ export async function updateProductSalesBulkByTargetPrice(
     return access;
   }
 
+  const idError = validateInventoryIds(productIds);
+  if (idError) {
+    return idError;
+  }
+
   const result = await updateProductSalesBulkByTargetPriceInDatabase(productIds, salePrice, saleEndsAt);
   await recordAuditIfSuccessful(result, {
     actorId: access.currentUser.id,
@@ -571,6 +630,11 @@ export async function clearProductSale(productId: string): Promise<FormActionSta
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
     return access;
+  }
+
+  const idError = validateInventoryId(productId);
+  if (idError) {
+    return idError;
   }
 
   const result = await clearProductSaleInDatabase(productId);
@@ -601,6 +665,11 @@ export async function updateHomepageFeatured(productId: string, featured: boolea
     return access;
   }
 
+  const idError = validateInventoryId(productId);
+  if (idError) {
+    return idError;
+  }
+
   const result = await updateHomepageFeaturedInDatabase(productId, featured);
   await recordAuditIfSuccessful(result, {
     actorId: access.currentUser.id,
@@ -625,6 +694,11 @@ export async function archiveProduct(productId: string): Promise<FormActionState
   const access = await requireAdminMutationAccess();
   if (!access.ok) {
     return access;
+  }
+
+  const idError = validateInventoryId(productId);
+  if (idError) {
+    return idError;
   }
 
   const result = await archiveProductInDatabase(productId);
@@ -656,6 +730,11 @@ export async function restoreArchivedProduct(productId: string): Promise<FormAct
     return access;
   }
 
+  const idError = validateInventoryId(productId);
+  if (idError) {
+    return idError;
+  }
+
   const result = await restoreArchivedProductInDatabase(productId);
   await recordAuditIfSuccessful(result, {
     actorId: access.currentUser.id,
@@ -685,6 +764,11 @@ export async function deleteArchivedProduct(productId: string): Promise<FormActi
     return access;
   }
 
+  const idError = validateInventoryId(productId);
+  if (idError) {
+    return idError;
+  }
+
   const result = await deleteArchivedProductInDatabase(productId);
   await recordAuditIfSuccessful(result, {
     actorId: access.currentUser.id,
@@ -706,6 +790,11 @@ export async function deleteArchivedProduct(productId: string): Promise<FormActi
 }
 
 export async function submitRestockRequest(productId: string): Promise<FormActionState> {
+  const idError = validateInventoryId(productId);
+  if (idError) {
+    return idError;
+  }
+
   const result = await submitRestockRequestToDatabase(productId);
   revalidatePath("/store");
   revalidatePath("/admin");
