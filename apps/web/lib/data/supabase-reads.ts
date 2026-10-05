@@ -18,7 +18,6 @@ import type {
   ShipmentRecord,
 } from "@fatguydiscounts/types";
 import {
-  ZERO_CYCLE,
   aggregateBalanceCycleSummaries,
   formatNotificationLabel,
   getAdminClient,
@@ -251,7 +250,7 @@ export async function getBalanceCycleSupabase(customerId?: string) {
   }
 
   const context = await getTargetCycleContext(customerId);
-  return context?.summary ?? ZERO_CYCLE;
+  return context?.summary ?? aggregateBalanceCycleSummaries([]);
 }
 
 export async function getOpenBalanceSummarySupabase(customerId?: string) {

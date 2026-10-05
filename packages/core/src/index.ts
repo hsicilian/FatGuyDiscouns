@@ -55,9 +55,6 @@ export const DASHBOARD_SECTIONS: DashboardSection[] = [
   },
 ];
 
-export const PAYMENT_SCHEDULE_ANCHOR = "2026-04-05";
-export const PAYMENT_SCHEDULE_INTERVAL_DAYS = 7;
-
 function parseDateOnly(value: string) {
   const [year, month, day] = value.slice(0, 10).split("-").map(Number);
   return new Date(Date.UTC(year, month - 1, day));
@@ -68,18 +65,11 @@ function formatDateOnly(date: Date) {
 }
 
 export function getScheduledDueDateForDate(referenceDate: string) {
-  const anchor = parseDateOnly(PAYMENT_SCHEDULE_ANCHOR);
   const reference = parseDateOnly(referenceDate);
-
-  if (reference.getTime() <= anchor.getTime()) {
-    return PAYMENT_SCHEDULE_ANCHOR;
-  }
-
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const dayDiff = Math.floor((reference.getTime() - anchor.getTime()) / msPerDay);
-  const intervalCount = Math.ceil(dayDiff / PAYMENT_SCHEDULE_INTERVAL_DAYS);
-  const nextDate = new Date(anchor.getTime() + intervalCount * PAYMENT_SCHEDULE_INTERVAL_DAYS * msPerDay);
-  return formatDateOnly(nextDate);
+  // Input is a billing-local calendar date. UTC arithmetic avoids server timezone
+  // and daylight-saving shifts; Sunday itself is still due today.
+  reference.setUTCDate(reference.getUTCDate() + (7 - reference.getUTCDay()) % 7);
+  return formatDateOnly(reference);
 }
 
 export function getNextScheduledDueDate(todayIso: string) {

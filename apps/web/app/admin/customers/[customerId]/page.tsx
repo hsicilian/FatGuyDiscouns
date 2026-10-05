@@ -166,6 +166,10 @@ export default async function AdminCustomerDetailPage({
           <strong style={{ color: overdue ? "#8e3200" : "#1f1d1a" }}>{currentCycleDueDate}</strong>
         </div>
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 20, boxShadow: "var(--shadow)" }}>
+          <p style={{ marginTop: 0, color: "var(--muted)" }}>Next regular due date (weekly Sunday, Eastern Time)</p>
+          <strong>{openBalance.nextRegularDueDate}</strong>
+        </div>
+        <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 20, boxShadow: "var(--shadow)" }}>
           <p style={{ marginTop: 0, color: "var(--muted)" }}>Credit on file</p>
           <strong>{currency.format(customer.creditBalance)}</strong>
         </div>

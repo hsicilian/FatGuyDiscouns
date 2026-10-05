@@ -1,6 +1,6 @@
 import "server-only";
 
-import { calculateBalanceDue, getSalePrice, getScheduledDueDateForDate, isBalanceOverdue, isSaleActive } from "@fatguydiscounts/core";
+import { calculateBalanceDue, getSalePrice, getScheduledDueDateForDate, getNextScheduledDueDate, isBalanceOverdue, isSaleActive } from "@fatguydiscounts/core";
 import type {
   ArchivedInvoice,
   BalanceCycleSummary,
@@ -107,9 +107,10 @@ export function getOpenBalanceSummaryFromSummaries(
     overdueAmount,
     currentAmount,
     status: overdueAmount > 0 ? "overdue" : "current",
-    displayDueDate: overdueDueDate ?? currentDueDate ?? nextDueDateFromToday(),
+    displayDueDate: overdueDueDate ?? currentDueDate ?? getScheduledDueDateForDate(today),
     overdueDueDate,
     currentDueDate,
+    nextRegularDueDate: getNextScheduledDueDate(today),
   };
 }
 
@@ -122,7 +123,7 @@ export function buildOpenBalanceCycleSummary(
   );
 
   if (openSummaries.length === 0) {
-    return ZERO_CYCLE;
+    return { ...ZERO_CYCLE, dueDate: getScheduledDueDateForDate(today) };
   }
 
   const openBalance = getOpenBalanceSummaryFromSummaries(openSummaries, today);
@@ -335,7 +336,11 @@ export function mapBalanceCycle(
   return {
     id: row.id,
     status: row.status,
-    dueDate: storedDueDate ?? getScheduledDueDateForDate((row.created_at ?? row.updated_at ?? siteToday()).slice(0, 10)),
+    dueDate: storedDueDate ?? getScheduledDueDateForDate(
+      row.created_at || row.updated_at
+        ? getEasternDateInputValue(new Date(row.created_at ?? row.updated_at))
+        : siteToday(),
+    ),
     subtotal,
     shipping: Number(row.shipping_total ?? 0),
     adjustments: Number(row.adjustments_total ?? 0),
@@ -483,16 +488,16 @@ export async function getSupabaseCycleRow(customerId?: string, options?: { dueDa
 
 export async function ensureActiveCycle(customerId: string, dueDate = nextDueDateFromToday()) {
   const admin = await getAdminClient();
-  const existing = await getSupabaseCycleRow(customerId, { dueDate });
-  if (existing) {
-    return existing;
-  }
-
-  const { data, error } = await admin.from("balance_cycles").insert({ customer_id: customerId, status: "active", due_date: dueDate, shipping_total: 0, adjustments_total: 0, payments_applied: 0, credits_applied: 0 }).select("*").single();
+  const { data, error } = await admin.rpc("ensure_weekly_balance_cycle", {
+    p_customer_id: customerId,
+    p_reference_date: dueDate,
+  });
   if (error) {
     throw error;
   }
-  return data;
+  const cycle = Array.isArray(data) ? data[0] : data;
+  if (!cycle?.id) throw new Error("Weekly balance cycle could not be created.");
+  return cycle;
 }
 
 export async function getTargetCycleContext(customerId?: string, options?: { dueDate?: string; ensureIfMissing?: boolean }) {

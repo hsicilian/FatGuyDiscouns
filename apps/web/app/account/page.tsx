@@ -65,8 +65,10 @@ export default async function AccountPage() {
           <StatCard label="Overdue amount" value={currency.format(openBalance.overdueAmount)} />
           <StatCard label="Current cycle amount" value={currency.format(openBalance.currentAmount)} />
           <StatCard label="Current cycle due date" value={openBalance.currentDueDate ?? openBalance.displayDueDate} />
+          <StatCard label="Next regular due date" value={openBalance.nextRegularDueDate} />
           <StatCard label="Credit on file" value={currency.format(currentCustomer.creditBalance)} />
         </div>
+        <p style={{ color: "var(--muted)" }}>Payments are due every Sunday (Eastern Time).</p>
         {overdue ? (
           <div style={{ marginTop: 20, padding: 16, borderRadius: 18, background: "#3d1f12", color: "#fff4df", boxShadow: "var(--shadow)" }}>
             <strong>{currency.format(openBalance.overdueAmount)}</strong> is overdue and due immediately.

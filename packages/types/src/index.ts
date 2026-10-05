@@ -104,6 +104,7 @@ export interface OpenBalanceSummary {
   displayDueDate: string;
   overdueDueDate: string | null;
   currentDueDate: string | null;
+  nextRegularDueDate: string;
 }
 
 export interface ArchivedInvoice {
