@@ -20,6 +20,7 @@ export default async function AdminPaymentsPage() {
       <section style={{ background: "linear-gradient(145deg, rgba(255, 249, 241, 0.95) 0%, rgba(246, 229, 209, 0.92) 100%)", border: "1px solid var(--line)", borderRadius: 30, padding: 28, boxShadow: "var(--shadow)" }}>
         <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginTop: 0 }}>Master admin only</p>
         <h1 style={{ margin: "0 0 10px" }}>Payments and credits</h1>
+        {process.env.PUSH_ENABLED === "true" && <p><a href="/admin/push">Send Payment Reminders</a></p>}
         <p style={{ color: "var(--muted)", lineHeight: 1.7, margin: 0, maxWidth: 820 }}>
           Review payment and credit records across all customers, fix mistyped amounts, and repair older entries that were attached to the wrong cycle.
         </p>

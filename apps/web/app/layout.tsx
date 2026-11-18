@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SignOutForm } from "../components/forms/sign-out-form";
 import { getCurrentSessionAccount } from "../lib/auth/session";
 import "./globals.css";
+import { PushAccountBoundary } from "../components/push/push-account-boundary";
 
 export const metadata: Metadata = {
   title: "Fatguydiscounts",
@@ -20,11 +21,16 @@ export default async function RootLayout({
     ...(currentUser
       ? [{ href: currentUser.role === "customer" ? "/account" : "/admin", label: currentUser.role === "customer" ? "Account" : "Dashboard" }]
       : [{ href: "/login", label: "Login" }, { href: "/signup", label: "Sign Up" }]),
+    ...(currentUser?.role === "customer" ? [{ href: "/account/notifications", label: "Notifications" }] : []),
+    ...(currentUser?.role === "master_admin" && process.env.PUSH_ENABLED === "true"
+      ? [{ href: "/admin/push", label: "Send Notifications" }]
+      : []),
   ];
 
   return (
     <html lang="en">
       <body>
+        {process.env.PUSH_ENABLED === "true" && <PushAccountBoundary userId={currentUser?.id ?? null} />}
         <div>
           <header
             className="site-header"

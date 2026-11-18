@@ -3,7 +3,10 @@ import { ResendConfirmationForm } from "../../components/forms/resend-confirmati
 import { SignOutForm } from "../../components/forms/sign-out-form";
 import { getCurrentSessionAccount } from "../../lib/auth/session";
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams?: Promise<{ redirectTo?: string }> }) {
+  // Only the notification entry point opts into a post-login destination here.
+  const notificationEntry = (await searchParams)?.redirectTo === "/account/notifications";
+  const redirectTo = notificationEntry ? "/account/notifications" : "/account";
   const currentUser = await getCurrentSessionAccount();
 
   return (
@@ -30,14 +33,14 @@ export default async function LoginPage() {
                 <p style={{ margin: "6px 0 0", color: "var(--muted)" }}>{currentUser.email}</p>
               </div>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-                <a href={currentUser.role === "customer" ? "/account" : "/admin"} style={{ color: "var(--accent-strong)", fontWeight: 700 }}>
+                <a href={notificationEntry ? (currentUser.role === "customer" ? "/account/notifications" : "/admin/notifications") : (currentUser.role === "customer" ? "/account" : "/admin")} style={{ color: "var(--accent-strong)", fontWeight: 700 }}>
                   Continue to {currentUser.role === "customer" ? "my account" : "admin"}
                 </a>
                 <SignOutForm />
               </div>
             </div>
           ) : (
-            <LoginForm />
+            <LoginForm redirectTo={redirectTo} />
           )}
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginTop: 18 }}>
             <a href="/signup" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Create account</a>

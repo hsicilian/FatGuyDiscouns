@@ -1,0 +1,40 @@
+name: fgd
+services:
+  web:
+    image: fgd-web:${FGD_IMAGE_TAG:?Set a unique release tag}
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Required public build setting}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?Required public build setting}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?Required canonical HTTPS URL}
+    env_file:
+      - ${FGD_RUNTIME_ENV_FILE:?Set the absolute path to the private FGD runtime env file}
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+      NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?Required public build setting}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?Required public build setting}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?Required canonical HTTPS URL}
+    expose:
+      - "3000"
+    networks:
+      proxy:
+        aliases:
+          - fgd-web
+    init: true
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+networks:
+  proxy:
+    external: true
+    name: ${FGD_PROXY_NETWORK:?Set the approved FGD-to-Caddy network name}

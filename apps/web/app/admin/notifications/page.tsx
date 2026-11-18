@@ -11,6 +11,7 @@ export default async function AdminNotificationsPage() {
         <a href="/admin" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Back to admin dashboard</a>
         <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, color: "var(--accent-strong)", marginBottom: 8, fontWeight: 700 }}>Notification history</p>
         <h1 style={{ margin: 0 }}>All notifications</h1>
+        {process.env.PUSH_ENABLED === "true" && <p><a href="/admin/push">Sale announcements and payment reminders (Owner)</a></p>}
       </section>
 
       <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 22, boxShadow: "var(--shadow)" }}>
@@ -26,6 +27,7 @@ export default async function AdminNotificationsPage() {
                 </span>
               </div>
               <strong>{notification.label}</strong>
+              {notification.type === "push_failure" && notification.customerId && <a href={`/admin/customers/${notification.customerId}`}>View customer record</a>}
               <p style={{ margin: 0, color: "var(--muted)" }}>Created: {notification.createdAt}</p>
               {notification.readAt ? <p style={{ margin: 0, color: "var(--muted)" }}>Dismissed: {notification.readAt}</p> : null}
             </article>

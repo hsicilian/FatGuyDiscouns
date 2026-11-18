@@ -1,0 +1,60 @@
+const fs=require('fs'),path=require('path'),vm=require('vm'),ts=require('typescript'),assert=require('assert/strict');
+const {PGlite}=require('@electric-sql/pglite');const root=path.resolve(__dirname,'..');
+const id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
+(async()=>{
+const db=new PGlite();await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;
+create table auth.users(id uuid primary key);create table public.user_roles(user_id uuid,role text,account_state text);
+create table public.customer_profiles(user_id uuid primary key,display_name text,credit_balance numeric(12,2) not null default 0);
+create table public.credits(id uuid primary key,customer_id uuid,amount numeric(12,2),reason text,created_at timestamptz);
+create table public.admin_audit_log(actor_id uuid,actor_name text,actor_role text,action_type text,entity_type text,entity_id text,target_customer_id uuid,summary text);
+insert into auth.users values('${id(1)}'),('${id(2)}'),('${id(3)}');
+insert into user_roles values('${id(1)}','master_admin','approved'),('${id(2)}','customer','approved'),('${id(3)}','admin','approved');
+insert into customer_profiles values('${id(1)}','Owner',0),('${id(2)}','Customer',0);
+grant usage on schema public,auth to service_role;grant select,insert,update on all tables in schema public to service_role;`);
+await db.exec(fs.readFileSync(path.join(root,'supabase/migrations/20261114185245_add_account_credit.sql'),'utf8'));
+const call=(request,amount=5,reason='Shipping deposit',actor=id(1),date='2026-11-14')=>db.query('select add_account_credit($1,$2,$3,$4,$5,$6) result',[request,actor,id(2),amount,reason,date]);
+await db.exec('set role service_role');assert.equal((await call(id(10))).rows[0].result.saved,true);
+assert.equal((await call(id(10))).rows[0].result.duplicate,true);
+assert.equal((await db.query('select credit_balance from customer_profiles where user_id=$1',[id(2)])).rows[0].credit_balance,'5.00');
+await assert.rejects(call(id(10),6));await assert.rejects(call(id(11),5,'Gift certificate',id(3)));
+await assert.rejects(call(id(11),5,'Gift certificate',id(2)));
+for(const v of [0,-1,'NaN','Infinity','0.001',10000000000])await assert.rejects(call(id(11),v));
+await call(id(12),20,'Gift certificate');
+assert.equal((await db.query('select credit_balance from customer_profiles where user_id=$1',[id(2)])).rows[0].credit_balance,'25.00');
+assert.equal((await db.query('select count(*)::int n from credits')).rows[0].n,2);
+assert.equal((await db.query('select count(*)::int n from admin_audit_log')).rows[0].n,2);
+await db.exec('reset role; alter table admin_audit_log add constraint force_audit_failure check(false) not valid; set role service_role;');
+await assert.rejects(call(id(13),7));assert.equal((await db.query('select count(*)::int n from credits')).rows[0].n,2);
+assert.equal((await db.query('select count(*)::int n from account_credit_requests')).rows[0].n,2);
+assert.equal((await db.query('select credit_balance from customer_profiles where user_id=$1',[id(2)])).rows[0].credit_balance,'25.00');
+await db.exec('reset role;set role authenticated');await assert.rejects(call(id(14)));await assert.rejects(db.query('select * from account_credit_requests'));
+await db.exec('reset role;set role anon');await assert.rejects(call(id(14)));await db.close();
+console.log('PASS Zero-balance deposits, gift certificates, repeat submission, mismatch rejection, invalid amounts, Owner gate, browser privileges and atomic rollback on audit failure.');
+let actor={id:id(1),role:'master_admin',accountState:'approved'},calls=0,error=null,data={saved:true},paths=[];
+const exports={};vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(root,'apps/web/app/actions/credits/add.ts'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,{exports,Date,require:n=>({'next/cache':{revalidatePath:p=>paths.push(p)},'../../../lib/auth/session':{getCurrentSessionUser:async()=>actor},'../../../lib/data/supabase-helpers':{getAdminClient:async()=>({rpc:async()=>{calls++;return {data,error};}})}}[n])});
+const form=new FormData();Object.entries({customerId:id(2),requestId:id(10),amount:'5',recordedAt:'2026-11-14',kind:'Shipping deposit',note:''}).forEach(([k,v])=>form.set(k,v));
+assert.equal((await exports.addAccountCreditAction({},form)).ok,true);assert.ok(paths.includes('/admin/customers/'+id(2)));
+error={};assert.equal((await exports.addAccountCreditAction({},form)).ok,false);error=null;
+for(const amount of ['NaN','-5','0','5.001']){form.set('amount',amount);assert.equal((await exports.addAccountCreditAction({},form)).ok,false);}form.set('amount','5');
+form.set('recordedAt','2026-02-30');assert.equal((await exports.addAccountCreditAction({},form)).ok,false);form.set('recordedAt','2026-11-14');
+const before=calls;actor={role:'customer'};assert.equal((await exports.addAccountCreditAction({},form)).ok,false);assert.equal(calls,before);
+assert.ok(!fs.readFileSync(path.join(root,'apps/web/lib/actions/server.ts'),'utf8').includes('result.ok ? result : await previewPaymentAction'));
+console.log('PASS Server amount/date validation, Owner-only action, saved-only success, RPC error display and cache invalidation.');
+const appRequire=require('module').createRequire(path.join(root,'apps/web/package.json'));let uiState={ok:false,message:''};const out={};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync(path.join(root,'apps/web/components/forms/add-account-credit-form.tsx'),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports:out,crypto:{randomUUID:()=>id(20)},require:n=>{
+ if(n==='react/jsx-runtime')return appRequire(n);
+ if(n==='react')return {useState:v=>[v===''?id(20):v,()=>{}],useEffect:()=>{},useActionState:()=>[uiState,()=>{},false]};
+ if(n==='../../app/actions/credits/add')return {addAccountCreditAction:()=>{throw Error('No submissions in UI tests');}};
+ if(n==='../../lib/date-format')return {getEasternDateInputValue:()=> '2026-11-14'};
+ throw Error(n);
+}});
+function nodes(t){if(!t||typeof t!=='object')return [];if(typeof t.type==='function')return nodes(t.type(t.props));return [t,...[t.props?.children].flat(Infinity).flatMap(nodes)];}
+function render(){return nodes(out.AddAccountCreditForm({customerId:id(2)}));}
+assert.equal(render().find(n=>n.props?.name==='requestId').props.value,id(20));
+assert.equal(render().find(n=>n.type==='fieldset').props.disabled,false);
+assert.equal(render().filter(n=>n.type==='option').length,3);
+uiState={ok:true,message:'Saved'};assert.equal(render().find(n=>n.type==='fieldset').props.disabled,true);
+assert.ok(render().some(n=>n.type==='button'&&n.props.children==='Start another credit'));
+console.log('PASS Credit form reasons, stable request ID and post-save field lock with explicit new-credit action.');
+
+})().catch(e=>{console.error(e);process.exitCode=1;});

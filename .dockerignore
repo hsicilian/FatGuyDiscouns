@@ -1,0 +1,23 @@
+# Allow only build inputs. Exclude credentials, local data, and migration tooling.
+**
+!Dockerfile
+!package.json
+!package-lock.json
+!tsconfig.base.json
+!apps/
+!apps/web/
+!apps/web/**
+!apps/mobile/
+!apps/mobile/package.json
+!packages/
+!packages/**
+!types/
+!types/**
+**/node_modules
+**/.next
+**/.env*
+**/*.tsbuildinfo
+**/*.log
+**/*.pem
+**/*.key
+apps/web/data

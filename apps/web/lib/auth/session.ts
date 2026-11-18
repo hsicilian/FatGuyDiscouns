@@ -23,7 +23,11 @@ export async function listSessionAccounts() {
 
 async function getSupabaseSessionAccount(): Promise<SessionAccount | null> {
   const supabase = await createServerSupabaseClient();
-  const { data: userResult } = await supabase.auth.getUser();
+  const { data: userResult, error } = await supabase.auth.getUser();
+  // An unavailable Auth service is not evidence that the customer signed out.
+  if (error && error.name !== "AuthSessionMissingError" && ![400, 401, 403].includes(error.status ?? 0)) {
+    throw new Error("Sign-in verification is temporarily unavailable. Please try again.");
+  }
 
   const user = userResult.user;
   if (!user) {

@@ -532,6 +532,7 @@ export async function listNotificationsSupabase(options?: { includeRead?: boolea
   return (data ?? []).map((row) => ({
     id: row.id,
     type: row.type,
+    customerId: row.customer_id ?? null,
     label: formatNotificationLabel({
       ...row,
       payload: row.payload ?? {},

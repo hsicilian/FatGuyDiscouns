@@ -1,3 +1,5 @@
+import { AddAccountCreditForm } from "../../../../components/forms/add-account-credit-form";
+import { CrmSubscriberPanel } from "../../../../components/push/crm-subscriber-panel";
 import { accountStateLabel, shipmentStatusLabel } from "@fatguydiscounts/core";
 import { ApprovalActionForm } from "../../../../components/forms/approval-action-form";
 import { AdminShipmentRequestForm } from "../../../../components/forms/admin-shipment-request-form";
@@ -131,6 +133,8 @@ export default async function AdminCustomerDetailPage({
           </a>
         </div>
       </section>
+
+      <CrmSubscriberPanel customerId={customerId} />
 
       <section style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
         <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 22, padding: 20, boxShadow: "var(--shadow)" }}>
@@ -318,6 +322,7 @@ export default async function AdminCustomerDetailPage({
           </div>
           <div style={{ padding: 16, borderRadius: 20, background: "rgba(255,255,255,0.55)", border: "1px solid rgba(232,214,195,0.88)" }}>
             <h3 style={{ marginTop: 0 }}>Apply payment or credit</h3>
+            {isMasterAdmin && <AddAccountCreditForm customerId={customerId} />}
             <PaymentPreviewForm
               defaultPayment={paymentDefaults.paymentAmount}
               defaultCredit={paymentDefaults.creditAmount}

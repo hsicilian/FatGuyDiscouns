@@ -15,5 +15,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/account/:path*", "/claims/:path*", "/admin/:path*", "/login", "/signup", "/auth/:path*", "/forgot-password", "/reset-password", "/resend-confirmation"],
+  // Every page renders an authenticated layout, including Home and Store.
+  // Refresh in middleware so rotated cookies reach both render and browser.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|manifest\\.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)"],
 };

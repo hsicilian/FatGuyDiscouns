@@ -1,5 +1,7 @@
 "use server";
 
+import { cookies } from "next/headers";
+import { reconcileDevice } from "../../../lib/push/server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import type { FormActionState } from "@fatguydiscounts/types";
@@ -66,7 +68,10 @@ export async function loginWithLocalAccountAction(
     }),
   ]);
 
-  const nextLocation = roleRow?.role === "master_admin"
+  const notificationEntry = safeRedirect === "/account/notifications";
+  const nextLocation = notificationEntry && (roleRow?.role === "master_admin" || roleRow?.role === "admin")
+    ? "/admin/notifications"
+    : roleRow?.role === "master_admin"
     ? "/admin/reports"
     : roleRow?.role === "admin"
       ? "/admin"
@@ -80,5 +85,13 @@ export async function loginWithLocalAccountAction(
     };
   }
 
+  if (process.env.PUSH_ENABLED === "true") {
+    try {
+      await reconcileDevice(userResult.user.id, null, (await cookies()).get("fgd-push-device")?.value);
+    } catch {
+      await supabase.auth.signOut({ scope: "local" });
+      return { ok: false, message: "Could not safely switch this device. Please try signing in again.", submittedAt: new Date().toISOString() };
+    }
+  }
   redirect(nextLocation);
 }

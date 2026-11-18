@@ -13,6 +13,7 @@ const cards = [
   { href: "/admin/cross-listed", title: "Cross listed inventory", body: "Master-admin-only tracker for the outside platforms each SKU is currently listed on." },
   { href: "/admin/audit", title: "Admin audit trail", body: "Master-admin-only history of key inventory, CRM, shipment, and event changes." },
   { href: "/admin/reports", title: "Financial reports", body: "Master-admin-only summaries for unpaid totals and customer balances." },
+  { href: "/admin/push", title: "Send Notifications", body: "Owner tools for sale announcements and payment reminders. Choose a category and preview recipients before sending." },
 ];
 
 export default async function AdminPage() {
@@ -20,6 +21,7 @@ export default async function AdminPage() {
   const currentUser = await getCurrentSessionUser();
   const isMasterAdmin = currentUser?.role === "master_admin";
   const visibleCards = cards.filter((card) => (
+    card.href === "/admin/push" ? isMasterAdmin && process.env.PUSH_ENABLED === "true" :
     card.href === "/admin/reports" || card.href === "/admin/cross-listed" || card.href === "/admin/audit" || card.href === "/admin/payments"
       ? isMasterAdmin
       : true

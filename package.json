@@ -8,6 +8,9 @@
     "packages/*"
   ],
   "scripts": {
+    "test:billing": "node scripts/test-weekly-billing.cjs",
+    "test:push": "node scripts/test-push.cjs",
+    "test:push-ui": "node scripts/test-push-ui.cjs",
     "dev:web": "npm run dev -w apps/web",
     "dev:mobile": "npm run dev -w apps/mobile",
     "build:web": "npm run build -w apps/web",
@@ -16,6 +19,7 @@
     "seed:supabase": "node ./scripts/seed-supabase-demo.mjs"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "typescript": "^5.8.2"
   }
 }

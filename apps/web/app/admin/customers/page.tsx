@@ -1,3 +1,4 @@
+import { CrmSubscriberPanel } from "../../../components/push/crm-subscriber-panel";
 import { accountStateLabel, shipmentStatusLabel } from "@fatguydiscounts/core";
 import { ManualCustomerCreateForm } from "../../../components/forms/manual-customer-create-form";
 import { ensureAdminAccess } from "../../../lib/auth/guards";
@@ -87,6 +88,8 @@ export default async function AdminCustomersPage({ searchParams }: AdminCustomer
         </div>
         <ManualCustomerCreateForm />
       </section>
+
+      <CrmSubscriberPanel />
 
       <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 24, padding: 20, boxShadow: "var(--shadow)", marginBottom: 24, display: "grid", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "end" }}>

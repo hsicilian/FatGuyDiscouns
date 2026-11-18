@@ -2,7 +2,6 @@ import { revalidatePath } from "next/cache";
 import type { FormActionState, ShipmentStatus, UserRole } from "@fatguydiscounts/types";
 import { previewApprovalAction } from "./approvals";
 import { previewClaimAction } from "./claims";
-import { previewPaymentAction } from "./payments";
 import { previewShipmentRequest } from "./shipments";
 import { getCurrentSessionUser } from "../auth/session";
 import { isUuidLike } from "../products";
@@ -1216,7 +1215,7 @@ export async function previewPaymentSubmission(paymentAmount: number, creditAmou
   revalidatePath("/admin/customers");
 
   return {
-    ...(result.ok ? result : await previewPaymentAction(paymentAmount, creditAmount)),
+    ...result,
     submittedAt: new Date().toISOString(),
   };
 }

@@ -30,9 +30,10 @@ export function PaymentPreviewForm({
         <input name="paymentAmount" type="number" step="0.01" min="0" defaultValue={defaultPayment} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2", boxSizing: "border-box" }} />
       </label>
       <label style={{ display: "grid", gap: 6 }}>
-        <span>Credit amount</span>
+        <span>Existing credit to apply</span>
         <input name="creditAmount" type="number" step="0.01" min="0" defaultValue={defaultCredit} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2", boxSizing: "border-box" }} />
       </label>
+      <p style={{ margin: 0 }}>This uses credit already on file to pay the balance. To record a shipping deposit or gift certificate, use Add account credit.</p>
       <label style={{ display: "grid", gap: 6 }}>
         <span>Record date</span>
         <input name="recordedAt" type="date" defaultValue={today} style={{ width: "100%", padding: 12, borderRadius: 12, border: "1px solid #d9c7b2", boxSizing: "border-box" }} />

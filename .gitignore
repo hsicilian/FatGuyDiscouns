@@ -12,3 +12,9 @@ coverage
 
 apps/web/data/local-db.json
 apps/web/data/local-auth.json
+
+# Private environment files and local Supabase CLI state
+.env.*
+!.env.example
+*.env
+supabase/.temp/

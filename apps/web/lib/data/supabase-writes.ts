@@ -2003,6 +2003,9 @@ export async function applyPaymentToDatabaseSupabase(paymentAmount: number, cred
   if (cycleContexts.length === 0) return { ok: false, message: "No active balance cycle is available for payment." };
 
   const totalDue = cycleContexts.reduce((sum, context) => sum + context.due, 0);
+  if (!Number.isFinite(paymentAmount) || !Number.isFinite(creditAmount)) return { ok: false, message: "Enter valid payment and credit amounts." };
+  if (creditAmount > customer.creditBalance) return { ok: false, message: "The requested credit exceeds credit on file. Use Add account credit to record a new deposit or gift certificate." };
+  if (paymentAmount === 0 && creditAmount === 0) return { ok: false, message: "Enter a payment or existing credit amount greater than zero." };
   const totalApplicableCredit = Math.min(creditAmount, customer.creditBalance, totalDue);
   const preview = applyPaymentToBalance(totalDue, paymentAmount, totalApplicableCredit);
   const admin = await getAdminClient();

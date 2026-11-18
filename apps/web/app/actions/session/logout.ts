@@ -8,7 +8,7 @@ import { sessionCookieName } from "../../../lib/auth/session";
 export async function logoutSessionAction() {
   if (hasSupabaseEnv()) {
     const supabase = await createServerSupabaseClient();
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     redirect("/login");
   }
 

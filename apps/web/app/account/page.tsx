@@ -12,6 +12,7 @@ import { previewShipmentRequest } from "../../lib/actions/shipments";
 import { ensureCustomerAccess } from "../../lib/auth/guards";
 import { getCurrentCustomer, getOpenBalanceSummary, listClaimedItems, listCustomerItemRequests, listCustomerMessagesForCustomer, listShipmentRecordsForCustomer } from "../../lib/data/local-db";
 import { formatEasternTimestamp } from "../../lib/date-format";
+import { NotificationSettings } from "../../components/push/notification-settings";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -58,6 +59,7 @@ export default async function AccountPage() {
               Your account is currently marked as <strong>{accountStateLabel(currentCustomer.accountState).toLowerCase()}</strong>.
             </p>
           </div>
+          <a href="/account/notifications" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>Notifications</a>
           <a href="/account/history" style={{ color: "var(--accent-strong)", fontWeight: 700 }}>View paid history</a>
         </div>
         <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginTop: 24 }}>
@@ -83,6 +85,7 @@ export default async function AccountPage() {
         ) : null}
       </section>
 
+      <div id="phone-notification-status" />
       <div style={{ display: "grid", gap: 24, gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))" }}>
         <section style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 26, padding: 24, boxShadow: "var(--shadow)", backdropFilter: "blur(14px)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 16, flexWrap: "wrap", alignItems: "end", marginBottom: 18 }}>
@@ -259,6 +262,7 @@ export default async function AccountPage() {
           </section>
         </aside>
       </div>
+      {process.env.PUSH_ENABLED === "true" && <NotificationSettings collapsible />}
     </main>
   );
 }

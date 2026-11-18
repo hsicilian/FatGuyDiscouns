@@ -20,6 +20,7 @@ export type ShipmentStatus = "none" | "requested" | "in_progress" | "completed";
 export type FulfillmentMethod = "shipping" | "local_pickup";
 
 export type NotificationType =
+  | "push_failure"
   | "new_claim"
   | "shipment_request"
   | "pending_approval"
@@ -204,6 +205,7 @@ export interface RestockRequestRecord {
 
 export interface AdminNotification {
   id: string;
+  customerId?: string | null;
   type: NotificationType;
   label: string;
   createdAt: string;
